@@ -100,15 +100,15 @@ NET_RECEIVE (weight, Pv, Pr, u, tsyn (ms)){
 	   }	
 
         
-            Pv   = 1-(1-Pv) * exp(-(t-tsyn)/Dep) :Probability Pv for a vesicle to be available for release, analogous to the pool of synaptic
-            Pr  = u * Pv                         :resources available for release in the deterministic model. Eq. 3 in Fuhrmann et al.
-                                                 :Pr is calculated as Pv * u (running value of Use)
+            Pv  = 1 - (1-Pv) * exp(-(t-tsyn)/Dep) :Probability Pv for a vesicle to be available for release, analogous to the pool of synaptic
+                                                 :resources available for release in the deterministic model. Eq. 3 in Fuhrmann et al.
+            Pr  = u * Pv                         :Pr is calculated as Pv * u (running value of Use)
+            Pv  = Pv - u * Pv                    :update Pv as per Eq. 3 in Fuhrmann et al.
             :printf("Pv = %g\n", Pv)
             :printf("Pr = %g\n", Pr)
                 tsyn = t
                 if (ranfGABAA() < Pr){
-                    Pv   = Pv - u * Pv
-	   	    A = A + weight*factor
+    	   	    A = A + weight*factor
 	            B = B + weight*factor
                 }
 }
