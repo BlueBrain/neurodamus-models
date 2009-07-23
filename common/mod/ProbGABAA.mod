@@ -42,7 +42,11 @@ float ranfGABAA(){
 }
 
 void SetSeedNowGABAA(){
+#ifdef SYN_DEBUG
 srand(time(NULL));
+#else
+srand(888);
+#endif
 return;
 }
 ENDVERBATIM
