@@ -15,6 +15,7 @@ NEURON {
         RANGE Use, u, Dep, Fac, u0
         RANGE i, i_AMPA, i_NMDA, g_AMPA, g_NMDA, e
         NONSPECIFIC_CURRENT i, i_AMPA,i_NMDA
+        RANGE mg
 }
 
 PARAMETER {
@@ -69,6 +70,7 @@ ASSIGNED {
 	g_NMDA (uS)
         factor_AMPA
 	factor_NMDA
+        mg
 }
 
 STATE {
