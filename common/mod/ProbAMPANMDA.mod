@@ -70,7 +70,6 @@ ASSIGNED {
 	g_NMDA (uS)
         factor_AMPA
 	factor_NMDA
-        mg
 }
 
 STATE {
