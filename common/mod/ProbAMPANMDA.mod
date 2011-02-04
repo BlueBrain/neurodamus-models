@@ -12,7 +12,7 @@ NEURON {
         POINT_PROCESS ProbAMPANMDA  
         RANGE tau_r_AMPA, tau_d_AMPA, tau_r_NMDA, tau_d_NMDA
         RANGE Use, u, Dep, Fac, u0, mg
-        RANGE i, i_AMPA, i_NMDA, g_AMPA, g_NMDA, e
+        RANGE i, i_AMPA, i_NMDA, g_AMPA, g_NMDA, g, e
         NONSPECIFIC_CURRENT i, i_AMPA,i_NMDA
         POINTER rng
 }
@@ -58,6 +58,7 @@ ASSIGNED {
         i_NMDA (nA)
         g_AMPA (uS)
         g_NMDA (uS)
+        g (uS)
         factor_AMPA
         factor_NMDA
         rng
@@ -98,6 +99,7 @@ BREAKPOINT {
         mggate = 1 / (1 + exp(0.062 (/mV) * -(v)) * (mg / 3.57 (mM))) :mggate kinetics - Jahr & Stevens 1990
         g_AMPA = gmax*(B_AMPA-A_AMPA) :compute time varying conductance as the difference of state variables B_AMPA and A_AMPA
         g_NMDA = gmax*(B_NMDA-A_NMDA) * mggate :compute time varying conductance as the difference of state variables B_NMDA and A_NMDA and mggate kinetics
+        g = g_AMPA + g_NMDA
         i_AMPA = g_AMPA*(v-e) :compute the AMPA driving force based on the time varying conductance, membrane potential, and AMPA reversal
         i_NMDA = g_NMDA*(v-e) :compute the NMDA driving force based on the time varying conductance, membrane potential, and NMDA reversal
         i = i_AMPA + i_NMDA
