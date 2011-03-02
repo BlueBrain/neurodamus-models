@@ -15,6 +15,7 @@ NEURON {
         RANGE i, i_AMPA, i_NMDA, g_AMPA, g_NMDA, g, e
         NONSPECIFIC_CURRENT i, i_AMPA,i_NMDA
         POINTER rng
+        RANGE synapseID, verboseLevel
 }
 
 PARAMETER {
@@ -31,13 +32,15 @@ PARAMETER {
         mggate
         gmax = .001 (uS) : weight conversion factor (from nS to uS)
         u0 = 0 :initial value of u, which is the running value of Use
+        synapseID = 0
+        verboseLevel = 0
 }
 
 COMMENT
 The Verbatim block is needed to generate random nos. from a uniform distribution between 0 and 1 
 for comparison with Pr to decide whether to activate the synapse or not
 ENDCOMMENT
-   
+
 VERBATIM
 
 #include<stdlib.h>
@@ -115,7 +118,7 @@ DERIVATIVE state{
 
 
 NET_RECEIVE (weight,weight_AMPA, weight_NMDA, Pv, Pr, u, tsyn (ms)){
-        
+        LOCAL result
         weight_AMPA = weight
         weight_NMDA = weight * 0.71
 
@@ -140,18 +143,24 @@ NET_RECEIVE (weight,weight_AMPA, weight_NMDA, Pv, Pr, u, tsyn (ms)){
                                                  :resources available for release in the deterministic model. Eq. 3 in Fuhrmann et al.
             Pr  = u * Pv                         :Pr is calculated as Pv * u (running value of Use)
             Pv  = Pv - u * Pv                    :update Pv as per Eq. 3 in Fuhrmann et al.
-            :printf("Pv = %g\n", Pv)
-            :printf("Pr = %g\n", Pr)
-            tsyn = t
+            result = erand()                     : throw the random number
+            
+            if( verboseLevel > 0 ) {
+                printf("Synapse %f at time %g: Pv = %g Pr = %g erand = %g\n", synapseID, t, Pv, Pr, result )
+            }
                 
-                   if (erand() < Pr){
-        
-                    A_AMPA = A_AMPA + weight_AMPA*factor_AMPA
-                    B_AMPA = B_AMPA + weight_AMPA*factor_AMPA
-                    A_NMDA = A_NMDA + weight_NMDA*factor_NMDA
-                    B_NMDA = B_NMDA + weight_NMDA*factor_NMDA
-
+            tsyn = t
+            
+            if (result < Pr) {
+                A_AMPA = A_AMPA + weight_AMPA*factor_AMPA
+                B_AMPA = B_AMPA + weight_AMPA*factor_AMPA
+                A_NMDA = A_NMDA + weight_NMDA*factor_NMDA
+                B_NMDA = B_NMDA + weight_NMDA*factor_NMDA
+                
+                if( verboseLevel > 0 ) {
+                    printf( " vals %g %g %g %g\n", A_AMPA, weight_AMPA, factor_AMPA, weight )
                 }
+            }
 }
 
 PROCEDURE setRNG() {
@@ -195,4 +204,8 @@ VERBATIM
         }
 ENDVERBATIM
         erand = value
+}
+
+FUNCTION toggleVerbose() {
+    verboseLevel = 1-verboseLevel
 }
