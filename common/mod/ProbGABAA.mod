@@ -1,4 +1,4 @@
-VERBATIM
+COMMENT
 /**
  * @file ProbGABAA.mod
  * @brief 
@@ -6,7 +6,7 @@ VERBATIM
  * @date 2010-03-03
  * @remark Copyright © BBP/EPFL 2005-2011; All rights reserved. Do not distribute without further notice.
  */
-ENDVERBATIM
+ENDCOMMENT
 
 TITLE GABAA receptor with presynaptic short-term plasticity 
 
