@@ -47,7 +47,7 @@ NEURON {
 	POINT_PROCESS ProbGABAAB_EMS
 	RANGE tau_r_GABAA, tau_d_GABAA, tau_r_GABAB, tau_d_GABAB 
 	RANGE Use, u, Dep, Fac, u0, Rstate, tsyn_fac, u
-	RANGE i,i_GABAA, i_GABAB, g_GABAA, g_GABAB, g, e_GABAA, e_GABAB
+	RANGE i,i_GABAA, i_GABAB, g_GABAA, g_GABAB, g, e_GABAA, e_GABAB, GABAB_ratio
 	NONSPECIFIC_CURRENT i, i_GABAA, i_GABAB
     POINTER rng
     RANGE synapseID, verboseLevel
@@ -224,7 +224,7 @@ NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv, tsyn (ms)){
                          B_GABAB = B_GABAB + weight_GABAB*factor_GABAB
                          
                          if( verboseLevel > 0 ) {
-                             printf( "Release! %f at time %g: vals %g %g %g \n", synapseID, t, A_GABAA, weight_GABAA, factor )
+                             printf( "Release! %f at time %g: vals %g %g %g \n", synapseID, t, A_GABAA, weight_GABAA, factor_GABAA )
                          }
 		  		  
 		  }
