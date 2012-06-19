@@ -1,3 +1,13 @@
+COMMENT
+/**
+ * @file ProbAMPANMDA.mod
+ * @brief 
+ * @author king
+ * @date 2010-03-03
+ * @remark Copyright © BBP/EPFL 2005-2011; All rights reserved. Do not distribute without further notice.
+ */
+ENDCOMMENT
+
 TITLE AMPA and NMDA receptor with presynaptic short-term plasticity 
 
 
@@ -11,10 +21,11 @@ NEURON {
 
         POINT_PROCESS ProbAMPANMDA  
         RANGE tau_r_AMPA, tau_d_AMPA, tau_r_NMDA, tau_d_NMDA
-        RANGE Use, u, Dep, Fac, u0, mg
-        RANGE i, i_AMPA, i_NMDA, g_AMPA, g_NMDA, e
+        RANGE Use, u, Dep, Fac, u0, mg, NMDA_ratio
+        RANGE i, i_AMPA, i_NMDA, g_AMPA, g_NMDA, g, e
         NONSPECIFIC_CURRENT i, i_AMPA,i_NMDA
         POINTER rng
+        RANGE synapseID, verboseLevel
 }
 
 PARAMETER {
@@ -31,13 +42,16 @@ PARAMETER {
         mggate
         gmax = .001 (uS) : weight conversion factor (from nS to uS)
         u0 = 0 :initial value of u, which is the running value of Use
+	NMDA_ratio = 0.71 (1) : The ratio of NMDA to AMPA
+        synapseID = 0
+        verboseLevel = 0
 }
 
 COMMENT
 The Verbatim block is needed to generate random nos. from a uniform distribution between 0 and 1 
 for comparison with Pr to decide whether to activate the synapse or not
 ENDCOMMENT
-   
+
 VERBATIM
 
 #include<stdlib.h>
@@ -58,6 +72,7 @@ ASSIGNED {
         i_NMDA (nA)
         g_AMPA (uS)
         g_NMDA (uS)
+        g (uS)
         factor_AMPA
         factor_NMDA
         rng
@@ -98,6 +113,7 @@ BREAKPOINT {
         mggate = 1 / (1 + exp(0.062 (/mV) * -(v)) * (mg / 3.57 (mM))) :mggate kinetics - Jahr & Stevens 1990
         g_AMPA = gmax*(B_AMPA-A_AMPA) :compute time varying conductance as the difference of state variables B_AMPA and A_AMPA
         g_NMDA = gmax*(B_NMDA-A_NMDA) * mggate :compute time varying conductance as the difference of state variables B_NMDA and A_NMDA and mggate kinetics
+        g = g_AMPA + g_NMDA
         i_AMPA = g_AMPA*(v-e) :compute the AMPA driving force based on the time varying conductance, membrane potential, and AMPA reversal
         i_NMDA = g_NMDA*(v-e) :compute the NMDA driving force based on the time varying conductance, membrane potential, and NMDA reversal
         i = i_AMPA + i_NMDA
@@ -113,9 +129,9 @@ DERIVATIVE state{
 
 
 NET_RECEIVE (weight,weight_AMPA, weight_NMDA, Pv, Pr, u, tsyn (ms)){
-        
+        LOCAL result
         weight_AMPA = weight
-        weight_NMDA = weight * 0.71
+        weight_NMDA = weight * NMDA_ratio
 
         INITIAL{
                 Pv=1
@@ -138,18 +154,24 @@ NET_RECEIVE (weight,weight_AMPA, weight_NMDA, Pv, Pr, u, tsyn (ms)){
                                                  :resources available for release in the deterministic model. Eq. 3 in Fuhrmann et al.
             Pr  = u * Pv                         :Pr is calculated as Pv * u (running value of Use)
             Pv  = Pv - u * Pv                    :update Pv as per Eq. 3 in Fuhrmann et al.
-            :printf("Pv = %g\n", Pv)
-            :printf("Pr = %g\n", Pr)
-            tsyn = t
+            result = erand()                     : throw the random number
+            
+            if( verboseLevel > 0 ) {
+                printf("Synapse %f at time %g: Pv = %g Pr = %g erand = %g\n", synapseID, t, Pv, Pr, result )
+            }
                 
-                   if (erand() < Pr){
-        
-                    A_AMPA = A_AMPA + weight_AMPA*factor_AMPA
-                    B_AMPA = B_AMPA + weight_AMPA*factor_AMPA
-                    A_NMDA = A_NMDA + weight_NMDA*factor_NMDA
-                    B_NMDA = B_NMDA + weight_NMDA*factor_NMDA
-
+            tsyn = t
+            
+            if (result < Pr) {
+                A_AMPA = A_AMPA + weight_AMPA*factor_AMPA
+                B_AMPA = B_AMPA + weight_AMPA*factor_AMPA
+                A_NMDA = A_NMDA + weight_NMDA*factor_NMDA
+                B_NMDA = B_NMDA + weight_NMDA*factor_NMDA
+                
+                if( verboseLevel > 0 ) {
+                    printf( " vals %g %g %g %g\n", A_AMPA, weight_AMPA, factor_AMPA, weight )
                 }
+            }
 }
 
 PROCEDURE setRNG() {
@@ -193,4 +215,8 @@ VERBATIM
         }
 ENDVERBATIM
         erand = value
+}
+
+FUNCTION toggleVerbose() {
+    verboseLevel = 1-verboseLevel
 }
