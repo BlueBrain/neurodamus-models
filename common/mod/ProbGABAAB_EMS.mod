@@ -61,7 +61,7 @@ PARAMETER {
 	Use        = 1.0   (1)   : Utilization of synaptic efficacy (just initial values! Use, Dep and Fac are overwritten by BlueBuilder assigned values) 
 	Dep   = 100   (ms)  : relaxation time constant from depression
 	Fac   = 10   (ms)  :  relaxation time constant from facilitation
-	e_GABAA    = -70     (mV)  : GABAA reversal potential
+	e_GABAA    = -80     (mV)  : GABAA reversal potential
     e_GABAB    = -97     (mV)  : GABAB reversal potential
     gmax = .001 (uS) : weight conversion factor (from nS to uS)
     u0 = 0 :initial value of u, which is the running value of release probability
