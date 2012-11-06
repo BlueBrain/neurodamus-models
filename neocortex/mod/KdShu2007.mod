@@ -2,6 +2,7 @@ TITLE K-D
 : K-D current for prefrontal cortical neuron ------Yuguo Yu  2007
 
 NEURON {
+     THREADSAFE
 	SUFFIX KdShu2007
 	USEION k WRITE ik
 	RANGE  gkbar, ik, ek
