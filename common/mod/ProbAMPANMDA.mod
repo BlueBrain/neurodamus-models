@@ -18,6 +18,7 @@ ENDCOMMENT
 
 
 NEURON {
+    THREADSAFE
 
         POINT_PROCESS ProbAMPANMDA  
         RANGE tau_r_AMPA, tau_d_AMPA, tau_r_NMDA, tau_d_NMDA

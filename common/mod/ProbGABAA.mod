@@ -19,6 +19,7 @@ ENDCOMMENT
 
 
 NEURON {
+    THREADSAFE
 	POINT_PROCESS ProbGABAA	
 	RANGE tau_r, tau_d
 	RANGE Use, u, Dep, Fac, u0

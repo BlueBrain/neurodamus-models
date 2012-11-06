@@ -44,6 +44,7 @@ ENDCOMMENT
 
 
 NEURON {
+    THREADSAFE
 	POINT_PROCESS ProbGABAA_EMS
 	RANGE tau_r, tau_d
 	RANGE Use, u, Dep, Fac, u0, Rstate, tsyn_fac, u
