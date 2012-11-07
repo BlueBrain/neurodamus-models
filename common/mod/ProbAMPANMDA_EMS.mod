@@ -44,8 +44,6 @@ ENDCOMMENT
 
 NEURON {
     THREADSAFE
-    THREADSAFE
-
         POINT_PROCESS ProbAMPANMDA_EMS
         RANGE tau_r_AMPA, tau_d_AMPA, tau_r_NMDA, tau_d_NMDA
         RANGE Use, u, Dep, Fac, u0, mg, Rstate, tsyn_fac, u
