@@ -49,7 +49,7 @@ NEURON {
 	RANGE tau_r_GABAA, tau_d_GABAA, tau_r_GABAB, tau_d_GABAB 
 	RANGE Use, u, Dep, Fac, u0, Rstate, tsyn_fac, u
 	RANGE i,i_GABAA, i_GABAB, g_GABAA, g_GABAB, g, e_GABAA, e_GABAB, GABAB_ratio
-	NONSPECIFIC_CURRENT i, i_GABAA, i_GABAB
+	NONSPECIFIC_CURRENT i
     POINTER rng
     RANGE synapseID, verboseLevel
 }

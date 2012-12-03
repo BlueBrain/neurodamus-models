@@ -48,7 +48,7 @@ NEURON {
         RANGE tau_r_AMPA, tau_d_AMPA, tau_r_NMDA, tau_d_NMDA
         RANGE Use, u, Dep, Fac, u0, mg, Rstate, tsyn_fac, u
         RANGE i, i_AMPA, i_NMDA, g_AMPA, g_NMDA, g, e, NMDA_ratio
-        NONSPECIFIC_CURRENT i, i_AMPA,i_NMDA
+        NONSPECIFIC_CURRENT i
         POINTER rng
         RANGE synapseID, verboseLevel
 }
