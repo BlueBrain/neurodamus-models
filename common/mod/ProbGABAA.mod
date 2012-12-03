@@ -1,3 +1,13 @@
+COMMENT
+/**
+ * @file ProbGABAA.mod
+ * @brief 
+ * @author king
+ * @date 2010-03-03
+ * @remark Copyright © BBP/EPFL 2005-2011; All rights reserved. Do not distribute without further notice.
+ */
+ENDCOMMENT
+
 TITLE GABAA receptor with presynaptic short-term plasticity 
 
 
@@ -9,12 +19,14 @@ ENDCOMMENT
 
 
 NEURON {
+    THREADSAFE
 	POINT_PROCESS ProbGABAA	
 	RANGE tau_r, tau_d
 	RANGE Use, u, Dep, Fac, u0
 	RANGE i, g, e
 	NONSPECIFIC_CURRENT i
     POINTER rng
+    RANGE synapseID, verboseLevel
 }
 
 PARAMETER {
@@ -23,9 +35,11 @@ PARAMETER {
 	Use        = 1.0   (1)   : Utilization of synaptic efficacy (just initial values! Use, Dep and Fac are overwritten by BlueBuilder assigned values) 
 	Dep   = 100   (ms)  : relaxation time constant from depression
 	Fac   = 10   (ms)  :  relaxation time constant from facilitation
-	e    = -70     (mV)  : GABAA reversal potential
+	e    = -80     (mV)  : GABAA reversal potential
     gmax = .001 (uS) : weight conversion factor (from nS to uS)
     u0 = 0 :initial value of u, which is the running value of Use
+    synapseID = 0
+    verboseLevel = 0
 }
 
 COMMENT
@@ -79,6 +93,7 @@ DERIVATIVE state{
 
 
 NET_RECEIVE (weight, Pv, Pr, u, tsyn (ms)){
+    LOCAL result
 	INITIAL{
 		Pv=1
 		u=u0
@@ -100,13 +115,20 @@ NET_RECEIVE (weight, Pv, Pr, u, tsyn (ms)){
                                              :resources available for release in the deterministic model. Eq. 3 in Fuhrmann et al.
     Pr  = u * Pv                         :Pr is calculated as Pv * u (running value of Use)
     Pv  = Pv - u * Pv                    :update Pv as per Eq. 3 in Fuhrmann et al.
-    :printf("Pv = %g\n", Pv)
-    :printf("Pr = %g\n", Pr)
-    tsyn = t
-            
-    if (erand() < Pr) {
+    result = erand()                     : throw the random number
+    
+    if( verboseLevel > 0 ) {
+        printf("Synapse %f at time %g: Pv = %g Pr = %g erand = %g\n", synapseID, t, Pv, Pr, result )
+    }
+
+    tsyn = t            
+    if (result < Pr) {
         A = A + weight*factor
         B = B + weight*factor
+        
+        if( verboseLevel > 0 ) {
+            printf( " vals %g %g %g %g\n", A, B, weight, factor )
+        }
     }
 }
 
@@ -150,4 +172,8 @@ VERBATIM
         }
 ENDVERBATIM
         erand = value
+}
+
+FUNCTION toggleVerbose() {
+    verboseLevel = 1 - verboseLevel
 }
