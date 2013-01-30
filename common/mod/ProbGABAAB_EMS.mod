@@ -1,6 +1,6 @@
 COMMENT
 /**
- * @file ProbGABAA.mod
+ * @file ProbGABAAB.mod
  * @brief 
  * @author king, muller
  * @date 2011-08-17
@@ -8,7 +8,7 @@ COMMENT
  */
 ENDCOMMENT
 
-TITLE GABAA receptor with presynaptic short-term plasticity 
+TITLE GABAAB receptor with presynaptic short-term plasticity 
 
 
 COMMENT
@@ -45,26 +45,30 @@ ENDCOMMENT
 
 NEURON {
     THREADSAFE
-	POINT_PROCESS ProbGABAA_EMS
-	RANGE tau_r, tau_d
+	POINT_PROCESS ProbGABAAB_EMS
+	RANGE tau_r_GABAA, tau_d_GABAA, tau_r_GABAB, tau_d_GABAB 
 	RANGE Use, u, Dep, Fac, u0, Rstate, tsyn_fac, u
-	RANGE i, g, e
+	RANGE i,i_GABAA, i_GABAB, g_GABAA, g_GABAB, g, e_GABAA, e_GABAB, GABAB_ratio
 	NONSPECIFIC_CURRENT i
     POINTER rng
     RANGE synapseID, verboseLevel
 }
 
 PARAMETER {
-	tau_r  = 0.2   (ms)  : dual-exponential conductance profile
-	tau_d = 8   (ms)  : IMPORTANT: tau_r < tau_d
+	tau_r_GABAA  = 0.2   (ms)  : dual-exponential conductance profile
+	tau_d_GABAA = 8   (ms)  : IMPORTANT: tau_r < tau_d
+    tau_r_GABAB  = 3.5   (ms)  : dual-exponential conductance profile :Placeholder value from hippocampal recordings SR
+	tau_d_GABAB = 260.9   (ms)  : IMPORTANT: tau_r < tau_d  :Placeholder value from hippocampal recordings 
 	Use        = 1.0   (1)   : Utilization of synaptic efficacy (just initial values! Use, Dep and Fac are overwritten by BlueBuilder assigned values) 
 	Dep   = 100   (ms)  : relaxation time constant from depression
 	Fac   = 10   (ms)  :  relaxation time constant from facilitation
-	e    = -80     (mV)  : GABAA reversal potential
+	e_GABAA    = -80     (mV)  : GABAA reversal potential
+    e_GABAB    = -97     (mV)  : GABAB reversal potential
     gmax = .001 (uS) : weight conversion factor (from nS to uS)
     u0 = 0 :initial value of u, which is the running value of release probability
     synapseID = 0
     verboseLevel = 0
+	GABAB_ratio = 0 (1) : The ratio of GABAB to GABAA
 }
 
 COMMENT
@@ -86,8 +90,13 @@ ENDVERBATIM
 ASSIGNED {
 	v (mV)
 	i (nA)
+    i_GABAA (nA)
+    i_GABAB (nA)
+    g_GABAA (uS)
+    g_GABAB (uS)
 	g (uS)
-	factor
+	factor_GABAA
+    factor_GABAB
     rng
 
        : Recording these three, you can observe full state of model
@@ -103,40 +112,60 @@ ASSIGNED {
 }
 
 STATE {
-	A	: state variable to construct the dual-exponential profile - decays with conductance tau_r
-	B	: state variable to construct the dual-exponential profile - decays with conductance tau_d
+        A_GABAA       : GABAA state variable to construct the dual-exponential profile - decays with conductance tau_r_GABAA
+        B_GABAA       : GABAA state variable to construct the dual-exponential profile - decays with conductance tau_d_GABAA
+        A_GABAB       : GABAB state variable to construct the dual-exponential profile - decays with conductance tau_r_GABAB
+        B_GABAB       : GABAB state variable to construct the dual-exponential profile - decays with conductance tau_d_GABAB
 }
 
 INITIAL{
 
-	LOCAL tp
-	A = 0
-	B = 0
-	tp = (tau_r*tau_d)/(tau_d-tau_r)*log(tau_d/tau_r) :time to peak of the conductance
-	factor = -exp(-tp/tau_r)+exp(-tp/tau_d) :Normalization factor - so that when t = tp, gsyn = gpeak
-	factor = 1/factor
+        LOCAL tp_GABAA, tp_GABAB
 
-        Rstate=1
-        tsyn_fac=0
-        u=u0
+	Rstate=1
+	tsyn_fac=0
+	u=u0
+        
+        A_GABAA = 0
+        B_GABAA = 0
+        
+        A_GABAB = 0
+        B_GABAB = 0
+        
+        tp_GABAA = (tau_r_GABAA*tau_d_GABAA)/(tau_d_GABAA-tau_r_GABAA)*log(tau_d_GABAA/tau_r_GABAA) :time to peak of the conductance
+        tp_GABAB = (tau_r_GABAB*tau_d_GABAB)/(tau_d_GABAB-tau_r_GABAB)*log(tau_d_GABAB/tau_r_GABAB) :time to peak of the conductance
+        
+        factor_GABAA = -exp(-tp_GABAA/tau_r_GABAA)+exp(-tp_GABAA/tau_d_GABAA) :GABAA Normalization factor - so that when t = tp_GABAA, gsyn = gpeak
+        factor_GABAA = 1/factor_GABAA
+        
+        factor_GABAB = -exp(-tp_GABAB/tau_r_GABAB)+exp(-tp_GABAB/tau_d_GABAB) :GABAB Normalization factor - so that when t = tp_GABAB, gsyn = gpeak
+        factor_GABAB = 1/factor_GABAB
 
 }
 
 BREAKPOINT {
 	SOLVE state METHOD cnexp
-	g = gmax*(B-A) :compute time varying conductance as the difference of state variables B and A
-	i = g*(v-e) :compute the driving force based on the time varying conductance, membrane potential, and GABAA reversal
+	
+        g_GABAA = gmax*(B_GABAA-A_GABAA) :compute time varying conductance as the difference of state variables B_GABAA and A_GABAA
+        g_GABAB = gmax*(B_GABAB-A_GABAB) :compute time varying conductance as the difference of state variables B_GABAB and A_GABAB 
+        g = g_GABAA + g_GABAB
+        i_GABAA = g_GABAA*(v-e_GABAA) :compute the GABAA driving force based on the time varying conductance, membrane potential, and GABAA reversal
+        i_GABAB = g_GABAB*(v-e_GABAB) :compute the GABAB driving force based on the time varying conductance, membrane potential, and GABAB reversal
+        i = i_GABAA + i_GABAB
 }
 
-DERIVATIVE state{
-	A' = -A/tau_r
-	B' = -B/tau_d
+DERIVATIVE state{       
+        A_GABAA' = -A_GABAA/tau_r_GABAA
+        B_GABAA' = -B_GABAA/tau_d_GABAA
+        A_GABAB' = -A_GABAB/tau_r_GABAB
+        B_GABAB' = -B_GABAB/tau_d_GABAB
 }
 
 
-NET_RECEIVE (weight, Psurv, tsyn (ms)){
+NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv, tsyn (ms)){
     LOCAL result
-
+    weight_GABAA = weight
+    weight_GABAB = weight*GABAB_ratio
     : Locals:
     : Psurv - survival probability of unrecovered state
     : tsyn - time since last surival evaluation.
@@ -190,11 +219,13 @@ NET_RECEIVE (weight, Psurv, tsyn (ms)){
    		         tsyn = t
 			 Rstate = 0
 
-			 A = A + weight*factor
-			 B = B + weight*factor
+                         A_GABAA = A_GABAA + weight_GABAA*factor_GABAA
+                         B_GABAA = B_GABAA + weight_GABAA*factor_GABAA
+                         A_GABAB = A_GABAB + weight_GABAB*factor_GABAB
+                         B_GABAB = B_GABAB + weight_GABAB*factor_GABAB
                          
                          if( verboseLevel > 0 ) {
-                             printf( "Release! %f at time %g: vals %g %g %g \n", synapseID, t, A, weight, factor )
+                             printf( "Release! %f at time %g: vals %g %g %g \n", synapseID, t, A_GABAA, weight_GABAA, factor_GABAA )
                          }
 		  		  
 		  }
@@ -253,29 +284,6 @@ VERBATIM
 ENDVERBATIM
         urand = value
 }
-
-
-
-FUNCTION bbsavestate() {
-        bbsavestate = 0
-VERBATIM
-        /* first arg is direction (0 save, 1 restore), second is value*/
-        double *xdir, *xval, *hoc_pgetarg();
-        long nrn_get_random_sequence(void* r);
-        void nrn_set_random_sequence(void* r, int val);
-        xdir = hoc_pgetarg(1);
-        xval = hoc_pgetarg(2);
-        if (_p_rng) {
-                if (*xdir == 0.) {
-                        *xval = (double)nrn_get_random_sequence(_p_rng);
-                }else{
-                        nrn_set_random_sequence(_p_rng, (long)(*xval));
-                }
-        }
-ENDVERBATIM
-}
-
-
 
 FUNCTION toggleVerbose() {
     verboseLevel = 1 - verboseLevel

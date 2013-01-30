@@ -19,6 +19,7 @@ ENDCOMMENT
 
 
 NEURON {
+    THREADSAFE
 	POINT_PROCESS ProbGABAA	
 	RANGE tau_r, tau_d
 	RANGE Use, u, Dep, Fac, u0
@@ -34,7 +35,7 @@ PARAMETER {
 	Use        = 1.0   (1)   : Utilization of synaptic efficacy (just initial values! Use, Dep and Fac are overwritten by BlueBuilder assigned values) 
 	Dep   = 100   (ms)  : relaxation time constant from depression
 	Fac   = 10   (ms)  :  relaxation time constant from facilitation
-	e    = -70     (mV)  : GABAA reversal potential
+	e    = -80     (mV)  : GABAA reversal potential
     gmax = .001 (uS) : weight conversion factor (from nS to uS)
     u0 = 0 :initial value of u, which is the running value of Use
     synapseID = 0
@@ -89,6 +90,8 @@ DERIVATIVE state{
 	A' = -A/tau_r
 	B' = -B/tau_d
 }
+
+
 
 NET_RECEIVE (weight, Pv, Pr, u, tsyn (ms)){
     LOCAL result
@@ -172,6 +175,8 @@ ENDVERBATIM
         erand = value
 }
 
+
+
 FUNCTION bbsavestate() {
 	bbsavestate = 0
 VERBATIM
@@ -190,6 +195,7 @@ VERBATIM
 	}
 ENDVERBATIM
 }
+
 
 
 FUNCTION toggleVerbose() {

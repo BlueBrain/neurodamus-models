@@ -18,7 +18,7 @@ ENDCOMMENT
 
 
 NEURON {
-
+    THREADSAFE
         POINT_PROCESS ProbAMPANMDA  
         RANGE tau_r_AMPA, tau_d_AMPA, tau_r_NMDA, tau_d_NMDA
         RANGE Use, u, Dep, Fac, u0, mg, NMDA_ratio
@@ -127,6 +127,7 @@ DERIVATIVE state{
         B_NMDA' = -B_NMDA/tau_d_NMDA
 }
 
+
 NET_RECEIVE (weight,weight_AMPA, weight_NMDA, Pv, Pr, u, tsyn (ms)){
         LOCAL result
         weight_AMPA = weight
@@ -142,24 +143,23 @@ NET_RECEIVE (weight,weight_AMPA, weight_NMDA, Pv, Pr, u, tsyn (ms)){
         if (Fac > 0) {
                 u = u*exp(-(t - tsyn)/Fac) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
         } else {
-                u = Use  
+            u = Use  
         }
-        
+
         if(Fac > 0){
-                u = u + Use*(1-u) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
+            u = u + Use*(1-u) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
         }    
 
-        
         Pv  = 1 - (1-Pv) * exp(-(t-tsyn)/Dep) :Probability Pv for a vesicle to be available for release, analogous to the pool of synaptic
-                                              :resources available for release in the deterministic model. Eq. 3 in Fuhrmann et al.
+            :resources available for release in the deterministic model. Eq. 3 in Fuhrmann et al.
         Pr  = u * Pv                         :Pr is calculated as Pv * u (running value of Use)
         Pv  = Pv - u * Pv                    :update Pv as per Eq. 3 in Fuhrmann et al.
         result = erand()                     : throw the random number
-            
+
         if( verboseLevel > 0 ) {
             printf("Synapse %f at time %g: Pv = %g Pr = %g erand = %g\n", synapseID, t, Pv, Pr, result )
         }
-                
+
         tsyn = t
 
         if (result < Pr) {
@@ -167,7 +167,7 @@ NET_RECEIVE (weight,weight_AMPA, weight_NMDA, Pv, Pr, u, tsyn (ms)){
             B_AMPA = B_AMPA + weight_AMPA*factor_AMPA
             A_NMDA = A_NMDA + weight_NMDA*factor_NMDA
             B_NMDA = B_NMDA + weight_NMDA*factor_NMDA
-                
+
             if( verboseLevel > 0 ) {
                 printf( " vals %g %g %g %g\n", A_AMPA, weight_AMPA, factor_AMPA, weight )
             }
@@ -216,6 +216,7 @@ VERBATIM
 ENDVERBATIM
         erand = value
 }
+
 
 
 FUNCTION bbsavestate() {
