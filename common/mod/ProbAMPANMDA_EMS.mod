@@ -292,17 +292,22 @@ ENDVERBATIM
 FUNCTION bbsavestate() {
         bbsavestate = 0
 VERBATIM
-        /* first arg is direction (0 save, 1 restore), second is value*/
+        /* first arg is direction (0 save, 1 restore), second is array*/
+        /* if first arg is -1, fill xdir with the size of the array */
         double *xdir, *xval, *hoc_pgetarg();
         long nrn_get_random_sequence(void* r);
         void nrn_set_random_sequence(void* r, int val);
         xdir = hoc_pgetarg(1);
         xval = hoc_pgetarg(2);
         if (_p_rng) {
-                if (*xdir == 0.) {
-                        *xval = (double)nrn_get_random_sequence(_p_rng);
-                }else{
-                        nrn_set_random_sequence(_p_rng, (long)(*xval));
+                // tell how many items need saving
+                if (*xdir == -1. ) { *xdir = 1.0; return 0.0; }
+
+                // save the value(s)
+                else if (*xdir == 0.) {
+                        xval[0] = (double) nrn_get_random_sequence(_p_rng);
+                } else{  //restore the value(s)
+                        nrn_set_random_sequence(_p_rng, (long)(xval[0]));
                 }
         }
 ENDVERBATIM

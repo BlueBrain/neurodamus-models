@@ -266,10 +266,13 @@ VERBATIM
         xdir = hoc_pgetarg(1);
         xval = hoc_pgetarg(2);
         if (_p_rng) {
-                if (*xdir == 0.) {
-                        *xval = (double)nrn_get_random_sequence(_p_rng);
+                // tell how many items need saving
+                if (*xdir == -1. ) { *xdir = 1.0; return 0.0; }
+
+                else if (*xdir == 0.) {
+                        xval[0] = (double)nrn_get_random_sequence(_p_rng);
                 }else{
-                        nrn_set_random_sequence(_p_rng, (long)(*xval));
+                        nrn_set_random_sequence(_p_rng, (long)(xval[0]));
                 }
         }
 ENDVERBATIM
