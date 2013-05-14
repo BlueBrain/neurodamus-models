@@ -393,3 +393,26 @@ VERBATIM
     BnlDev = bnl
 }  
 
+FUNCTION bbsavestate() {
+        bbsavestate = 0
+VERBATIM
+fprintf( stderr, "calling stoch callback\n" );
+        /* first arg is direction (0 save, 1 restore), second is value*/
+        double *xdir, *xval, *hoc_pgetarg();
+        long nrn_get_random_sequence(void* r);
+        void nrn_set_random_sequence(void* r, int val);
+        xdir = hoc_pgetarg(1);
+        xval = hoc_pgetarg(2);
+        if (_p_rng) {
+                // tell how many items need saving
+                if (*xdir == -1. ) { *xdir = 1.0; return 0.0; }
+
+                else if (*xdir == 0.) {
+                        xval[0] = (double)nrn_get_random_sequence(_p_rng);
+                }else{
+                        nrn_set_random_sequence(_p_rng, (long)(xval[0]));
+                }
+        }
+ENDVERBATIM
+}
+
