@@ -396,7 +396,6 @@ VERBATIM
 FUNCTION bbsavestate() {
         bbsavestate = 0
 VERBATIM
-fprintf( stderr, "calling stoch callback\n" );
         /* first arg is direction (0 save, 1 restore), second is value*/
         double *xdir, *xval, *hoc_pgetarg();
         long nrn_get_random_sequence(void* r);
