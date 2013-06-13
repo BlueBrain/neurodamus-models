@@ -47,7 +47,7 @@ NEURON {
     THREADSAFE
 	POINT_PROCESS ProbGABAAB_EMS
 	RANGE tau_r_GABAA, tau_d_GABAA, tau_r_GABAB, tau_d_GABAB 
-	RANGE Use, u, Dep, Fac, u0, Rstate, tsyn_fac, u
+	RANGE Use, u, Dep, Fac, u0, Rstate, tsyn_fac, tsyn, u
 	RANGE i,i_GABAA, i_GABAB, g_GABAA, g_GABAB, g, e_GABAA, e_GABAB, GABAB_ratio
 	NONSPECIFIC_CURRENT i
     POINTER rng
@@ -106,6 +106,7 @@ ASSIGNED {
 	 : (attention: u is event based based, so only valid at incoming events)
        Rstate (1) : recovered state {0=unrecovered, 1=recovered}
        tsyn_fac (ms) : the time of the last spike
+       tsyn (ms) : the time of the last spike
        u (1) : running release probability
 
 
@@ -124,6 +125,7 @@ INITIAL{
 
 	Rstate=1
 	tsyn_fac=0
+        tsyn = 0
 	u=u0
         
         A_GABAA = 0
@@ -162,17 +164,15 @@ DERIVATIVE state{
 }
 
 
-NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv, tsyn (ms)){
+NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv){
     LOCAL result
     weight_GABAA = weight
     weight_GABAB = weight*GABAB_ratio
     : Locals:
     : Psurv - survival probability of unrecovered state
-    : tsyn - time since last surival evaluation.
 
 
     INITIAL{
-		tsyn=t
     }
 
         : calc u at event-
@@ -199,16 +199,16 @@ NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv, tsyn (ms)){
 		         Rstate = 1     : recover      
 
                          if( verboseLevel > 0 ) {
-                             printf( "Recovered! %f at time %g: Psurv = %g, urand=%g\n", synapseID, t, Psurv, result )
+                             printf( "Recovered! %f at time %g: Psurv = %g, urand=%g %g vs %g / %g\n", synapseID, t, Psurv, result, t, tsyn, Dep )
                          }
 
 		  }
 		  else {
 		         : survival must now be from this interval
-		         tsyn = t
                          if( verboseLevel > 0 ) {
-                             printf( "Failed to recover! %f at time %g: Psurv = %g, urand=%g\n", synapseID, t, Psurv, result )
+                             printf( "Failed to recover! %f at time %g: Psurv = %g, urand=%g %g vs %g / %g\n", synapseID, t, Psurv, result, t, tsyn, Dep )
                          }
+		         tsyn = t
 		  }
            }	   
 	   
@@ -284,6 +284,8 @@ VERBATIM
 ENDVERBATIM
         urand = value
 }
+
+
 
 FUNCTION toggleVerbose() {
     verboseLevel = 1 - verboseLevel
