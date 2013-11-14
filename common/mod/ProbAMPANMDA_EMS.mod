@@ -178,7 +178,14 @@ NET_RECEIVE (weight,weight_AMPA, weight_NMDA, Psurv, tsyn (ms)){
 	
         INITIAL{
                 tsyn=t
-            }
+        }
+
+    : Do not perform any calculations if the synapse (netcon) is deactivated.  This avoids drawing from the random stream
+    if(  !(weight > 0) ) {
+VERBATIM
+        return;
+ENDVERBATIM
+    }
 
         : calc u at event-
         if (Fac > 0) {

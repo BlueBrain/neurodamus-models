@@ -175,6 +175,13 @@ NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv, tsyn (ms)){
 		tsyn=t
     }
 
+    : Do not perform any calculations if the synapse (netcon) is deactivated.  This avoids drawing from the random stream
+    if(  !(weight > 0) ) {
+VERBATIM
+        return;
+ENDVERBATIM
+    }
+
         : calc u at event-
         if (Fac > 0) {
                 u = u*exp(-(t - tsyn_fac)/Fac) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
@@ -189,8 +196,7 @@ NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv, tsyn (ms)){
 	   : i.e. each spike can increase the u, regardless of recovered state.
 	   tsyn_fac = t
 
-	   : recovery
-
+           : recovery
 	   if (Rstate == 0) {
 	   : probability of survival of unrecovered state based on Poisson recovery with rate 1/tau
 	          Psurv = exp(-(t-tsyn)/Dep)
