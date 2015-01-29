@@ -3,9 +3,12 @@
 :Reference : Modeled according to kinetics derived from Magistretti & Alonso 1999
 :Comment: corrected rates using q10 = 2.3, target temperature 34, orginal 21
 
-NEURON	{
+: Adapted by Werner Van Geit @ BBP, 2015 (with help from M.Hines):
+: channel detects TTX concentration set by TTXDynamicsSwitch.mod
+NEURON {
 	SUFFIX Nap_Et2
 	USEION na READ ena WRITE ina
+	USEION ttx READ ttxo, ttxi
 	RANGE gNap_Et2bar, gNap_Et2, ina
 }
 
@@ -19,7 +22,9 @@ PARAMETER	{
 	gNap_Et2bar = 0.00001 (S/cm2)
 }
 
-ASSIGNED	{
+ASSIGNED {
+	ttxo (mM)
+	ttxi (mM)
 	v	(mV)
 	ena	(mV)
 	ina	(mA/cm2)
@@ -46,13 +51,27 @@ BREAKPOINT	{
 }
 
 DERIVATIVE states	{
-	rates()
+	if (ttxi == 0.015625 && ttxo > 1e-12) {
+		mInf = 0.0
+		mTau = 1e-12
+		hInf = 1.0
+		hTau = 1e-12
+	} else {
+		rates()
+	}
 	m' = (mInf-m)/mTau
 	h' = (hInf-h)/hTau
 }
 
 INITIAL{
-	rates()
+	if (ttxi == 0.015625 && ttxo > 1e-12) {
+		mInf = 0.0
+		mTau = 1e-12
+		hInf = 1.0
+		hTau = 1e-12
+	} else {
+		rates()
+	}
 	m = mInf
 	h = hInf
 }

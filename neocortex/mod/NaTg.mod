@@ -1,8 +1,11 @@
 :Reference :Colbert and Pan 2002
 
-NEURON	{
+: Adapted by Werner Van Geit @ BBP, 2015 (with help from M.Hines):
+: channel detects TTX concentration set by TTXDynamicsSwitch.mod
+NEURON {
 	SUFFIX NaTg
 	USEION na READ ena WRITE ina
+	USEION ttx READ ttxo, ttxi
 	RANGE gNaTgbar, gNaTg, ina, vshifth, vshiftm, slopeh, slopem
 }
 
@@ -20,7 +23,9 @@ PARAMETER	{
 	slopem = 6
 }
 
-ASSIGNED	{
+ASSIGNED {
+	ttxo (mM)
+	ttxi (mM)
 	v	(mV)
 	ena	(mV)
 	ina	(mA/cm2)
@@ -47,13 +52,27 @@ BREAKPOINT	{
 }
 
 DERIVATIVE states	{
-	rates()
+	if (ttxi == 0.015625 && ttxo > 1e-12) {
+		mInf = 0.0
+		mTau = 1e-12
+		hInf = 1.0
+		hTau = 1e-12
+	} else {
+		rates()
+	}
 	m' = (mInf-m)/mTau
 	h' = (hInf-h)/hTau
 }
 
 INITIAL{
-	rates()
+	if (ttxi == 0.015625 && ttxo > 1e-12) {
+		mInf = 0.0
+		mTau = 1e-12
+		hInf = 1.0
+		hTau = 1e-12
+	} else {
+		rates()
+	}
 	m = mInf
 	h = hInf
 }
