@@ -5,7 +5,7 @@
 NEURON {
 	SUFFIX NaTa_t
 	USEION na READ ena WRITE ina
-	USEION ttx READ ttxo, ttxi
+	USEION ttx READ ttxo, ttxi VALENCE 1
 	RANGE gNaTa_tbar, gNaTa_t, ina
 }
 

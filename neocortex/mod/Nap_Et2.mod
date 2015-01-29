@@ -8,7 +8,7 @@
 NEURON {
 	SUFFIX Nap_Et2
 	USEION na READ ena WRITE ina
-	USEION ttx READ ttxo, ttxi
+	USEION ttx READ ttxo, ttxi VALENCE 1
 	RANGE gNap_Et2bar, gNap_Et2, ina
 }
 
