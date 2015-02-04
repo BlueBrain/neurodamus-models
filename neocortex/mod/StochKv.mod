@@ -221,7 +221,8 @@ PROCEDURE ChkProb(p) {
 
   if (p < 0.0 || p > 1.0) {
     VERBATIM
-    fprintf(stderr, "StochKv.mod:ChkProb: argument not a probability.\n");
+// ToDo: should be disabled during ForwardSkip and enabled right after
+//    fprintf(stderr, "StochKv.mod:ChkProb: argument not a probability.\n");
     ENDVERBATIM
   }
 
