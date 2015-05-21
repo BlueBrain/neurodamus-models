@@ -1,9 +1,12 @@
 :Reference :Colbert and Pan 2002
 :comment: took the NaTa and shifted both activation/inactivation by 6 mv
 
-NEURON	{
+: Adapted by Werner Van Geit @ BBP, 2015 (with help from M.Hines):
+: channel detects TTX concentration set by TTXDynamicsSwitch.mod
+NEURON {
 	SUFFIX NaTs2_t
 	USEION na READ ena WRITE ina
+	USEION ttx READ ttxo, ttxi VALENCE 1
 	RANGE gNaTs2_tbar, gNaTs2_t, ina
 }
 
@@ -17,7 +20,9 @@ PARAMETER	{
 	gNaTs2_tbar = 0.00001 (S/cm2)
 }
 
-ASSIGNED	{
+ASSIGNED {
+	ttxo (mM)
+	ttxi (mM)
 	v	(mV)
 	ena	(mV)
 	ina	(mA/cm2)
@@ -44,13 +49,27 @@ BREAKPOINT	{
 }
 
 DERIVATIVE states	{
-	rates()
+	if (ttxi == 0.015625 && ttxo > 1e-12) {
+		mInf = 0.0
+		mTau = 1e-12
+		hInf = 1.0
+		hTau = 1e-12
+	} else {
+		rates()
+	}
 	m' = (mInf-m)/mTau
 	h' = (hInf-h)/hTau
 }
 
 INITIAL{
-	rates()
+	if (ttxi == 0.015625 && ttxo > 1e-12) {
+		mInf = 0.0
+		mTau = 1e-12
+		hInf = 1.0
+		hTau = 1e-12
+	} else {
+		rates()
+	}
 	m = mInf
 	h = hInf
 }
