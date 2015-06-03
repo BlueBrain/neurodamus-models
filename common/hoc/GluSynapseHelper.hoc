@@ -45,7 +45,7 @@ proc init() { local tgid, x, synapseID, baseSeed, nfiles, altU, res, rowIndex, f
         //fname = new String("/gpfs/bbp.cscs.ch/release/l2/data/circuit/23.07.12/SomatosensoryCxS1-v4.lowerCellDensity.r151/O1/merged_circuit/ncsFunctionalAllRecipePathways/nrn.h5")
         // This field can be named whatever the user wants.  Needs to just use 'get' method
         fname = synOverride.get( "OtherSynPath" )
-        print "access more info at ", fname.s
+        // print "access more info at ", fname.s
         
         // This requires there be a single HDF5 file.  If multiple files are to be supported, we need to change code structure
         synapseReaderGluSynapseHelper = new HDF5Reader( fname.s )
@@ -112,10 +112,11 @@ proc init() { local tgid, x, synapseID, baseSeed, nfiles, altU, res, rowIndex, f
     synapse.setRNG( rng0, rng1 )
     synapse.synapseID = synapseID
     
-    synParams.weight = weight // Override weight from nrn.h5 TODO Check with Jim
+    synParams.weight = 1.0 // Override weight from nrn.h5 TODO Check with Jim
     
     synapse.w0_GB = w0
     synapse.w1_GB = w1
+    synapse.baseweight = weight
     synapse.tau_ca_GB = tau_ca
     synapse.C_pre_GB = C_pre
     synapse.C_post_GB = C_post
@@ -129,7 +130,8 @@ proc init() { local tgid, x, synapseID, baseSeed, nfiles, altU, res, rowIndex, f
     synapse.D_GB = D
 
     // By default LTPlasticy and rewiring are disabled
-    //synapse.toggleLTPlasticity()
+    synapse.toggleLTPlasticity()
+    //synapse.toggleVerbose()
     //synapse.toggleRewiring()
 }
 

@@ -309,6 +309,7 @@ ENDVERBATIM
 FUNCTION bbsavestate() {
         bbsavestate = 0
 VERBATIM
+#ifdef ENABLE_SAVE_STATE
         /* first arg is direction (0 save, 1 restore), second is array*/
         /* if first arg is -1, fill xdir with the size of the array */
         double *xdir, *xval, *hoc_pgetarg();
@@ -329,6 +330,7 @@ VERBATIM
         }
 
         if( synapseID == 104211 ) { verboseLevel = 1; }
+#endif
 ENDVERBATIM
 }
 

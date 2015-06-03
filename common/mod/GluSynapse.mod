@@ -2,7 +2,7 @@ COMMENT
 /**
  * @file GluSynapse.mod
  * @brief Two state deterministic model of a Glutamatergic Synapse
- * @author chindemi
+ * @author chindemi, king
  * @date 2015-05-16
  * @remark Copyright © BBP/EPFL 2005-2015; All rights reserved. Do not distribute without further notice.
  */
@@ -74,7 +74,7 @@ NEURON {
     RANGE tau_ca_GB, C_pre_GB, C_post_GB, D_GB
 
     : Release range variables
-    RANGE Use, u, Dep, Fac, u0, Rstate, tsyn_fac
+    RANGE Use, u, Dep, Fac, u0, Rstate, tsyn, tsyn_fac, Psurv
     POINTER rng_rel
 
     : LTP/LTD range variables
@@ -92,7 +92,8 @@ NEURON {
     RANGE tau_SG, theta_g_SG
 
     : Shared range variables
-    RANGE g, e, NMDA_ratio, vv
+    RANGE g, e, NMDA_ratio, vv, baseweight
+    RANGE weight_AMPA, weight_NMDA, factor_AMPA, factor_NMDA
 
     : Other range variables
     RANGE synapseID, verboseLevel, LTPlasticity, rewiring, synapseState
@@ -161,6 +162,7 @@ PARAMETER {
     : Shared parameters
     e            = 0     (mV)   : AMPA and NMDA reversal potential
     gmax         = .001  (uS)   : Weight conversion factor (from nS to uS)
+    baseweight   = 0.5   (nS)
     NMDA_ratio   = 0.71  (1)    : The ratio of NMDA to AMPA
 
     : Misc
@@ -199,7 +201,9 @@ ASSIGNED {
 
     : Release assigned variables
     Rstate      (1)  : recovered state {0=unrecovered, 1=recovered}
+    tsyn        (ms)
     tsyn_fac    (ms) : the time of the last spike
+    Psurv       (1)
     u           (1)  : running release probability (attention: u is event based based, so only valid at incoming events)
 
     : LTP/LTD assigned variables
@@ -219,6 +223,8 @@ ASSIGNED {
     vv          (mV)
     i           (nA)
     g           (uS)
+    weight_AMPA
+    weight_NMDA
     factor_AMPA
     factor_NMDA
 
@@ -335,7 +341,7 @@ DERIVATIVE state{
 }
 
 
-NET_RECEIVE (weight, weight_AMPA, weight_NMDA, Psurv, tsyn (ms)){
+NET_RECEIVE (weight){
     LOCAL result
 
     : Locals:
@@ -346,8 +352,6 @@ NET_RECEIVE (weight, weight_AMPA, weight_NMDA, Psurv, tsyn (ms)){
         : TODO Check if this block is executed at the time of the first "true"
         :      spike or before the watch calls initialization. In the latter
         :      case, this is probably wrong.
-        tsyn=t
-        rho_GB = (weight - w0_GB) / (w1_GB - w0_GB)
     }
 
     if (flag == 1) {
@@ -384,9 +388,9 @@ NET_RECEIVE (weight, weight_AMPA, weight_NMDA, Psurv, tsyn (ms)){
         if( LTPlasticity == 1 ) {
             weight_AMPA = w0_GB + rho_GB*(w1_GB - w0_GB)
         } else {
-            weight_AMPA = weight
+            weight_AMPA = baseweight
         }
-        weight_NMDA = weight * NMDA_ratio
+        weight_NMDA = baseweight * NMDA_ratio
 
         : calc u at event
         if (Fac > 0) {
@@ -486,7 +490,7 @@ PROCEDURE initialize_functional_synapse() {
     cai_GB = 0
 
     : LTP/LTD
-    rho_GB = 0 : Re-initialized in NET_RECEIVE to keep weight in the NetCon obj.
+    rho_GB = (baseweight - w0_GB) / (w1_GB - w0_GB)
 
     : Elimination
     integrity_SE = 1
@@ -618,13 +622,16 @@ FUNCTION toggleLTPlasticity() {
     LTPlasticity = 1-LTPlasticity
 }
 
+
 FUNCTION toggleRewiring() {
     rewiring = 1-rewiring
 }
 
+
 FUNCTION bbsavestate() {
         bbsavestate = 0
 VERBATIM
+#ifdef ENABLE_SAVE_STATE
         /* first arg is direction (0 save, 1 restore), second is array*/
         /* if first arg is -1, fill xdir with the size of the array */
         double *xdir, *xval, *hoc_pgetarg();
@@ -632,7 +639,7 @@ VERBATIM
         void nrn_set_random_sequence(void* r, int val);
         xdir = hoc_pgetarg(1);
         xval = hoc_pgetarg(2);
-        if (_p_rng) {
+        if (_p_rng_rel) {
                 // tell how many items need saving
                 if (*xdir == -1. ) { *xdir = 2.0; return 0.0; }
 
@@ -647,7 +654,6 @@ VERBATIM
         }
 
         //if( synapseID == 104211 ) { verboseLevel = 1; }
+#endif
 ENDVERBATIM
 }
-
-
