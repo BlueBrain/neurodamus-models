@@ -29,9 +29,10 @@ external synapseReaderGluSynapseHelper
  * @param baseSeed for random number generator
  * @param synOverride Map of field/value pairs of Connection block taken from ConfigParser
  */
-proc init() { local tgid, x, synapseID, baseSeed, nfiles, altU, res, rowIndex, foundRow  localobj synParams, fname, synOverride
+proc init() { local x, synapseID, baseSeed, nfiles, altU, res, rowIndex, foundRow  localobj synParams, fname, synOverride
     strdef datasetName
     
+    // tgid is now a member variable rather than a local variable.  Makes debugging easier
     tgid = $1
     synParams = $o2
     x = $3
@@ -136,3 +137,4 @@ proc init() { local tgid, x, synapseID, baseSeed, nfiles, altU, res, rowIndex, f
 }
 
 endtemplate GluSynapseHelper
+
