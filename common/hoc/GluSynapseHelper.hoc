@@ -70,13 +70,14 @@ proc init() { local x, synapseID, baseSeed, nfiles, altU, res, rowIndex, foundRo
     
     //find the correct row
     foundRow = -1
-    for rowIndex=0, synapseReaderGluSynapseHelper.numberofrows-1 {
+    for rowIndex=0, synapseReaderGluSynapseHelper.numberofrows(datasetName)-1 {
         if( synapseReaderGluSynapseHelper.getData( datasetName, rowIndex, 0 ) == synapseID ) {
-            foundRow = synapseReaderGluSynapseHelper.getData( datasetName, rowIndex, 0 )
+            foundRow = rowIndex
         }
     }
     if( foundRow == -1 ) {
         //TODO handle error
+        print "Error: failed to find matching row for ", tgid, " ", synapseID, " among ", synapseReaderGluSynapseHelper.numberofrows(datasetName), " rows"
     }
     
     // Read extra model parameters
@@ -101,13 +102,13 @@ proc init() { local x, synapseID, baseSeed, nfiles, altU, res, rowIndex, foundRo
     synapse.Fac = abs( synParams.F )
     
     rng0 = new Random()
-    rng0.MCellRan4( synapseID*100000+100, tgid+250+baseSeed )
+    rng0.MCellRan4( synapseID*1000+100, tgid+250+baseSeed )
     rng0.uniform(0,1)
 
     // RNG for Grapner model
     // TODO Ask Jim about stream selection
     rng1 = new Random()
-    rng1.MCellRan4( synapseID*100000+100, tgid+250+baseSeed )
+    rng1.MCellRan4( synapseID*1000+100, tgid+250+baseSeed )
     rng1.normal(0,1)
 
     synapse.setRNG( rng0, rng1 )
