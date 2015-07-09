@@ -4,6 +4,7 @@ COMMENT
  * @brief Two state deterministic model of a Glutamatergic Synapse
  * @author chindemi, king
  * @date 2015-05-16
+ * @version 0.2.0
  * @remark Copyright © BBP/EPFL 2005-2015; All rights reserved. Do not distribute without further notice.
  */
 ENDCOMMENT
@@ -295,7 +296,7 @@ BEFORE BREAKPOINT {
 
 
 BREAKPOINT {
-    SOLVE state METHOD derivimplicit : We cannot use cnexp because the GB model in non linear
+    SOLVE state METHOD cnexp
 
     : AMPAR 
     g_AMPA = gmax*(B_AMPA-A_AMPA)                                 : compute time varying conductance as the difference of state variables B_AMPA and A_AMPA
@@ -316,6 +317,8 @@ BREAKPOINT {
 
 
 DERIVATIVE state{
+    LOCAL rho0, a, b
+
     : AMPAR
     A_AMPA' = -A_AMPA/tau_r_AMPA
     B_AMPA' = -B_AMPA/tau_d_AMPA
@@ -328,13 +331,23 @@ DERIVATIVE state{
     cai_GB'   = -cai_GB/tau_ca_GB
 
     : LTP/LTD
-    rho_GB' = ( -rho_GB*(1.0 - rho_GB)*(rho_star_GB - rho_GB)
-                +gamma_p_GB*(1-rho_GB)*Theta_p_GB
-                -gamma_d_GB*rho_GB*Theta_d_GB
-                +Noise_GB() ) / (1000.0*tau_GB)
+    :rho_GB' = ( -rho_GB*(1.0 - rho_GB)*(rho_star_GB - rho_GB)
+    :            +gamma_p_GB*(1-rho_GB)*Theta_p_GB
+    :            -gamma_d_GB*rho_GB*Theta_d_GB
+    :            +Noise_GB() ) / (1000.0*tau_GB)
+    rho0 = rho_GB
+    a = ( -rho0*(1.0 - rho0)*(rho_star_GB - rho0)
+          +gamma_p_GB*(1-rho0)*Theta_p_GB
+          -gamma_d_GB*rho0*Theta_d_GB
+          +Noise_GB() ) / (1000.0*tau_GB)
+    b = ( -3.0*rho0*rho0 + 2*(1 + rho_star_GB)*rho0 -rho_star_GB
+          -gamma_p_GB*Theta_p_GB
+          -gamma_d_GB*Theta_d_GB ) / (1000.0*tau_GB)
+    rho_GB' = a + b*(rho_GB - rho0)
 
     : Elimination
-    integrity_SE' = -integrity_SE/(tau_SE*(1+rho_GB))
+    :integrity_SE' = -integrity_SE/(tau_SE*(1+rho_GB))
+    integrity_SE' = -integrity_SE/(tau_SE*(1+rho0))
 
     : Synaptogenesis
     contact_SG' = -contact_SG/tau_SG
