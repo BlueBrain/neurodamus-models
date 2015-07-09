@@ -4,8 +4,12 @@ COMMENT
  * @brief Two state deterministic model of a Glutamatergic Synapse
  * @author chindemi, king
  * @date 2015-05-16
- * @version 0.2.0
- * @remark Copyright © BBP/EPFL 2005-2015; All rights reserved. Do not distribute without further notice.
+ * @version 0.2.1
+ * @acknowledgement Michael Hines, for reviewing many important aspects of model
+                    implementation, optimization, and all the technical support. 
+                    Francesco Cremonesi, for helping with DE simplification.
+ * @remark Copyright © BBP/EPFL 2005-2015; All rights reserved.
+           Do not distribute without further notice.
  */
 ENDCOMMENT
 
@@ -316,6 +320,15 @@ BREAKPOINT {
 }
 
 
+AFTER SOLVE {
+    if( LTPlasticity == 1 ) {
+        weight_AMPA = w0_GB + rho_GB*(w1_GB - w0_GB)
+    } else {
+        weight_AMPA = baseweight
+    }
+}
+
+
 DERIVATIVE state{
     LOCAL rho0, a, b
 
@@ -398,12 +411,7 @@ NET_RECEIVE (weight){
 
     } else if (flag == 0 && synapseState == 2){
         : Flag 0 (default) and synapse in the functional state
-        if( LTPlasticity == 1 ) {
-            weight_AMPA = w0_GB + rho_GB*(w1_GB - w0_GB)
-        } else {
-            weight_AMPA = baseweight
-        }
-        weight_NMDA = baseweight * NMDA_ratio
+        weight_NMDA = baseweight * NMDA_ratio : Here for backward compatibility
 
         : calc u at event
         if (Fac > 0) {
@@ -557,9 +565,6 @@ PROCEDURE setRNG() {
     /**
      * This function takes a NEURON Random object declared in hoc and makes it
      * usable by this mod file.
-     * Note that this method is taken from Brett paper as used by netstim.hoc
-     * and netstim.mod which points out that the Random must be in uniform(1)
-     * mode
      */
     void** pv1 = (void**)(&_p_rng_rel);
     void** pv2 = (void**)(&_p_rng_GB);
