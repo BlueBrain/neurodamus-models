@@ -1,0 +1,141 @@
+/**
+ * @file GluSynapseHelper.hoc
+ * @brief Encapsulate any hoc actions that are necessary to instantiate this synapse type
+ * @author king, chindemi
+ * @date 2015-04-16
+ * @remark Copyright © BBP/EPFL 2005-2015; All rights reserved. Do not distribute without further notice.
+ */
+
+// global that is shared/accessible from GluSynapseHelper objects
+// Note that a name should be chosen that should not be used for any other global. Otherwise may cause strange behavior
+objref synapseReaderGluSynapseHelper
+//objref idMap
+
+/**
+ * GluSynapseHelper
+ */
+begintemplate GluSynapseHelper
+
+objref synapse, rng0, rng1
+public synapse
+
+external synapseReaderGluSynapseHelper
+
+/**
+ * @param tgid gid of Postsynaptic cell
+ * @param synParameters set of paramters loaded from default nrn.h5
+ * @param x location of the synapse along the section (0<=x<=1)
+ * @param synapseID id assigned to this synapses within the cell's context
+ * @param baseSeed for random number generator
+ * @param synOverride Map of field/value pairs of Connection block taken from ConfigParser
+ */
+proc init() { local x, synapseID, baseSeed, nfiles, altU, res, rowIndex, foundRow  localobj synParams, fname, synOverride
+    strdef datasetName
+    
+    // tgid is now a member variable rather than a local variable.  Makes debugging easier
+    tgid = $1
+    synParams = $o2
+    x = $3
+    synapseID = $4
+    baseSeed = $5
+    synOverride = $o6
+    
+    synapse = new GluSynapse(x)
+    
+    if( object_id( synapseReaderGluSynapseHelper, 1 ) == -1 ) {
+        //fname = new String("/gpfs/bbp.cscs.ch/release/l2/data/circuit/23.07.12/SomatosensoryCxS1-v4.lowerCellDensity.r151/O1/merged_circuit/ncsFunctionalAllRecipePathways/nrn.h5")
+        // This field can be named whatever the user wants.  Needs to just use 'get' method
+        fname = synOverride.get( "OtherSynPath" )
+        // print "access more info at ", fname.s
+        
+        // This requires there be a single HDF5 file.  If multiple files are to be supported, we need to change code structure
+        synapseReaderGluSynapseHelper = new HDF5Reader( fname.s )
+    }
+    
+    // Note that HDF5readers remember the last data set loaded.  As long as the same gid is requested, it will not go back to the disk
+    {sprint( datasetName, "a%d", tgid )}
+    res = synapseReaderGluSynapseHelper.loadData( datasetName )
+    if( res < 0 ) {
+        print "Error loading data for gid ", datasetName
+        return
+    } else {
+        //build a lookup map if the dataset has changed
+        // this dataset has a subset of synapseIDs
+        // take the synapseID passed and find the corresponding row (avoid linear search)
+        //TODO avoid linear search
+    }
+    
+    // TODO: how do we make finding the appropriate row fast/easy?
+    //synapseReaderGluSynapseHelper.numberofrows
+    
+    //find the correct row
+    foundRow = -1
+    for rowIndex=0, synapseReaderGluSynapseHelper.numberofrows(datasetName)-1 {
+        if( synapseReaderGluSynapseHelper.getData( datasetName, rowIndex, 0 ) == synapseID ) {
+            foundRow = rowIndex
+        }
+    }
+    if( foundRow == -1 ) {
+        //TODO handle error
+        print "Error: failed to find matching row for ", tgid, " ", synapseID, " among ", synapseReaderGluSynapseHelper.numberofrows(datasetName), " rows"
+    }
+    
+    // Read extra model parameters
+    weight = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 1 )
+    w0 = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 2 )
+    w1 = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 3 )
+    tau_ca = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 4 )
+    C_pre = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 5 )
+    C_post = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 6 )
+    theta_d = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 7 ) 
+    theta_p = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 8 )
+    gamma_d = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 9 )
+    gamma_p = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 10 )
+    sigma = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 11 )
+    tau = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 12 )
+    rho_star = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 13 )
+    D = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 14 )
+
+    synapse.tau_d_AMPA = synParams.DTC
+    synapse.Use = abs( synParams.U )
+    synapse.Dep = abs( synParams.D )
+    synapse.Fac = abs( synParams.F )
+    
+    rng0 = new Random()
+    rng0.MCellRan4( synapseID*1000+100, tgid+250+baseSeed )
+    rng0.uniform(0,1)
+
+    // RNG for Grapner model
+    // TODO Ask Jim about stream selection
+    rng1 = new Random()
+    rng1.MCellRan4( synapseID*1000+100, tgid+250+baseSeed )
+    rng1.normal(0,1)
+
+    synapse.setRNG( rng0, rng1 )
+    synapse.synapseID = synapseID
+    
+    synParams.weight = 1.0 // Override weight from nrn.h5 TODO Check with Jim
+    
+    synapse.w0_GB = w0
+    synapse.w1_GB = w1
+    synapse.baseweight = weight
+    synapse.tau_ca_GB = tau_ca
+    synapse.C_pre_GB = C_pre
+    synapse.C_post_GB = C_post
+    synapse.theta_d_GB = theta_d
+    synapse.theta_p_GB = theta_p
+    synapse.gamma_d_GB = gamma_d
+    synapse.gamma_p_GB = gamma_p
+    synapse.sigma_GB = sigma
+    synapse.tau_GB = tau
+    synapse.rho_star_GB = rho_star
+    synapse.D_GB = D
+
+    // By default LTPlasticy and rewiring are disabled
+    synapse.toggleLTPlasticity()
+    //synapse.toggleVerbose()
+    //synapse.toggleRewiring()
+}
+
+endtemplate GluSynapseHelper
+
