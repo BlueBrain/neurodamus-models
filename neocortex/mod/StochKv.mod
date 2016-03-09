@@ -33,6 +33,7 @@ Jan 1999, Mickey London, Hebrew University, mikilon@lobster.ls.huji.ac.il
 14 Sep 99 PNS. Added deterministic flag.
 19 May 2002 Kamran Diba.  Changed gamma and deterministic from GLOBAL to RANGE.
 23 Nov 2011 Werner Van Geit @ BBP. Changed the file so that it can use the neuron random number generator. Tuned voltage dependence
+16 Mar 2016 James G King @ BBP.  Incorporate modifications suggested by Michael Hines to improve stiching to deterministic mode, thread safety, and using Random123
 ----------------------------------------------------------------
 ENDCOMMENT
 
@@ -40,11 +41,13 @@ INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}
 
 NEURON {
     SUFFIX StochKv
+    THREADSAFE
     USEION k READ ek WRITE ik
-    RANGE N,eta, gk, gamma, deterministic, gkbar, ik
-    GLOBAL ninf, ntau,a,b,P_a,P_b
+    RANGE N,eta, gk, gamma, gkbar, ik, N0, N1, n0_n1, n1_n0
+    GLOBAL ninf, ntau,a,b,P_a,P_b, deterministic
     GLOBAL Ra, Rb
     GLOBAL vmin, vmax, q10, temp, tadj
+    :BBCOREPOINTER rng
     POINTER rng
 }
 
@@ -97,13 +100,15 @@ ASSIGNED {
     rng
 
     n0_n1_new
-
+    usingR123
 }
 
 
 STATE {
     n         : state variable of deterministic description
-    N0 N1       : N states populations
+}
+ASSIGNED {
+    N0 N1     : N states populations (These currently will not be saved via the bbsavestate functionality.  Would need to be STATE again)
     n0_n1 n1_n0 : number of channels moving from one state to the other 
 }
 
@@ -113,6 +118,9 @@ for comparison with Pr to decide whether to activate the synapse or not
 ENDCOMMENT
    
 VERBATIM
+#include "nrnran123.h"
+extern int cvode_active_;
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -124,13 +132,22 @@ ENDVERBATIM
 : ----------------------------------------------------------------
 : initialization
 INITIAL { 
+    VERBATIM
+    if (cvode_active_ && !deterministic) {
+        hoc_execerror("StochKv with deterministic=0", "cannot be used with cvode");
+    }
+    ENDVERBATIM
+    
     eta = gkbar / gamma
     trates(v)
     n = ninf
     scale_dens = gamma/area
     N = floor(eta*area + 0.5)
     
-    N1 = floor(n * N + 0.5)
+    N1 = n*N
+    if( !deterministic) {
+        N1 = floor(N1 + 0.5)
+    }
     N0 = N-N1       : any round off into non-conducting state
     
     n0_n1 = 0
@@ -140,7 +157,7 @@ INITIAL {
 : ----------------------------------------------------------------
 : Breakpoint for each integration step
 BREAKPOINT {
-  SOLVE states
+  SOLVE states METHOD cnexp
   
   gk =  (strap(N1) * scale_dens * tadj)
   
@@ -150,9 +167,14 @@ BREAKPOINT {
 
 : ----------------------------------------------------------------
 : states - updates number of channels in each state
-PROCEDURE states() {
+DERIVATIVE states {
 
     trates(v)
+    
+    n' = a - (a + b)*n
+    if (deterministic || dt > 1) { : ForwardSkip is also deterministic
+        N1 = n*N
+    }else{
     
     P_a = strap(a*dt)
     P_b = strap(b*dt)
@@ -168,6 +190,10 @@ PROCEDURE states() {
     : move the channels
     N0    = strap(N0 - n0_n1 + n1_n0)
     N1    = N - N0
+
+    }
+
+    N0 = N-N1       : any round off into non-conducting state
 }
 
 : ----------------------------------------------------------------
@@ -221,8 +247,7 @@ PROCEDURE ChkProb(p) {
 
   if (p < 0.0 || p > 1.0) {
     VERBATIM
-// ToDo: should be disabled during ForwardSkip and enabled right after
-//    fprintf(stderr, "StochKv.mod:ChkProb: argument not a probability.\n");
+    fprintf(stderr, "StochKv.mod:ChkProb: argument not a probability.\n");
     ENDVERBATIM
   }
 
@@ -231,40 +256,78 @@ PROCEDURE ChkProb(p) {
 PROCEDURE setRNG() {
 
 VERBATIM
-    {
-        /**
-         * This function takes a NEURON Random object declared in hoc and makes it usable by this mod file.
-         * Note that this method is taken from Brett paper as used by netstim.hoc and netstim.mod
-         * which points out that the Random must be in negexp(1) mode
-         */
-        void** pv = (void**)(&_p_rng);
-        if( ifarg(1)) {
-            *pv = nrn_random_arg(1);
-        } else {
-            *pv = (void*)0;
+    // For compatibility, allow for either MCellRan4 or Random123.  Distinguish by the arg types
+    // Object => MCellRan4, seeds (double) => Random123
+#if !NRNBBCORE
+    usingR123 = 0;
+    if( ifarg(1) && hoc_is_double_arg(1) ) {
+        nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
+        uint32_t a2 = 0;
+        
+        if (*pv) {
+            nrnran123_deletestream(*pv);
+            *pv = (nrnran123_State*)0;
+        } 
+        if (ifarg(2)) {
+            a2 = (uint32_t)*getarg(2);
         }
+        *pv = nrnran123_newstream((uint32_t)*getarg(1), a2);
+        usingR123 = 1;
+    } else if( ifarg(1) ) {
+        void** pv = (void**)(&_p_rng);
+        *pv = nrn_random_arg(1);
+    } else {
+        void** pv = (void**)(&_p_rng);
+        *pv = (void*)0;
     }
+#endif
 ENDVERBATIM
-
 }
 
 FUNCTION urand() {
 
 VERBATIM
-        /*
-        :Supports separate independent but reproducible streams for
-        : each instance. However, the corresponding hoc Random
-        : distribution MUST be set to Random.uniform(0,1)
-        */
-
-        double value;
+    double value;
+    if( usingR123 ) {
+        value = nrnran123_dblpick((nrnran123_State*)_p_rng);
+    } else if (_p_rng) {
         value = nrn_random_pick(_p_rng);
-
-        return(value);
+    } else {
+        value = 0.5;
+    }
+    _lurand = value;
 ENDVERBATIM
-
-        urand = value
 }
+
+VERBATIM
+/*
+static void bbcore_write(double* x, int* d, int* xx, int* offset, _threadargsproto_) {
+    if (d) {
+        uint32_t* di = ((uint32_t*)d) + *offset;
+      // temporary just enough to see how much space is being used
+      if (!_p_rng) {
+        di[0] = 0; di[1] = 0;
+      }else{
+        nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
+        nrnran123_getids(*pv, di, di+1);
+      }
+//printf("StochKv.mod %p: bbcore_write offset=%d %d %d\n", _p, *offset, d?di[0]:-1, d?di[1]:-1);
+    }
+    *offset += 2;
+}
+static void bbcore_read(double* x, int* d, int* xx, int* offset, _threadargsproto_) {
+    assert(!_p_rng);
+    uint32_t* di = ((uint32_t*)d) + *offset;
+        if (di[0] != 0 || di[1] != 0)
+        {
+      nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
+      *pv = nrnran123_newstream(di[0], di[1]);
+        }
+//printf("StochKv.mod %p: bbcore_read offset=%d %d %d\n", _p, *offset, di[0], di[1]);
+    *offset += 2;
+}
+*/
+ENDVERBATIM
 
 : Returns random numbers drawn from a binomial distribution
 FUNCTION brand(P, N) {
@@ -280,7 +343,7 @@ VERBATIM
         double value = 0.0;
         int i;
         for (i = 0; i < _lN; i++) {
-           if (nrn_random_pick(_p_rng) < _lP) {
+           if (urand(_threadargs_) < _lP) {
               value = value + 1;
            }
         }
@@ -333,53 +396,49 @@ FUNCTION BnlDev (ppr, nnr) {
 
 VERBATIM
         int j;
-        static int nold=(-1);
         double am,em,g,angle,p,bnl,sq,bt,y;
-        static double pold=(-1.0),pc,plog,pclog,en,oldg;
+        double pc,plog,pclog,en,oldg;
         
         /* prepare to always ignore errors within this routine */
-         
         
         p=(_lppr <= 0.5 ? _lppr : 1.0-_lppr);
         am=_lnnr*p;
         if (_lnnr < 25) {
             bnl=0.0;
             for (j=1;j<=_lnnr;j++)
-                if (urand() < p) bnl += 1.0;
+                if (urand(_threadargs_) < p) bnl += 1.0;
         }
         else if (am < 1.0) {
             g=exp(-am);
             bt=1.0;
             for (j=0;j<=_lnnr;j++) {
-                bt *= urand();
+                bt *= urand(_threadargs_);
                 if (bt < g) break;
             }
             bnl=(j <= _lnnr ? j : _lnnr);
         }
         else {
-            if (_lnnr != nold) {
+            {
                 en=_lnnr;
                 oldg=gammln(en+1.0);
-                nold=_lnnr;
             }
-            if (p != pold) {
+            {
                 pc=1.0-p;
-                 plog=log(p);
+                plog=log(p);
                 pclog=log(pc);
-                pold=p;
             }
             sq=sqrt(2.0*am*pc);
             do {
                 do {
-                    angle=PI*urand();
-                        angle=PI*urand();
+                    angle=PI*urand(_threadargs_);
+                    angle=PI*urand(_threadargs_);
                     y=tan(angle);
                     em=sq*y+am;
                 } while (em < 0.0 || em >= (en+1.0));
                 em=floor(em);
                     bt=1.2*sq*(1.0+y*y)*exp(oldg-gammln(em+1.0) - 
                     gammln(en-em+1.0)+em*plog+(en-em)*pclog);
-            } while (urand() > bt);
+            } while (urand(_threadargs_) > bt);
             bnl=em;
         }
         if (p != _lppr) bnl=_lnnr-bnl;
@@ -393,4 +452,50 @@ VERBATIM
     ENDVERBATIM
     BnlDev = bnl
 }  
+
+FUNCTION bbsavestate() {
+        bbsavestate = 0
+VERBATIM
+#ifdef ENABLE_SAVE_STATE
+        // TODO: since N0,N1 are no longer state variables, they will need to be written using this callback
+        //  provided that it is the version that supports multivalue writing
+        /* first arg is direction (-1 get info, 0 save, 1 restore), second is value*/
+        double *xdir, *xval, *hoc_pgetarg();
+        long nrn_get_random_sequence(void* r);
+        void nrn_set_random_sequence(void* r, int val);
+        xdir = hoc_pgetarg(1);
+        xval = hoc_pgetarg(2);
+        if (_p_rng) {
+                // tell how many items need saving
+                if (*xdir == -1.) {
+                    if( usingR123 ) {
+                        *xdir = 2.0;
+                    } else {
+                        *xdir = 1.0;
+                    }
+                    return 0.0;
+                }
+                else if (*xdir == 0.) {
+                    if( usingR123 ) {
+                        uint32_t seq;
+                        char which;
+                        nrnran123_getseq( (nrnran123_State*)_p_rng, &seq, &which );
+                        xval[0] = (double) seq;
+                        xval[1] = (double) which;
+                    } else {
+                        xval[0] = (double)nrn_get_random_sequence(_p_rng);
+                    }
+                } else{
+                    if( usingR123 ) {
+                        nrnran123_setseq( (nrnran123_State*)_p_rng, (uint32_t)xval[0], (char)xval[1] );
+                    } else {
+                        nrn_set_random_sequence(_p_rng, (long)(xval[0]));
+                    }
+                }
+        }
+
+        // TODO: check for random123 and get the seq values
+#endif
+ENDVERBATIM
+}
 
