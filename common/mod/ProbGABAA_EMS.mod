@@ -47,7 +47,7 @@ NEURON {
     THREADSAFE
 	POINT_PROCESS ProbGABAA_EMS
 	RANGE tau_r, tau_d
-	RANGE Use, u, Dep, Fac, u0, Rstate, tsyn_fac, tsyn, u
+	RANGE Use, u, Dep, Fac, u0, Rstate, tsyn_fac, u
 	RANGE i, g, e
 	NONSPECIFIC_CURRENT i
     POINTER rng
@@ -97,7 +97,6 @@ ASSIGNED {
 	 : (attention: u is event based based, so only valid at incoming events)
        Rstate (1) : recovered state {0=unrecovered, 1=recovered}
        tsyn_fac (ms) : the time of the last spike
-       tsyn (ms) : the time of the last spike
        u (1) : running release probability
 
 
@@ -119,7 +118,6 @@ INITIAL{
 
         Rstate=1
         tsyn_fac=0
-        tsyn = 0
         u=u0
 
 }
@@ -136,14 +134,16 @@ DERIVATIVE state{
 }
 
 
-NET_RECEIVE (weight, Psurv){
+NET_RECEIVE (weight, Psurv, tsyn (ms)){
     LOCAL result
 
     : Locals:
     : Psurv - survival probability of unrecovered state
+    : tsyn - time since last surival evaluation.
 
 
     INITIAL{
+		tsyn=t
     }
 
         : calc u at event-
@@ -253,8 +253,6 @@ VERBATIM
 ENDVERBATIM
         urand = value
 }
-
-
 
 FUNCTION toggleVerbose() {
     verboseLevel = 1 - verboseLevel

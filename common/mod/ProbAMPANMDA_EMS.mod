@@ -46,7 +46,7 @@ NEURON {
     THREADSAFE
         POINT_PROCESS ProbAMPANMDA_EMS
         RANGE tau_r_AMPA, tau_d_AMPA, tau_r_NMDA, tau_d_NMDA
-        RANGE Use, u, Dep, Fac, u0, mg, Rstate, tsyn, tsyn_fac, u
+        RANGE Use, u, Dep, Fac, u0, mg, Rstate, tsyn_fac, u
         RANGE i, i_AMPA, i_NMDA, g_AMPA, g_NMDA, g, e, NMDA_ratio
         RANGE A_AMPA_step, B_AMPA_step, A_NMDA_step, B_NMDA_step
         NONSPECIFIC_CURRENT i
@@ -115,7 +115,6 @@ ASSIGNED {
         : (attention: u is event based based, so only valid at incoming events)
 	Rstate (1) : recovered state {0=unrecovered, 1=recovered}
 	tsyn_fac (ms) : the time of the last spike
-        tsyn (ms) : the time of the last spike
 	u (1) : running release probability
 
 }
@@ -177,15 +176,15 @@ PROCEDURE state() {
 }
 
 
-NET_RECEIVE (weight,weight_AMPA, weight_NMDA, Psurv){
+NET_RECEIVE (weight,weight_AMPA, weight_NMDA, Psurv, tsyn (ms)){
         LOCAL result
         weight_AMPA = weight
         weight_NMDA = weight * NMDA_ratio
 	: Locals:
 	: Psurv - survival probability of unrecovered state
+	: tsyn - time since last surival evaluation.
 	
         INITIAL{
-<<<<<<< HEAD
                 tsyn=t
         }
 
@@ -195,10 +194,6 @@ VERBATIM
         return;
 ENDVERBATIM
     }
-=======
-            
-            }
->>>>>>> 6130b26... Branch to prepare for the update of certain synapse objects to have tsyn variable shift from a local variable of NET_RECEIVE to a class wide variable.  This had already been done in the save state branch, but it turns out to have an additional effect that should be observed in the main development branch as well.  This additional effect occurs when multiple netcon objects trigger the same synapse object.  By having tsyn be a local to NET_RECEIVE, each netcon has an independent copy of tsyn which will record different values for previous activation time.  By shifting to a class-wide variable, they all share and update a single tsyn.
 
         : calc u at event-
         if (Fac > 0) {
@@ -306,8 +301,6 @@ VERBATIM
 ENDVERBATIM
         urand = value
 }
-
-
 
 FUNCTION toggleVerbose() {
     verboseLevel = 1-verboseLevel

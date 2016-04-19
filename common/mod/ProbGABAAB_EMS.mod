@@ -47,7 +47,7 @@ NEURON {
     THREADSAFE
 	POINT_PROCESS ProbGABAAB_EMS
 	RANGE tau_r_GABAA, tau_d_GABAA, tau_r_GABAB, tau_d_GABAB 
-	RANGE Use, u, Dep, Fac, u0, Rstate, tsyn_fac, tsyn, u
+	RANGE Use, u, Dep, Fac, u0, Rstate, tsyn_fac, u
 	RANGE i,i_GABAA, i_GABAB, g_GABAA, g_GABAB, g, e_GABAA, e_GABAB, GABAB_ratio
         RANGE A_GABAA_step, B_GABAA_step, A_GABAB_step, B_GABAB_step
 	NONSPECIFIC_CURRENT i
@@ -111,7 +111,6 @@ ASSIGNED {
 	 : (attention: u is event based based, so only valid at incoming events)
        Rstate (1) : recovered state {0=unrecovered, 1=recovered}
        tsyn_fac (ms) : the time of the last spike
-       tsyn (ms) : the time of the last spike
        u (1) : running release probability
 
 
@@ -130,7 +129,6 @@ INITIAL{
 
 	Rstate=1
 	tsyn_fac=0
-        tsyn = 0
 	u=u0
         
         A_GABAA = 0
@@ -173,15 +171,17 @@ PROCEDURE state() {
 }
 
 
-NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv){
+NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv, tsyn (ms)){
     LOCAL result
     weight_GABAA = weight
     weight_GABAB = weight*GABAB_ratio
     : Locals:
     : Psurv - survival probability of unrecovered state
+    : tsyn - time since last surival evaluation.
 
 
     INITIAL{
+		tsyn=t
     }
 
     : Do not perform any calculations if the synapse (netcon) is deactivated.  This avoids drawing from the random stream
@@ -214,16 +214,16 @@ ENDVERBATIM
 		         Rstate = 1     : recover      
 
                          if( verboseLevel > 0 ) {
-                             printf( "Recovered! %f at time %g: Psurv = %g, urand=%g %g vs %g / %g\n", synapseID, t, Psurv, result, t, tsyn, Dep )
+                             printf( "Recovered! %f at time %g: Psurv = %g, urand=%g\n", synapseID, t, Psurv, result )
                          }
 
 		  }
 		  else {
 		         : survival must now be from this interval
-                         if( verboseLevel > 0 ) {
-                             printf( "Failed to recover! %f at time %g: Psurv = %g, urand=%g %g vs %g / %g\n", synapseID, t, Psurv, result, t, tsyn, Dep )
-                         }
 		         tsyn = t
+                         if( verboseLevel > 0 ) {
+                             printf( "Failed to recover! %f at time %g: Psurv = %g, urand=%g\n", synapseID, t, Psurv, result )
+                         }
 		  }
            }	   
 	   
@@ -299,8 +299,6 @@ VERBATIM
 ENDVERBATIM
         urand = value
 }
-
-
 
 FUNCTION toggleVerbose() {
     verboseLevel = 1 - verboseLevel
