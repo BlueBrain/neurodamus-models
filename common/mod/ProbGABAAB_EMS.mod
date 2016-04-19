@@ -49,6 +49,7 @@ NEURON {
 	RANGE tau_r_GABAA, tau_d_GABAA, tau_r_GABAB, tau_d_GABAB 
 	RANGE Use, u, Dep, Fac, u0, Rstate, tsyn_fac, tsyn, u
 	RANGE i,i_GABAA, i_GABAB, g_GABAA, g_GABAB, g, e_GABAA, e_GABAB, GABAB_ratio
+        RANGE A_GABAA_step, B_GABAA_step, A_GABAB_step, B_GABAB_step
 	NONSPECIFIC_CURRENT i
     POINTER rng
     RANGE synapseID, verboseLevel
@@ -90,14 +91,18 @@ ENDVERBATIM
 ASSIGNED {
 	v (mV)
 	i (nA)
-    i_GABAA (nA)
-    i_GABAB (nA)
-    g_GABAA (uS)
-    g_GABAB (uS)
+        i_GABAA (nA)
+        i_GABAB (nA)
+        g_GABAA (uS)
+        g_GABAB (uS)
+        A_GABAA_step
+        B_GABAA_step
+        A_GABAB_step
+        B_GABAB_step
 	g (uS)
 	factor_GABAA
-    factor_GABAB
-    rng
+        factor_GABAB
+        rng
 
        : Recording these three, you can observe full state of model
        : tsyn_fac gives you presynaptic times, Rstate gives you 
@@ -142,11 +147,15 @@ INITIAL{
         
         factor_GABAB = -exp(-tp_GABAB/tau_r_GABAB)+exp(-tp_GABAB/tau_d_GABAB) :GABAB Normalization factor - so that when t = tp_GABAB, gsyn = gpeak
         factor_GABAB = 1/factor_GABAB
-
+        
+        A_GABAA_step = exp(dt*(( - 1.0 ) / tau_r_GABAA))
+        B_GABAA_step = exp(dt*(( - 1.0 ) / tau_d_GABAA))
+        A_GABAB_step = exp(dt*(( - 1.0 ) / tau_r_GABAB))
+        B_GABAB_step = exp(dt*(( - 1.0 ) / tau_d_GABAB))
 }
 
 BREAKPOINT {
-	SOLVE state METHOD cnexp
+	SOLVE state
 	
         g_GABAA = gmax*(B_GABAA-A_GABAA) :compute time varying conductance as the difference of state variables B_GABAA and A_GABAA
         g_GABAB = gmax*(B_GABAB-A_GABAB) :compute time varying conductance as the difference of state variables B_GABAB and A_GABAB 
@@ -156,11 +165,11 @@ BREAKPOINT {
         i = i_GABAA + i_GABAB
 }
 
-DERIVATIVE state{       
-        A_GABAA' = -A_GABAA/tau_r_GABAA
-        B_GABAA' = -B_GABAA/tau_d_GABAA
-        A_GABAB' = -A_GABAB/tau_r_GABAB
-        B_GABAB' = -B_GABAB/tau_d_GABAB
+PROCEDURE state() {
+        A_GABAA = A_GABAA*A_GABAA_step
+        B_GABAA = B_GABAA*B_GABAA_step
+        A_GABAB = A_GABAB*A_GABAB_step
+        B_GABAB = B_GABAB*B_GABAB_step
 }
 
 
@@ -173,6 +182,13 @@ NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv){
 
 
     INITIAL{
+    }
+
+    : Do not perform any calculations if the synapse (netcon) is deactivated.  This avoids drawing from the random stream
+    if(  !(weight > 0) ) {
+VERBATIM
+        return;
+ENDVERBATIM
     }
 
         : calc u at event-
@@ -189,8 +205,7 @@ NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv){
 	   : i.e. each spike can increase the u, regardless of recovered state.
 	   tsyn_fac = t
 
-	   : recovery
-
+           : recovery
 	   if (Rstate == 0) {
 	   : probability of survival of unrecovered state based on Poisson recovery with rate 1/tau
 	          Psurv = exp(-(t-tsyn)/Dep)
