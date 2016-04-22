@@ -134,6 +134,7 @@ INITIAL{
 
 	Rstate=1
 	tsyn_fac=0
+        tsyn = 0
 	u=u0
         
         A_AMPA = 0
