@@ -414,6 +414,12 @@ VERBATIM
                         nrn_set_random_sequence(_p_rng, (long)(xval[0]));
                 }
         }
+        else {
+            // error: some StochKvs are mistakenly put on apic  They will not have rngs set  need to handle appropriately
+            if( *xdir == -1) { *xdir = 1.0; return 0.0; }
+            else if( *xdir == 0 ) { xval[0] = 0; }
+            else { }
+        }
 #endif
 ENDVERBATIM
 }
