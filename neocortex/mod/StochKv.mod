@@ -175,6 +175,10 @@ DERIVATIVE states {
     if (deterministic || dt > 1) { : ForwardSkip is also deterministic
         N1 = n*N
     }else{
+
+    : ensure that N0 is an integer for when transitioning from deterministic mode to stochastic mode
+    N0 = floor(N0+0.5)
+    N1 = N - N0
     
     P_a = strap(a*dt)
     P_b = strap(b*dt)
