@@ -28,7 +28,7 @@ proc init() { local tgid, x, synapseID, baseSeed  localobj synParams
     synapseID = $4
     baseSeed = $5
     
-    synapse = new GluSynapse(x)
+    synapse = new GluSynapse_v3p3(x)
     synapse.tau_d_AMPA = synParams.DTC
     synapse.Use = abs( synParams.U )
     synapse.Dep = abs( synParams.D )
@@ -38,7 +38,7 @@ proc init() { local tgid, x, synapseID, baseSeed  localobj synParams
     rng0.MCellRan4( synapseID*100000+100, tgid+250+baseSeed )
     rng0.uniform(0,1)
 
-    // RNG for Spine model
+    // RNG for Grapner model
     rng1 = new Random()
     rng1.MCellRan4( synapseID*100000+101, tgid+250+baseSeed )  // TODO Ask Jim about stream selection
     rng1.normal(0,1)
@@ -47,8 +47,6 @@ proc init() { local tgid, x, synapseID, baseSeed  localobj synParams
     synapse.synapseID = synapseID
     
     synapse.gmax_AMPA = synParams.weight
-    
-    synapse.toggleLTPlasticity()
     
     // Override weight from nrn.h5
     synParams.weight = 1  // TODO Check with Jim
