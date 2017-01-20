@@ -2,7 +2,7 @@
 
 : Adapted by Werner Van Geit @ BBP, 2015 (with help from M.Hines):
 : channel detects TTX concentration set by TTXDynamicsSwitch.mod
-NEURON {
+NEURON	{
 	SUFFIX NaTg
 	USEION na READ ena WRITE ina
 	USEION ttx READ ttxo, ttxi VALENCE 1
@@ -23,7 +23,7 @@ PARAMETER	{
 	slopem = 6
 }
 
-ASSIGNED {
+ASSIGNED	{
 	ttxo (mM)
 	ttxi (mM)
 	v	(mV)
@@ -80,9 +80,9 @@ INITIAL{
 PROCEDURE rates(){
   LOCAL qt
   qt = 2.3^((34-21)/10)
-	
+
   UNITSOFF
-    if(v == -38){
+    if(v == (-38+vshiftm)){
     	v = v+0.0001
     }
 		mAlpha = (0.182 * (v- (-38+vshiftm)))/(1-(exp(-(v- (-38+vshiftm))/slopem)))
@@ -90,7 +90,7 @@ PROCEDURE rates(){
 		mTau = (1/(mAlpha + mBeta))/qt
 		mInf = mAlpha/(mAlpha + mBeta)
 
-    if(v == -66){
+    if(v == (-66+vshifth)){
       v = v + 0.0001
     }
 

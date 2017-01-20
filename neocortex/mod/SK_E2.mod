@@ -5,7 +5,7 @@ NEURON {
        SUFFIX SK_E2
        USEION k READ ek WRITE ik
        USEION ca READ cai
-       RANGE gSK_E2bar, gSK_E2, ik
+       RANGE gSK_E2bar, gSK_E2, ik, zTau
 }
 
 UNITS {
