@@ -107,7 +107,7 @@ NEURON {
     : Release range variables
     RANGE Use, u, Dep, Fac, u0, tsyn
     :RANGE Psurv
-    POINTER rng_rel
+    BBCOREPOINTER rng_rel
 
     : Multi-vesicular release (MVR)
     RANGE unoccupied_MVR, occupied_MVR, N_MVR, q_MVR
@@ -138,6 +138,9 @@ NEURON {
     NONSPECIFIC_CURRENT i
 }
 
+VERBATIM
+#include "nrnran123.h"
+ENDVERBATIM
 
 UNITS {
     (nA)    = (nanoamp)
@@ -776,3 +779,47 @@ VERBATIM
 #endif
 ENDVERBATIM
 }
+
+VERBATIM
+
+static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset, _threadargsproto_) {
+    // make sure offset array non-null
+    if (iArray) {
+
+        // get handle to random123 instance
+        nrnran123_State** pv = (nrnran123_State**)(&_p_rng_rel);
+
+        // get location for storing ids
+        uint32_t* ia = ((uint32_t*)iArray) + *ioffset;
+
+        // retrieve/store identifier seeds
+        nrnran123_getids(*pv, ia, ia+1);
+    }
+
+    // increment integer offset (2 identifier), no double data
+    *ioffset += 2;
+    *doffset += 0;
+
+}
+
+static void bbcore_read(double* dArray, int* iArray, int* doffset, int* ioffset, _threadargsproto_) {
+
+    // make sure it's not previously set
+    assert(!_p_rng_rel);
+
+    uint32_t* ia = ((uint32_t*)iArray) + *ioffset;
+
+    // make sure non-zero identifier seeds
+    if (ia[0] != 0 || ia[1] != 0) {
+        nrnran123_State** pv = (nrnran123_State**)(&_p_rng_rel);
+
+        // get new stream
+        *pv = nrnran123_newstream(ia[0], ia[1]);
+    }
+
+    // increment intger offset (2 identifiers), no double data
+    *ioffset += 2;
+    *doffset += 0;
+}
+
+ENDVERBATIM
