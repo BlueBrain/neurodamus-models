@@ -118,6 +118,7 @@ NEURON {
     RANGE w0_GB, w1_GB
     RANGE Theta_d_GB, Theta_p_GB
     RANGE tau_Use_GB
+    RANGE gamma_eff_GB
 
     : Elimination range variables
     :RANGE tau_SE, theta_e_SE
@@ -126,8 +127,8 @@ NEURON {
     :RANGE tau_SG, theta_g_SG
 
     : Shared range variables
-    RANGE e, v, NMDA_ratio
-    :RANGE eca_syn, vv
+    RANGE e, v, NMDA_ratio, vv, g
+    :RANGE eca_syn
 
     : Other range variables
     RANGE synapseID, verboseLevel, LTPlasticity, synapseState
@@ -202,16 +203,16 @@ PARAMETER {
     N_MVR        = 1       (1)  : Number of total release sites for given contact
 
     : LTP/LTD parameters
-    w0_GB        = 0.1     (1)
-    w1_GB        = 0.9     (1)
+    w0_GB        = 0.2     (1)
+    w1_GB        = 0.8     (1)
     rho_star_GB  = 0.5     (1)
     rho0_GB      = -1.0    (1)
-    tau_GB       = 1413.92 (s)
-    theta_d_GB   = 0.005   (mM)
-    theta_p_GB   = 0.010   (mM)
-    gamma_d_GB   = 1321.88 (1)
-    gamma_p_GB   = 1689.96 (1)
-    tau_Use_GB   = 744.6   (s)
+    tau_GB       = 100.0   (s)
+    theta_d_GB   = 0.008   (mM)
+    theta_p_GB   = 0.012   (mM)
+    gamma_d_GB   = 100.0   (1)
+    gamma_p_GB   = 450.0   (1)
+    tau_Use_GB   = 100.0   (s)
 
     : Elimination
     :tau_SE       = 1.0     (s)
@@ -288,6 +289,7 @@ ASSIGNED {
     : LTP/LTD assigned variables
     Theta_d_GB  (1)
     Theta_p_GB  (1)
+    gamma_eff_GB (1)
 
     : Elimination assigned variables
     : None
@@ -298,9 +300,9 @@ ASSIGNED {
     : Shared assigned variables
     dt          (ms)
     v           (mV)
-    :vv          (mV)
+    vv          (mV)
     i           (nA)
-    :g           (uS)
+    g           (uS)
 
     : Misc
     rng_rel
@@ -360,6 +362,8 @@ INITIAL {
     factor_NMDA = -exp(-tp_NMDA/tau_r_NMDA)+exp(-tp_NMDA/tau_d_NMDA)
     factor_NMDA = 1/factor_NMDA
 
+    gamma_eff_GB = 0
+
     : VDCC
     UNITSOFF
     area_CR = 4 * PI * (3/4 * volume_CR * 1/PI)^(2/3)  : convert volume to area, assuming sphere for spine head
@@ -373,14 +377,18 @@ INITIAL {
 
 
 BEFORE BREAKPOINT {
+    LOCAL step_gamma
     COMMENT
     This implementation of the Graupner model is slightly different from the
     original. The choice of precomputing Theta_d_GB/Theta_p_GB might affect the
     convergence of the model.
     ENDCOMMENT
 
-    Theta_d_GB = Theta(cai_CR - theta_d_GB)
-    Theta_p_GB = Theta(cai_CR - theta_p_GB)
+    step_gamma = exp(dt*(( - 1.0 ) / 150.0))
+    gamma_eff_GB = gamma_eff_GB*step_gamma + cai_CR * (1 - step_gamma)
+
+    Theta_d_GB = Theta(cai_CR - theta_d_GB)*1000.0*gamma_eff_GB
+    Theta_p_GB = Theta(cai_CR - theta_p_GB)*1000.0*gamma_eff_GB
 }
 
 
@@ -401,7 +409,7 @@ BREAKPOINT {
                                                                   : reversal potential is independent of extracellular calcium concentration
                                                                   : (Jahr and Stevens 1993)
 
-    :g = g_AMPA + g_NMDA                                           : TODO Check why this line was here
+    g = g_AMPA + g_NMDA
 
     : VDCC
     eca_syn = nernst(cai_CR, cao_CR, 2)                           : Ca reversal potential
@@ -414,7 +422,7 @@ BREAKPOINT {
     i = i_AMPA + i_NMDA + ica_VDCC                                : TODO check if ica_VDCC corrupts the fitting
 
     : Spine voltage (unused)
-    :vv = v
+    vv = v
 }
 
 
