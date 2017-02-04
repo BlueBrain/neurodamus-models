@@ -34,16 +34,9 @@ proc init() { local tgid, x, synapseID, baseSeed  localobj synParams
     synapse.Dep = abs( synParams.D )
     synapse.Fac = abs( synParams.F )
     
-    rng0 = new Random()
-    rng0.MCellRan4( synapseID*100000+100, tgid+250+baseSeed )
-    rng0.uniform(0,1)
-
-    // RNG for Spine model
-    rng1 = new Random()
-    rng1.MCellRan4( synapseID*100000+101, tgid+250+baseSeed )  // TODO Ask Jim about stream selection
-    rng1.normal(0,1)
-
-    synapse.setRNG( rng0, rng1 )
+    // for now, use two seeds based on gid and snyapseID.  In the future we will have an optional synapseSeed
+    // also note that somewhere we must have set the random123 global seed (BlueConfig BaseSeed)
+    synapse.setRNG( tgid, 100000 + synapseID )
     synapse.synapseID = synapseID
     
     synapse.gmax_AMPA = synParams.weight

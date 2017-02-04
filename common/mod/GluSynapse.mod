@@ -242,9 +242,13 @@ COMMENT
 The Verbatim block is needed to allow RNG.
 ENDCOMMENT
 VERBATIM
+// for MCellRan4
 #include<stdlib.h>
 #include<stdio.h>
 #include<math.h>
+
+// for random123
+#include "nrnran123.h"
 
 double nrn_random_pick(void* r);
 void* nrn_random_arg(int argpos);
@@ -306,6 +310,9 @@ ASSIGNED {
 
     : Misc
     rng_rel
+
+    : temporary until mcellran4 completely deprecated
+    usingR123
 }
 
 STATE {
@@ -654,15 +661,32 @@ FUNCTION Theta(x (mM)) (1) {
 
 PROCEDURE setRNG() {
     VERBATIM
-    /**
-     * This function takes a NEURON Random object declared in hoc and makes it
-     * usable by this mod file.
-     */
-    void** pv1 = (void**)(&_p_rng_rel);
-    if( ifarg(1)) {
-        *pv1 = nrn_random_arg(1);
-    } else {
-        *pv1 = (void*)0;
+    // For compatibility, allow for either MCellRan4 or Random123.  Distinguish by the arg types
+    // Object => MCellRan4, seeds (double) => Random123
+    usingR123 = 0;
+    if( ifarg(1) && hoc_is_double_arg(1) ) {
+        nrnran123_State** pv = (nrnran123_State**)(&_p_rng_rel);
+        uint32_t a2 = 0;
+
+        if (*pv) {
+            nrnran123_deletestream(*pv);
+            *pv = (nrnran123_State*)0;
+        }
+        if (ifarg(2)) {
+            a2 = (uint32_t)*getarg(2);
+        }
+        if (ifarg(3)) {
+            *pv = nrnran123_newstream3((uint32_t)*getarg(1), a2, (uint32_t)*getarg(3));
+        } else {
+            *pv = nrnran123_newstream((uint32_t)*getarg(1), a2);
+        }
+        usingR123 = 1;
+    } else if( ifarg(1) ) {   // not a double, so assume hoc object type
+        void** pv = (void**)(&_p_rng_rel);
+        *pv = nrn_random_arg(1);
+    } else {  // no arg, so clear pointer
+        void** pv = (void**)(&_p_rng_rel);
+        *pv = (void*)0;
     }
     ENDVERBATIM
 }
@@ -671,26 +695,15 @@ PROCEDURE setRNG() {
 FUNCTION urand() {
     VERBATIM
     double value;
-    if (_p_rng_rel) {
-        /*
-        :Supports separate independent but reproducible streams for
-        : each instance. However, the corresponding hoc Random
-        : distribution MUST be set to Random.uniform(0,1)
-        */
+    if ( usingR123 ) {
+        value = nrnran123_dblpick((nrnran123_State*)_p_rng_rel);
+    } else if (_p_rng_rel) {
         value = nrn_random_pick(_p_rng_rel);
-        //printf("random stream for this simulation = %lf\n",value);
-        return value;
-    }else{
-    ENDVERBATIM
-        : the old standby. Cannot use if reproducible parallel sim
-        : independent of nhost or which host this instance is on
-        : is desired, since each instance on this cpu draws from
-        : the same stream
-        value = scop_random(1)
-    VERBATIM
+    } else {
+        value = 0.0;
     }
+    _lurand = value;
     ENDVERBATIM
-    urand = value
 }
 
 
@@ -732,18 +745,32 @@ VERBATIM
         xdir = hoc_pgetarg(1);
         xval = hoc_pgetarg(2);
         if (_p_rng_rel) {
-                // tell how many items need saving
-                if (*xdir == -1. ) { *xdir = 1.0; return 0.0; }
-
-                // save the value(s)
-                else if (*xdir == 0.) {
-                        xval[0] = (double) nrn_get_random_sequence(_p_rng_rel);
-                } else{  //restore the value(s)
-                        nrn_set_random_sequence(_p_rng_rel, (long)(xval[0]));
+            // tell how many items need saving
+            if (*xdir == -1) {  // count items
+                if( usingR123 ) {
+                    *xdir = 1.0;
+                } else {
+                    *xdir = 2.0;
                 }
+                return 0.0;
+            } else if(*xdir ==0 ) {  // save
+                if( usingR123 ) {
+                    uint32_t seq;
+                    char which;
+                    nrnran123_getseq( (nrnran123_State*)_p_rng_rel, &seq, &which );
+                    xval[0] = (double) seq;
+                    xval[1] = (double) which;
+                } else {
+                    xval[0] = (double)nrn_get_random_sequence(_p_rng_rel);
+                }
+            } else {  // restore
+                if( usingR123 ) {
+                    nrnran123_setseq( (nrnran123_State*)_p_rng_rel, (uint32_t)xval[0], (char)xval[1] );
+                } else {
+                    nrn_set_random_sequence(_p_rng_rel, (long)(xval[0]));
+                }
+            }
         }
-
-        //if( synapseID == 104211 ) { verboseLevel = 1; }
 #endif
 ENDVERBATIM
 }
