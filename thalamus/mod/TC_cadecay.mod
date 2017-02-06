@@ -26,7 +26,7 @@ INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}
 NEURON {
 	SUFFIX TC_cad
 	USEION ca READ ica, cai WRITE cai
-	RANGE depth,kt,kd,cainf,taur, cai_rec
+	RANGE depth,kt,kd,cainf,taur, cai_rec, gamma
 }
 
 UNITS {
@@ -43,11 +43,12 @@ CONSTANT {
 }
 
 PARAMETER {
-	depth	= .1	(um)		: depth of shell
-	taur	= 5	(ms)		: rate of calcium removal
-	cainf	= 2e-4	(mM)
-	kt	= 0	(mM/ms)		: dummy
-	kd	= 0	(mM)		: dummy
+	depth	= .1	 (um)		: depth of shell
+	gamma   = 0.05 	 (1)		: EI: percent of free calcium (not buffered), see CaDynamics_E2.mod ctx
+	taur	= 5	 (ms)		: rate of calcium removal
+	cainf	= 6.5e-5 (mM)		: EI: see CaDynamics_E2.mod ctx
+	kt	= 0	 (mM/ms)	: dummy
+	kd	= 0	 (mM)		: dummy
 }
 
 STATE {
@@ -71,7 +72,7 @@ BREAKPOINT {
 
 DERIVATIVE state { 
 
-	drive_channel =  - (10000) * ica / (2 * FARADAY * depth)
+	drive_channel =  - (10000) * ica * gamma / (2 * FARADAY * depth)
 
 	if (drive_channel <= 0.) { drive_channel = 0. }	: cannot pump inward
 	cai_rec = cai
