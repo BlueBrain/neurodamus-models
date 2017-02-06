@@ -698,7 +698,9 @@ FUNCTION urand() {
     if ( usingR123 ) {
         value = nrnran123_dblpick((nrnran123_State*)_p_rng_rel);
     } else if (_p_rng_rel) {
+#if !defined(CORENEURON_BUILD)
         value = nrn_random_pick(_p_rng_rel);
+#endif
     } else {
         value = 0.0;
     }
