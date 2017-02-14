@@ -9,7 +9,7 @@
 /**
  * This helper object will encapsulate the hoc actions needed to create our plastic excitatory synapse
  */
-begintemplate GluSynapseHelper
+begintemplate GluSynapseNOSTDPHelper
 
 objref synapse, rng0, rng1
 public synapse
@@ -28,7 +28,7 @@ proc init() { local tgid, x, synapseID, baseSeed  localobj synParams
     synapseID = $4
     baseSeed = $5
     
-    synapse = new GluSynapse_v3p3(x)
+    synapse = new GluSynapse(x)
     synapse.tau_d_AMPA = synParams.DTC
     synapse.Use = abs( synParams.U )
     synapse.Dep = abs( synParams.D )
@@ -52,4 +52,4 @@ proc init() { local tgid, x, synapseID, baseSeed  localobj synParams
     synParams.weight = 1  // TODO Check with Jim
 }
 
-endtemplate GluSynapseHelper
+endtemplate GluSynapseNOSTDPHelper
