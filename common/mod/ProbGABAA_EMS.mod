@@ -259,7 +259,6 @@ ENDVERBATIM
 FUNCTION bbsavestate() {
         bbsavestate = 0
 VERBATIM
-#ifdef ENABLE_SAVE_STATE
         /* first arg is direction (0 save, 1 restore), second is value*/
         double *xdir, *xval, *hoc_pgetarg();
         long nrn_get_random_sequence(void* r);
@@ -276,7 +275,6 @@ VERBATIM
                         nrn_set_random_sequence(_p_rng, (long)(xval[0]));
                 }
         }
-#endif
 ENDVERBATIM
 }
 

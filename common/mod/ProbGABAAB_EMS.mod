@@ -303,7 +303,6 @@ ENDVERBATIM
 FUNCTION bbsavestate() {
         bbsavestate = 0
 VERBATIM
-#ifdef ENABLE_SAVE_STATE
         /* first arg is direction (0 save, 1 restore), second is value*/
         double *xdir, *xval, *hoc_pgetarg();
         long nrn_get_random_sequence(void* r);
@@ -321,7 +320,6 @@ VERBATIM
                 }
         }
         if( synapseID == 104211 ) { verboseLevel = 1; }
-#endif
 ENDVERBATIM
 }
 
