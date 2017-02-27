@@ -3,7 +3,7 @@ TITLE Leak potassium current
 
 NEURON {
 	SUFFIX TC_Kleak
-	USEION  k READ ek WRITE ik
+	:USEION  k READ ek WRITE ik
 	RANGE g, i_rec, eleak
 }
 
