@@ -70,7 +70,7 @@ NEURON {
     RANGE Use, Dep, Fac, Nrrp
     RANGE u, Psurv              : Could be converted to LOCAL (performance)
     RANGE tsyn, unoccupied, occupied
-    POINTER rng
+    BBCOREPOINTER rng_rel
 
     : NMDAR-mediated calcium current
     RANGE Pf_NMDA, ica_NMDA
@@ -100,6 +100,11 @@ NEURON {
     RANGE synapseID, verbose
     NONSPECIFIC_CURRENT i
 }
+
+
+VERBATIM
+#include "nrnran123h"
+ENDVERBATIM
 
 
 UNITS {
@@ -185,9 +190,13 @@ between 0 and 1 for comparison with Pr to decide whether to activate the synapse
 or not.
 ENDCOMMENT
 VERBATIM
-#include<stdlib.h>
-#include<stdio.h>
-#include<math.h>
+// for MCellRan4
+#includestdlibh
+#includestdioh
+#includemathh
+
+// for random123
+#include "nrnran123h"
 
 double nrn_random_pick(void* r);
 void* nrn_random_arg(int argpos);
@@ -212,7 +221,8 @@ ASSIGNED {
     Psurv       (1)     : Survival prob. of unrecovered state
     unoccupied  (1)     : Number of unoccupied release sites
     occupied    (1)     : Number of occupied release sites
-    rng                 : Random Number Generator
+    rng_rel             : Random Number Generator
+    usingR123           : TEMPORARY until mcellran4 completely deprecated
 
     : NMDAR-mediated calcium current
     Pf_NMDA     (1)     : Fractional NMDAR calcium current
@@ -492,16 +502,32 @@ FUNCTION nernst(ci(mM), co(mM), z) (mV) {
 
 PROCEDURE setRNG() {
     VERBATIM
-    /**
-     * This function takes a NEURON Random object declared in hoc and makes
-     * it usable by this mod file. Note that this method is taken from Brett
-     * paper as used by netstim.hoc and netstim.mod which points out that
-     * the Random must be in uniform(0, 1) mode.
-     */
-    void** pv = (void**)(&_p_rng);
-    if( ifarg(1)) {
+    // For compatibility, allow for either MCellRan4 or Random123
+    // Distinguish by the arg types
+    // Object => MCellRan4, seeds (double) => Random123
+    usingR123 = 0;
+    if( ifarg(1) && hoc_is_double_arg(1) ) {
+        nrnran123_State** pv = (nrnran123_State**)(&_p_rng_rel);
+        uint32_t a2 = 0;
+
+        if (*pv) {
+            nrnran123_deletestream(*pv);
+            *pv = (nrnran123_State*)0;
+        }
+        if (ifarg(2)) {
+            a2 = (uint32_t)*getarg(2);
+        }
+        if (ifarg(3)) {
+            *pv = nrnran123_newstream3((uint32_t)*getarg(1), a2, (uint32_t)*getarg(3));
+        } else {
+            *pv = nrnran123_newstream((uint32_t)*getarg(1), a2);
+        }
+        usingR123 = 1;
+    } else if( ifarg(1) ) {   // not a double, so assume hoc object type
+        void** pv = (void**)(&_p_rng_rel);
         *pv = nrn_random_arg(1);
-    } else {
+    } else {  // no arg, so clear pointer
+        void** pv = (void**)(&_p_rng_rel);
         *pv = (void*)0;
     }
     ENDVERBATIM
@@ -510,22 +536,17 @@ PROCEDURE setRNG() {
 
 FUNCTION urand() {
     VERBATIM
-    if (_p_rng) {
-        /*
-         * Supports separate independent but reproducible streams for
-         * each instance. However, the corresponding hoc Random
-         * distribution MUST be set to Random.uniform(0, 1)
-         */
-        _lurand = nrn_random_pick(_p_rng);
-    }else{
-    ENDVERBATIM
-        : The old standby. Cannot use if reproducible parallel sim
-        : independent of nhost or which host this instance is on
-        : is desired, since each instance on this cpu draws from
-        : the same stream
-        urand = scop_random(1)
-    VERBATIM
+    double value;
+    if ( usingR123 ) {
+        value = nrnran123_dblpick((nrnran123_State*)_p_rng_rel);
+    } else if (_p_rng_rel) {
+        #if !defined(CORENEURON_BUILD)
+        value = nrn_random_pick(_p_rng_rel);
+        #endif
+    } else {
+        value = 0.0;
     }
+    _lurand = value;
     ENDVERBATIM
 }
 
@@ -538,3 +559,90 @@ FUNCTION toggleLTPlasticity() {
 FUNCTION toggleVerbose() {
     verbose = 1-verbose
 }
+
+
+FUNCTION bbsavestate() {
+        bbsavestate = 0
+VERBATIM
+#ifdef ENABLE_SAVE_STATE
+        /* first arg is direction (0 save, 1 restore), second is array*/
+        /* if first arg is -1, fill xdir with the size of the array */
+        double *xdir, *xval, *hoc_pgetarg();
+        long nrn_get_random_sequence(void* r);
+        void nrn_set_random_sequence(void* r, int val);
+        xdir = hoc_pgetarg(1);
+        xval = hoc_pgetarg(2);
+        if (_p_rng_rel) {
+            // tell how many items need saving
+            if (*xdir == -1) {  // count items
+                if( usingR123 ) {
+                    *xdir = 1.0;
+                } else {
+                    *xdir = 2.0;
+                }
+                return 0.0;
+            } else if(*xdir ==0 ) {  // save
+                if( usingR123 ) {
+                    uint32_t seq;
+                    char which;
+                    nrnran123_getseq( (nrnran123_State*)_p_rng_rel, &seq, &which );
+                    xval[0] = (double) seq;
+                    xval[1] = (double) which;
+                } else {
+                    xval[0] = (double)nrn_get_random_sequence(_p_rng_rel);
+                }
+            } else {  // restore
+                if( usingR123 ) {
+                    nrnran123_setseq( (nrnran123_State*)_p_rng_rel, (uint32_t)xval[0], (char)xval[1] );
+                } else {
+                    nrn_set_random_sequence(_p_rng_rel, (long)(xval[0]));
+                }
+            }
+        }
+#endif
+ENDVERBATIM
+}
+
+VERBATIM
+
+static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset, _threadargsproto_) {
+    // make sure offset array non-null
+    if (iArray) {
+
+        // get handle to random123 instance
+        nrnran123_State** pv = (nrnran123_State**)(&_p_rng_rel);
+
+        // get location for storing ids
+        uint32_t* ia = ((uint32_t*)iArray) + *ioffset;
+
+        // retrieve/store identifier seeds
+        nrnran123_getids(*pv, ia, ia+1);
+    }
+
+    // increment integer offset (2 identifier), no double data
+    *ioffset += 2;
+    *doffset += 0;
+
+}
+
+static void bbcore_read(double* dArray, int* iArray, int* doffset, int* ioffset, _threadargsproto_) {
+
+    // make sure it's not previously set
+    assert(!_p_rng_rel);
+
+    uint32_t* ia = ((uint32_t*)iArray) + *ioffset;
+
+    // make sure non-zero identifier seeds
+    if (ia[0] != 0 || ia[1] != 0) {
+        nrnran123_State** pv = (nrnran123_State**)(&_p_rng_rel);
+
+        // get new stream
+        *pv = nrnran123_newstream(ia[0], ia[1]);
+    }
+
+    // increment intger offset (2 identifiers), no double data
+    *ioffset += 2;
+    *doffset += 0;
+}
+
+ENDVERBATIM
