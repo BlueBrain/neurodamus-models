@@ -11,7 +11,7 @@
  */
 begintemplate GluSynapseHelper
 
-objref synapse, rng0, rng1
+objref synapse
 public synapse
 
 /**
@@ -27,24 +27,30 @@ proc init() { local tgid, x, synapseID, baseSeed  localobj synParams
     x = $3
     synapseID = $4
     baseSeed = $5
-    
+
     synapse = new GluSynapse(x)
     synapse.tau_d_AMPA = synParams.DTC
     synapse.Use = abs( synParams.U )
     synapse.Dep = abs( synParams.D )
     synapse.Fac = abs( synParams.F )
-    
+
     // for now, use two seeds based on gid and snyapseID.  In the future we will have an optional synapseSeed
     // also note that somewhere we must have set the random123 global seed (BlueConfig BaseSeed)
     synapse.setRNG( tgid, 100000 + synapseID )
     synapse.synapseID = synapseID
-    
-    synapse.gmax_AMPA = synParams.weight
-    
+
+    synapse.tau_GB = 3.6137197105541636
+    synapse.gamma_d_GB = 1.6297400557081063
+    synapse.gamma_p_GB = 143.77781121403007
+    synapse.theta_d_GB = 0.0006494056928249507
+    synapse.theta_p_GB = 0.013954874119344767
+    synapse.Nrrp = 2
+
     synapse.toggleLTPlasticity()
     
     // Override weight from nrn.h5
-    synParams.weight = 1  // TODO Check with Jim
+    //synapse.gmax_AMPA = synParams.weight
+    //synParams.weight = 1  // TODO Check with Jim
 }
 
 endtemplate GluSynapseHelper
