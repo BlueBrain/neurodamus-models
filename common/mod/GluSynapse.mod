@@ -4,7 +4,7 @@ COMMENT
  * @brief Probabilistic synapse with short- and long-term plasticity
  * @author king, chindemi, rossert
  * @date 2017-03-16
- * @version 0.3.
+ * @version 0.3.4
  * @remark Copyright © BBP/EPFL 2005-2017; All rights reserved.
            Do not distribute without further notice.
  */
@@ -102,11 +102,6 @@ NEURON {
 }
 
 
-VERBATIM
-#include "nrnran123h"
-ENDVERBATIM
-
-
 UNITS {
     (nA)    = (nanoamp)
     (mV)    = (millivolt)
@@ -191,12 +186,12 @@ or not.
 ENDCOMMENT
 VERBATIM
 // for MCellRan4
-#includestdlibh
-#includestdioh
-#includemathh
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
 
 // for random123
-#include "nrnran123h"
+#include "nrnran123.h"
 
 double nrn_random_pick(void* r);
 void* nrn_random_arg(int argpos);
