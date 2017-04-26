@@ -265,6 +265,7 @@ STATE {
     : Long-term synaptic plasticity
     Rho_GB      (1)
     Use_GB      (1)
+    effcai_GB   (1)     <1e-3>
 }
 
 INITIAL{
@@ -313,6 +314,7 @@ INITIAL{
     : Long-term synaptic plasticity
     Rho_GB          = rho0_GB
     Use_GB          = Use
+    effcai_GB       = 0
     depress_GB      = 0
     potentiate_GB   = 0
 
@@ -370,6 +372,7 @@ DERIVATIVE state {
     cai_CR'     = -(1e-9)*(ica_NMDA + ica_VDCC)*gamma_ca_CR/((1e-15)*volume_CR*2*FARADAY) - (cai_CR - min_ca_CR)/tau_ca_CR
 
     : Long-term synaptic plasticity
+    effcai_GB'  = -0.005*effcai_GB + (cai_CR - min_ca_CR)
     Rho_GB'     = ( - Rho_GB*(1-Rho_GB)*(rho_star_GB-Rho_GB)
                     + potentiate_GB*gamma_p_GB*(1-Rho_GB)
                     - depress_GB*gamma_d_GB*Rho_GB ) / ((1e3)*tau_GB)
@@ -382,10 +385,10 @@ NET_RECEIVE (weight) {
 
     if(flag == 1) {
         : Flag 1, Initialize watch calls
-        WATCH (cai_CR > theta_d_GB) 2
-        WATCH (cai_CR < theta_d_GB) 3
-        WATCH (cai_CR > theta_p_GB) 4
-        WATCH (cai_CR < theta_p_GB) 5
+        WATCH (effcai_GB > theta_d_GB) 2
+        WATCH (effcai_GB < theta_d_GB) 3
+        WATCH (effcai_GB > theta_p_GB) 4
+        WATCH (effcai_GB < theta_p_GB) 5
         if(verbose > 0){
             UNITSOFF
             printf("Flag 1, Initialize watch calls\n")
