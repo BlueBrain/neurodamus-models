@@ -47,7 +47,8 @@ NEURON {
     THREADSAFE
 	POINT_PROCESS ProbGABAAB_EMS
 	RANGE tau_r_GABAA, tau_d_GABAA, tau_r_GABAB, tau_d_GABAB 
-	RANGE Use, u, Dep, Fac, u0, Rstate, tsyn_fac, tsyn, u
+	RANGE Use, u, Dep, Fac, u0, tsyn
+    RANGE unoccupied, occupied, Nrrp
 	RANGE i,i_GABAA, i_GABAB, g_GABAA, g_GABAB, g, e_GABAA, e_GABAB, GABAB_ratio
         RANGE A_GABAA_step, B_GABAA_step, A_GABAB_step, B_GABAB_step
 	NONSPECIFIC_CURRENT i
@@ -67,6 +68,7 @@ PARAMETER {
     e_GABAB    = -97     (mV)  : GABAB reversal potential
     gmax = .001 (uS) : weight conversion factor (from nS to uS)
     u0 = 0 :initial value of u, which is the running value of release probability
+    Nrrp = 1 (1)  : Number of total release sites for given contact
     synapseID = 0
     verboseLevel = 0
 	GABAB_ratio = 0 (1) : The ratio of GABAB to GABAA
@@ -104,15 +106,11 @@ ASSIGNED {
         factor_GABAB
         rng
 
-       : Recording these three, you can observe full state of model
-       : tsyn_fac gives you presynaptic times, Rstate gives you 
-	 : state transitions,
-	 : u gives you the "release probability" at transitions 
-	 : (attention: u is event based based, so only valid at incoming events)
-       Rstate (1) : recovered state {0=unrecovered, 1=recovered}
-       tsyn_fac (ms) : the time of the last spike
-       tsyn (ms) : the time of the last spike
-       u (1) : running release probability
+    : MVR
+    unoccupied (1) : no. of unoccupied sites following release event
+    occupied   (1) : no. of occupied sites following one epoch of recovery
+    tsyn (ms) : the time of the last spike
+    u (1) : running release probability
 
 
 }
@@ -128,11 +126,13 @@ INITIAL{
 
         LOCAL tp_GABAA, tp_GABAB
 
-	Rstate=1
-	tsyn_fac=0
         tsyn = 0
-	u=u0
-        
+        u=u0
+
+        : MVR
+        unoccupied = 0
+        occupied = Nrrp
+
         A_GABAA = 0
         B_GABAA = 0
         
@@ -174,7 +174,7 @@ PROCEDURE state() {
 
 
 NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv){
-    LOCAL result
+    LOCAL result, ves, occu
     weight_GABAA = weight
     weight_GABAB = weight*GABAB_ratio
     : Locals:
@@ -191,69 +191,73 @@ VERBATIM
 ENDVERBATIM
     }
 
-        : calc u at event-
-        if (Fac > 0) {
-                u = u*exp(-(t - tsyn_fac)/Fac) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
-           } else {
-                  u = Use  
-           } 
-           if(Fac > 0){
-                  u = u + Use*(1-u) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
-           }    
+    : calc u at event-
+    if (Fac > 0) {
+            u = u*exp(-(t - tsyn)/Fac) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
+       } else {
+              u = Use  
+       } 
+       if(Fac > 0){
+              u = u + Use*(1-u) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
+       }    
 
-	   : tsyn_fac knows about all spikes, not only those that released
-	   : i.e. each spike can increase the u, regardless of recovered state.
-	   tsyn_fac = t
+    : recovery
+    FROM counter = 0 TO (unoccupied - 1) {
+        : Iterate over all unoccupied sites and compute how many recover
+        Psurv = exp(-(t-tsyn)/Dep)
+        result = urand()
+        if (result>Psurv) {
+            occupied = occupied + 1     : recover a previously unoccupied site
+            if( verboseLevel > 0 ) {
+                UNITSOFF
+                printf( "Recovered! %f at time %g: Psurv = %g, urand=%g\n", synapseID, t, Psurv, result )
+                UNITSON
+            }
+        }
+    }
 
-           : recovery
-	   if (Rstate == 0) {
-	   : probability of survival of unrecovered state based on Poisson recovery with rate 1/tau
-	          Psurv = exp(-(t-tsyn)/Dep)
-		  result = urand()
-		  if (result>Psurv) {
-		         Rstate = 1     : recover      
+    ves = 0                  : Initialize the number of released vesicles to 0
+    occu = occupied - 1  : Store the number of occupied sites in a local variable
 
-                         if( verboseLevel > 0 ) {
-                             printf( "Recovered! %f at time %g: Psurv = %g, urand=%g\n", synapseID, t, Psurv, result )
-                         }
+    FROM counter = 0 TO occu {
+        : iterate over all occupied sites and compute how many release
+        result = urand()
+        if (result<u) {
+            : release a single site!
+            occupied = occupied - 1  : decrease the number of occupied sites by 1
+            ves = ves + 1            : increase number of relesed vesicles by 1
+        }
+    }
 
-		  }
-		  else {
-		         : survival must now be from this interval
-		         tsyn = t
-                         if( verboseLevel > 0 ) {
-                             printf( "Failed to recover! %f at time %g: Psurv = %g, urand=%g\n", synapseID, t, Psurv, result )
-                         }
-		  }
-           }	   
-	   
-	   if (Rstate == 1) {
-   	          result = urand()
-		  if (result<u) {
-		  : release!
-   		         tsyn = t
-			 Rstate = 0
+    : Update number of unoccupied sites
+    unoccupied = Nrrp - occupied
 
-                         A_GABAA = A_GABAA + weight_GABAA*factor_GABAA
-                         B_GABAA = B_GABAA + weight_GABAA*factor_GABAA
-                         A_GABAB = A_GABAB + weight_GABAB*factor_GABAB
-                         B_GABAB = B_GABAB + weight_GABAB*factor_GABAB
-                         
-                         if( verboseLevel > 0 ) {
-                             printf( "Release! %f at time %g: vals %g %g %g \n", synapseID, t, A_GABAA, weight_GABAA, factor_GABAA )
-                         }
-		  		  
-		  }
-		  else {
-		         if( verboseLevel > 0 ) {
-			     printf("Failure! %f at time %g: urand = %g\n", synapseID, t, result )
-		         }
+    : Update tsyn
+    : tsyn knows about all spikes, not only those that released
+    : i.e. each spike can increase the u, regardless of recovered state.
+    :      and each spike trigger an evaluation of recovery
+    tsyn = t
 
-		  }
+    if (ves > 0) { :no need to evaluate unless we have vesicle release
+        A_GABAA = A_GABAA + ves*weight_GABAA*factor_GABAA
+        B_GABAA = B_GABAA + ves*weight_GABAA*factor_GABAA
+        A_GABAB = A_GABAB + ves*weight_GABAB*factor_GABAB
+        B_GABAB = B_GABAB + ves*weight_GABAB*factor_GABAB
 
-	   }
+        if( verboseLevel > 0 ) {
+            UNITSOFF
+            printf( "Release! %f at time %g: vals %g %g %g \n", synapseID, t, A_GABAA, weight_GABAA, factor_GABAA )
+            UNITSON
+        }
 
-        
+    } else {
+        : total release failure
+        if ( verboseLevel > 0 ) {
+            UNITSOFF
+            printf("Failure! %f at time %g: urand = %g\n", synapseID, t, result)
+            UNITSON
+        }
+    }
 
 }
 
@@ -319,7 +323,7 @@ VERBATIM
                         nrn_set_random_sequence(_p_rng, (long)(xval[0]));
                 }
         }
-        if( synapseID == 104211 ) { verboseLevel = 1; }
+        //if( synapseID == 104211 ) { verboseLevel = 1; }
 ENDVERBATIM
 }
 
