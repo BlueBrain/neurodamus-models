@@ -70,7 +70,7 @@ NEURON {
     RANGE Use, Dep, Fac, Nrrp
     RANGE u, Psurv              : Could be converted to LOCAL (performance)
     RANGE tsyn, unoccupied, occupied
-    BBCOREPOINTER rng_rel
+    POINTER rng_rel
 
     : NMDAR-mediated calcium current
     RANGE Pf_NMDA, ica_NMDA
@@ -328,7 +328,7 @@ INITIAL{
 
 BREAKPOINT {
     LOCAL Eca_syn, mggate
-    SOLVE state METHOD derivimplicit
+    SOLVE state METHOD euler
 
     : AMPA Receptor
     g_AMPA = w*(1e-3)*gmax_AMPA*(B_AMPA-A_AMPA)
@@ -603,6 +603,7 @@ ENDVERBATIM
 
 VERBATIM
 
+/*
 static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset, _threadargsproto_) {
     // make sure offset array non-null
     if (iArray) {
@@ -642,5 +643,6 @@ static void bbcore_read(double* dArray, int* iArray, int* doffset, int* ioffset,
     *ioffset += 2;
     *doffset += 0;
 }
+*/
 
 ENDVERBATIM
