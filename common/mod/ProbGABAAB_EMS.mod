@@ -239,10 +239,10 @@ ENDVERBATIM
     tsyn = t
 
     if (ves > 0) { :no need to evaluate unless we have vesicle release
-        A_GABAA = A_GABAA + ves*weight_GABAA*factor_GABAA
-        B_GABAA = B_GABAA + ves*weight_GABAA*factor_GABAA
-        A_GABAB = A_GABAB + ves*weight_GABAB*factor_GABAB
-        B_GABAB = B_GABAB + ves*weight_GABAB*factor_GABAB
+        A_GABAA = A_GABAA + ves/Nrrp*weight_GABAA*factor_GABAA
+        B_GABAA = B_GABAA + ves/Nrrp*weight_GABAA*factor_GABAA
+        A_GABAB = A_GABAB + ves/Nrrp*weight_GABAB*factor_GABAB
+        B_GABAB = B_GABAB + ves/Nrrp*weight_GABAB*factor_GABAB
 
         if( verboseLevel > 0 ) {
             UNITSOFF
