@@ -24,7 +24,7 @@ TITLE Low threshold calcium current
 :   Written by Alain Destexhe, Laval University, 1995
 :
 
-: EI: downloaded from ModelDB
+: EI: downloaded from ModelDB, with modifications with data from Amarillo et al., 2014
 
 INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}
 
@@ -53,10 +53,10 @@ PARAMETER {
 	:pcabar	= 5e-4	(cm/s)	: Maximum Permeability, default in Amarillo. It is half pcabar_L (McCormick & Huguenard, 1992)
 	cai	= 2.4e-4 (mM)	: adjusted for eca=120 mV
 	cao	= 2	(mM)
-	qm	= 5		: q10's for activation and inactivation
-	qh	= 3		: from Coulter et al., J Physiol 414: 587, 1989
-	:qm = 5
-	:qh = 3		: from Amarillo et al, 2014 (refers to Destexhe, 1998)
+	:qm	= 5		: q10's for activation and inactivation
+	:qh	= 3		: from Coulter et al., J Physiol 414: 587, 1989
+	qm = 2.5
+	qh = 2.5		: from Amarillo et al, 2014 (refers to Destexhe, 1998)
 }
 
 STATE {
@@ -114,14 +114,14 @@ PROCEDURE evaluate_fct(v(mV)) {
 :   using these values reproduce more closely the voltage clamp experiments.
 :   (cfr. Huguenard & McCormick, J Neurophysiol, 1992).
 :
-	m_inf = 1.0 / ( 1 + exp(-(v+57)/6.2))
-	h_inf = 1.0 / ( 1 + exp((v+83)/4.0) ) 
+	m_inf = 1.0 / ( 1 + exp(-(v+53)/6.2)) : This and following modified from original, according to Amarillo et al., 2014
+	h_inf = 1.0 / ( 1 + exp((v+75)/4.0) ) 
 
-	tau_m = ( 0.612 + 1.0 / ( exp(-(v+134)/16.7) + exp((v+18.8)/18.2) ) ) / phi_m
-	if( v < -80) {
-		tau_h = exp((v+469)/66.6) / phi_h
+	tau_m = ( 6.12 + 1.0 / ( exp(-(v+128)/16.7) + exp((v+12.8)/18.2) ) ) / phi_m
+	if( v < -75) {
+		tau_h = exp((v+461)/66.6) / phi_h
 	} else {
-		tau_h = ( 28 + exp(-(v+24)/10.5)) / phi_h 
+		tau_h = ( 28 + exp(-(v+16)/10.5)) / phi_h 
 	}
 }
 
