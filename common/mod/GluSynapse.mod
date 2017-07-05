@@ -573,9 +573,9 @@ VERBATIM
             // tell how many items need saving
             if (*xdir == -1) {  // count items
                 if( usingR123 ) {
-                    *xdir = 1.0;
-                } else {
                     *xdir = 2.0;
+                } else {
+                    *xdir = 1.0;
                 }
                 return 0.0;
             } else if(*xdir ==0 ) {  // save
