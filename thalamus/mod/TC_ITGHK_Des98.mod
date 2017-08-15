@@ -29,7 +29,7 @@ INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}
 NEURON {
 	SUFFIX TC_iT_Des98
 	USEION ca READ cai,cao WRITE ica
-	RANGE pcabar, m_inf, tau_m, h_inf, tau_h, shift, actshift
+	RANGE pcabar, m_inf, tau_m, h_inf, tau_h, shift, actshift, ica
 	GLOBAL qm, qh
 }
 
