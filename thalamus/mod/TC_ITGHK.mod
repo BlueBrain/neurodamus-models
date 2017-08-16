@@ -25,6 +25,7 @@ TITLE Low threshold calcium current
 :
 
 : EI: downloaded from ModelDB, with modifications with data from Amarillo et al., 2014
+: EI: 16/08/2017 Correction of equation 14 according to Amarillo e-mail.
 
 INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}
 
@@ -117,7 +118,7 @@ PROCEDURE evaluate_fct(v(mV)) {
 	m_inf = 1.0 / ( 1 + exp(-(v+53)/6.2)) : This and following modified from original, according to Amarillo et al., 2014
 	h_inf = 1.0 / ( 1 + exp((v+75)/4.0) ) 
 
-	tau_m = ( 6.12 + 1.0 / ( exp(-(v+128)/16.7) + exp((v+12.8)/18.2) ) ) / phi_m
+	tau_m = ( 0.612 + 1.0 / ( exp(-(v+128)/16.7) + exp((v+12.8)/18.2) ) ) / phi_m
 	if( v < -75) {
 		tau_h = exp((v+461)/66.6) / phi_h
 	} else {
