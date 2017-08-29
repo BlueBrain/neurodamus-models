@@ -24,7 +24,7 @@ ASSIGNED	{
 	g_h	(S/cm2)
 	mInf
 	mTau
-	:tcorr		:Add temperature correction
+	tcorr		:Add temperature correction
 	i_rec
 }
 
@@ -47,13 +47,14 @@ DERIVATIVE states	{
 INITIAL{
 	rates()
 	m = mInf
-	:tcorr = 4^((celsius-34)/10)  :EI: Recording temp. 34 C in Amarillo, 2014. q10 = 4 (Santoro et al., 2000).
-                                      : Already corrected in equations 
+	tcorr = 4^((celsius-34)/10)  :EI: Recording temp. 34 C in Amarillo, 2014. q10 = 4 (Santoro et al., 2000).
 }
 
+UNITSOFF
 PROCEDURE rates(){
-	:UNITSOFF
+	
 	mInf = 1/(1+exp((v+82)/5.49))
-	mTau = 1/((0.0008+0.0000035*exp(-0.05787*v)+exp(-1.87+0.0701*v)))
-	:UNITSON
+	mTau = (1/((0.0008+0.0000035*exp(-0.05787*v)+exp(-1.87+0.0701*v))))/tcorr
+	
 }
+UNITSON

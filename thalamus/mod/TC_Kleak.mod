@@ -7,27 +7,20 @@ NEURON {
 	RANGE g, i_rec
 }
 
-:CONSTANT {
-	:Q10 = 3 (1) : To check, recordings at room temperature
-:}
-
 UNITS {
 	(mA) = (milliamp)
-	:(uA) = (microamp)
 	(mV) = (millivolt)
 	(S) = (siemens)
 }
 
 PARAMETER {
-	:ek 			(mV) :EI: moved in assigned
-	g = 1.0e-5	(S/cm2)	<0,1e9>
+	g = 1.0e-5	(S/cm2)
 }
 
 ASSIGNED {
 	v	(mV)
 	ek	(mV)
 	ik	(mA/cm2)
-	:qt (1)
 	i_rec
 }
 

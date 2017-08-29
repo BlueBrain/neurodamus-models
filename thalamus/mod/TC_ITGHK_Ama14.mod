@@ -50,9 +50,9 @@ UNITS {
 PARAMETER {
 	v		(mV)
 	celsius		(degC)
-	pcabar	= 5e-5	(cm/s)
-	:pcabar	= 5e-4	(cm/s)	: Maximum Permeability, default in Amarillo. It is half pcabar_L (McCormick & Huguenard, 1992)
-	cai	= 2.4e-4 (mM)	: adjusted for eca=120 mV
+	pcabar	= 5e-4	(cm/s)	: Maximum Permeability, default in Amarillo. It is half pcabar_L (McCormick & Huguenard, 1992)
+	:cai	= 2.4e-4 (mM)	: adjusted for eca=120 mV
+	cai	= 5e-5 (mM)	: EI: From Amarillo et al., 2014
 	cao	= 2	(mM)
 	:qm	= 5		: q10's for activation and inactivation
 	:qh	= 3		: from Coulter et al., J Physiol 414: 587, 1989

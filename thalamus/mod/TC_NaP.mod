@@ -57,7 +57,7 @@ INITIAL {
 	states()
 	h = hInf
 	m = mInf
-	tcorr = Q10^((celsius-22)/10)
+	tcorr = Q10^((celsius-23)/10)
 }
 
 

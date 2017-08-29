@@ -36,12 +36,12 @@ PARAMETER {
 	gna_max	= 1.0e-1 	(S/cm2)  : Destexhe et al., 1998; 1.0e-2 Amarillo et al., 2014
 	gk_max	= 1.0e-1 	(S/cm2)  :       "		; 2.0e-3 Amarillo et al., 2014
 
- 	:ena	= 45	(mV)		 :	 Amarillo et al., 2014, EI: moved in assigned
-	:ek	= -99	(mV)             :       Amarillo et al., 2014, EI: moved in assigned
+ 	:ena		(mV)	
+	:ek		(mV)             
 	celsius         (degC)
 	dt              (ms)
 	v               (mV)
-	vtraub	= -63	(mV)
+	vtraub	= -48	(mV)             : From Amarillo et al., 2014 .mod file
 }
 
 STATE {
@@ -69,13 +69,14 @@ ASSIGNED {
 
 BREAKPOINT {
 	SOLVE states METHOD cnexp
+	:SOLVE states : From Amarillo et al., 2014 
 	ina   = gna_max * m*m*m*h * (v - ena)
 	ik    = gk_max * n*n*n*n * (v - ek)
 	i_rec = ina + ik
 }
 
 
-DERIVATIVE states {   : exact Hodgkin-Huxley equations, EI: should work with CVODE
+DERIVATIVE states {   : exact Hodgkin-Huxley equations
 	evaluate_fct(v)
 	m' = (m_inf - m) / tau_m
 	h' = (h_inf - h) / tau_h
@@ -94,9 +95,9 @@ DERIVATIVE states {   : exact Hodgkin-Huxley equations, EI: should work with CVO
 
 UNITSOFF
 INITIAL {
-	m = m_inf : EI: it was 0
-	h = h_inf : EI: it was 0
-	n = n_inf : EI: it was 0
+	m = 0
+	h = 0
+	n = 0
 :
 :  Q10 was assumed to be 3 for both currents
 :
@@ -106,7 +107,7 @@ INITIAL {
 }
 
 PROCEDURE evaluate_fct(v(mV)) { LOCAL a,b,v2
-	UNITSOFF :EI
+
 	v2 = v - vtraub : convert to traub convention
 
 	if(v2 == 13 || v2 == 40 || v2 == 15 ){
@@ -131,7 +132,7 @@ PROCEDURE evaluate_fct(v(mV)) { LOCAL a,b,v2
 	m_exp = 1 - exp(-dt/tau_m)
 	h_exp = 1 - exp(-dt/tau_h)
 	n_exp = 1 - exp(-dt/tau_n)
-	UNITSON :EI
+
 }
 
 UNITSON

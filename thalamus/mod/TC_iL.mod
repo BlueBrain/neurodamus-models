@@ -1,6 +1,7 @@
 TITLE high threshold calcium current (L-current)
 
 : EI: from modelDB, accession: 3808
+: EI: Modifications from Amarillo et al., 2014
 COMMENT
         *********************************************
         reference:      McCormick & Huguenard (1992) 
@@ -21,8 +22,9 @@ NEURON {
 UNITS {
 	(mA)	= (milliamp)
 	(mV)	= (millivolt)
-	(mM)	= (milli/liter)
-        FARADAY = 96480 (coul)
+	(molar) = (1/liter)
+	(mM)	= (millimolar)
+        FARADAY = (faraday) (coulomb)
         R       = 8.314 (volt-coul/degC)
 }
 
@@ -30,8 +32,8 @@ PARAMETER {
 	v			(mV)
 	celsius			(degC)
         dt              	(ms)
-	cai			(mM)
-	cao			(mM)
+	cai  = 0.5E-4    	(mM)
+	cao  = 2		(mM)
 	pcabar= 1e-4	        (cm/s) : From Amarillo et al., 2014		
 }
 
@@ -49,7 +51,7 @@ ASSIGNED {
 
 BREAKPOINT { 
 	SOLVE states METHOD cnexp
-	ica = pcabar * m*m * ghk(v,cai,cao,2)
+	ica = pcabar * m*m * ghk(v,cai,cao)
 	i_rec = ica
 }
 
@@ -64,25 +66,31 @@ DERIVATIVE states {
 
 :        m= m + (1-exp(-dt/tau_m))*(m_inf-m)
 :}
-
-UNITSOFF
 INITIAL {
-	tcorr = 3^((celsius-23.5)/10)
 	rates(v)
-	m = m_inf
+	tcorr = 3^((celsius-23.5)/10)
+	m = 0
 }
 
-FUNCTION ghk( v(mV), ci(mM), co(mM), z)  (millicoul/cm3) {
-        LOCAL e, w
-        w = v * (.001) * z*FARADAY / (R*(celsius+273.16))
-        if (fabs(w)>1e-4) 
-          { e = w / (exp(w)-1) }
-        else
-	: denominator is small -> Taylor series
-          { e = 1-w/2 }
-        ghk = - (.001) * z*FARADAY * (co-ci*exp(w)) * e
-}
 UNITSOFF
+
+FUNCTION ghk( v(mV), ci(mM), co(mM))  (millicoul/cm3) {
+        LOCAL z, eci, eco
+        z = v * (.001) * 2 *FARADAY / (R*(celsius+273.15))
+	eco = co*efun(z)
+	eci = ci*efun(-z)
+	:high cao charge moves inward
+	:negative potential charge moves inward
+	ghk = (.001)*2*FARADAY*(eci - eco)
+}
+
+FUNCTION efun(z) {
+	 if (fabs(z) < 1e-4) {
+	    efun = 1 - z/2
+	 }else{
+	    efun = z/(exp(z) - 1)
+         }
+}
 
 PROCEDURE rates(v(mV)) { LOCAL a,b
 	a = 1.6 / (1+ exp(-0.072*(v-5)))
