@@ -47,13 +47,13 @@ DERIVATIVE states	{
 INITIAL{
 	rates()
 	m = mInf
-	tcorr = 4^((celsius-34)/10)  :EI: Recording temp. 34 C in Amarillo, 2014. q10 = 4 (Santoro et al., 2000).
+	tcorr = 4^((celsius-34)/10)  : Rec. T from Cain et al., 2014. q10 = 4 (Santoro et al., 2000).
 }
 
 UNITSOFF
 PROCEDURE rates(){
 	
-	mInf = 1/(1+exp((v+82)/5.49))
+	mInf = 1/(1+exp((v+86.2)/4.2)) : From Cain et al., 2014
 	mTau = (1/((0.0008+0.0000035*exp(-0.05787*v)+exp(-1.87+0.0701*v))))/tcorr
 	
 }
