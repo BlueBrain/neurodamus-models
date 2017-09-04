@@ -52,9 +52,10 @@ INITIAL{
 
 UNITSOFF
 PROCEDURE rates(){
-	
+	v = v + 5 : LJP correction
 	mInf = 1/(1+exp((v+86.2)/4.2)) : From Cain et al., 2014
-	mTau = (1/((0.0008+0.0000035*exp(-0.05787*v)+exp(-1.87+0.0701*v))))/tcorr
-	
+	:mTau = (1/((0.0008+0.0000035*exp(-0.05787*v)+exp(-1.87+0.0701*v))))/tcorr
+	mTau = (1/(exp(-14.59 - 0.086*v) + exp(-1.87 + 0.0701*v ))) : From Huguenard & McCormick, 1992
+	v = v - 5
 }
 UNITSON
