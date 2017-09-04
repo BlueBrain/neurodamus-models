@@ -1,4 +1,5 @@
-:From Amarillo et al., 2014
+:Ih current for thalamo-cortical neurons
+: Ref.: Huguenard et al., 1997 (taum), Budde et al., 1997 (minf)
 
 NEURON	{
 	SUFFIX TC_ih
@@ -15,7 +16,9 @@ UNITS	{
 PARAMETER	{
 	gh_max = 2.2e-5(S/cm2) 
 	e_h =  -43.0 (mV)
-	celsius (degC)
+        celsius (degC)
+	q10 = 4	     
+		     
 }
 
 ASSIGNED	{
@@ -47,15 +50,15 @@ DERIVATIVE states	{
 INITIAL{
 	rates()
 	m = mInf
-	tcorr = 4^((celsius-34)/10)  : Rec. T from Cain et al., 2014. q10 = 4 (Santoro et al., 2000).
+	tcorr = q10^((celsius-34)/10)  :EI: Recording temp. 34 C Huguenard, 1992 q10 = 4 (Santoro et al., 2000).
 }
 
 UNITSOFF
 PROCEDURE rates(){
-	v = v + 5 : LJP correction
-	mInf = 1/(1+exp((v+86.2)/4.2)) : From Cain et al., 2014
-	:mTau = (1/((0.0008+0.0000035*exp(-0.05787*v)+exp(-1.87+0.0701*v))))/tcorr
-	mTau = (1/(exp(-14.59 - 0.086*v) + exp(-1.87 + 0.0701*v ))) : From Huguenard & McCormick, 1992
-	v = v - 5
+        v = v + 0	
+	:mInf = 1/(1+exp((v+86.2)/4.2))
+        mInf = 1/(1+exp((v+86.4)/11.2)) : Budde et al., 1997
+        mTau = (1/(exp(-14.59 - 0.086*v) + exp(-1.87 + 0.0701*v )))/tcorr # From Huguenard, 1992, LJP?
+        v = v - 0
 }
 UNITSON
