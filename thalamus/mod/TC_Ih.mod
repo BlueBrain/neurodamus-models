@@ -1,5 +1,5 @@
 :Ih current for thalamo-cortical neurons
-: Ref.: Huguenard et al., 1997 (taum), Budde et al., 1997 (minf)
+: Ref.: Huguenard et al., 1997 (taum), Cain et al., 2015 (minf)
 
 NEURON	{
 	SUFFIX TC_ih
@@ -57,7 +57,7 @@ UNITSOFF
 PROCEDURE rates(){
         v = v + 0	
 	:mInf = 1/(1+exp((v+86.2)/4.2))
-        mInf = 1/(1+exp((v+86.4)/11.2)) : Budde et al., 1997
+        mInf = 1/(1+exp((v+86.2)/4.2)) : Cain et al., 2015
         mTau = (1/(exp(-14.59 - 0.086*v) + exp(-1.87 + 0.0701*v )))/tcorr : From Huguenard, 1992, LJP?
         v = v - 0
 }
