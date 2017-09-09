@@ -2,7 +2,7 @@
 : Ref.: Huguenard et al., 1997 (taum), Cain et al., 2015 (minf)
 
 NEURON	{
-	SUFFIX TC_ih
+	SUFFIX TC_ih_Bud97
 	NONSPECIFIC_CURRENT ih
 	RANGE gh_max, g_h, i_rec 
 }
