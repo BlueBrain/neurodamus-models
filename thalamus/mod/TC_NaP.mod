@@ -44,7 +44,7 @@ STATE { m h }
 
 BREAKPOINT {
 	SOLVE states METHOD cnexp
-	ina = gNaP_max*m*h*(v-ena)
+	ina = gNaP_max*mInf*h*(v-ena)
 	i_rec = ina
 }
 
