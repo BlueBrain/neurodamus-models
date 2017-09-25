@@ -133,8 +133,10 @@ extern int cvode_active_;
 #include <stdio.h>
 #include <math.h>
 
+#if !defined(CORENEURON_BUILD)
 double nrn_random_pick(void* r);
 void* nrn_random_arg(int argpos);
+#endif
 
 ENDVERBATIM
 : ----------------------------------------------------------------
@@ -270,7 +272,7 @@ PROCEDURE setRNG() {
 VERBATIM
     // For compatibility, allow for either MCellRan4 or Random123.  Distinguish by the arg types
     // Object => MCellRan4, seeds (double) => Random123
-#if !NRNBBCORE
+#if !defined(NRNBBCORE) || !NRNBBCORE
     usingR123 = 0;
     if( ifarg(1) && hoc_is_double_arg(1) ) {
         nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
@@ -303,7 +305,9 @@ VERBATIM
     if( usingR123 ) {
         value = nrnran123_dblpick((nrnran123_State*)_p_rng);
     } else if (_p_rng) {
+#if !defined(CORENEURON_BUILD)
         value = nrn_random_pick(_p_rng);
+#endif
     } else {
         value = 0.5;
     }
@@ -312,7 +316,7 @@ ENDVERBATIM
 }
 
 VERBATIM
-/*
+#if !NRNBBCORE
 static void bbcore_write(double* x, int* d, int* xx, int* offset, _threadargsproto_) {
     if (d) {
         uint32_t* di = ((uint32_t*)d) + *offset;
@@ -338,7 +342,7 @@ static void bbcore_read(double* x, int* d, int* xx, int* offset, _threadargsprot
 //printf("StochKv.mod %p: bbcore_read offset=%d %d %d\n", _p, *offset, di[0], di[1]);
     *offset += 2;
 }
-*/
+#endif
 ENDVERBATIM
 
 : Returns random numbers drawn from a binomial distribution
