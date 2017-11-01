@@ -1,29 +1,9 @@
-TITLE skm95.mod
+TITLE StochKv3.mod
 
 COMMENT
 ----------------------------------------------------------------
-Stochastic version of the K channel mechanism kd3h5.mod by
-Z. Mainen in Mainen & Sejnowski 95.
-
-This represents a potassium channel, with Hodgkin-Huxley like kinetics,
-based on the gates model, assuming stochastic opening and closing.
-
-Kinetic rates based roughly on Sah et al. and Hamill et al. (1991)
-The main kinetic difference from the standard H-H model (shh.mod) is
-that the K+ kinetic is different, not n^4, but just n,
-and the activation curves are different.
-
-The rate functions are adapted directly from the Kd3h5.mod file
-by Zach Mainen.
-
-The stochastic model is as following:
-
-Potassium
-
-       = alpha_n =>
-   [N0]             [N1]
-      <= beta_n =
-
+Stochastic inactivating channel using values reported in Mendonca et al. 2016.
+(Modified from https://senselab.med.yale.edu/modeldb/showmodel.cshtml?model=125385&file=/Sbpap_code/mod/skaprox.mod)
 
 The model keeps track on the number of channels in each state, and
 uses a binomial distribution to update these number.
@@ -34,12 +14,8 @@ Jan 1999, Mickey London, Hebrew University, mikilon@lobster.ls.huji.ac.il
 19 May 2002 Kamran Diba.  Changed gamma and deterministic from GLOBAL to RANGE.
 23 Nov 2011 Werner Van Geit @ BBP. Changed the file so that it can use the neuron random number generator. Tuned voltage dependence
 16 Mar 2016 James G King @ BBP.  Incorporate modifications suggested by Michael Hines to improve stiching to deterministic mode, thread safety, and using Random123
-
-16 Jan 2017 Christian Roessert @ BBP:
-
-WARNING unit declaration is wrong! modlunit gives errors!
-To maintain backward compatibility this channel is not corrected but usage is DISCOURAGED!
-StochKv.mod and inactivating version of this channel uses corrected units!
+26 Sep 2016 Christian Roessert @ BBP. Adding inactivation, changing dynamics to values reported in Mendonca et al. 2016
+: LJP: OK, whole-cell patch, corrected by 10 mV (Mendonca et al. 2016)
 
 ----------------------------------------------------------------
 ENDCOMMENT
@@ -47,14 +23,14 @@ ENDCOMMENT
 INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}
 
 NEURON {
-    SUFFIX StochKv
+    SUFFIX StochKv3
     THREADSAFE
     USEION k READ ek WRITE ik
     RANGE N, eta, gk, gamma, deterministic, gkbar, ik
     RANGE N0, N1, n0_n1, n1_n0
-    GLOBAL ninf, ntau, a, b, P_a, P_b
-    GLOBAL Ra, Rb
-    GLOBAL vmin, vmax, q10, temp, tadj
+    GLOBAL ninf, linf, ltau, ntau, an, bn, al, bl
+    GLOBAL P_an, P_bn, P_al, P_bl
+    GLOBAL vmin, vmax
     BBCOREPOINTER rng
     :POINTER rng
 }
@@ -72,18 +48,9 @@ PARAMETER {
     dt      (ms)
     area    (um2)
 
-    gamma  =  30          (pS)
+    gamma  =  50      (pS)
     eta              (1/um2)
-    gkbar = .75      (S/cm2)
-
-    tha  = -40   (mV)        : v 1/2 for inf
-    qa   = 9            : inf slope
-    Ra   = 0.02 (/ms)       : max act rate
-    Rb   = 0.002    (/ms)       : max deact rate
-
-    celsius (degC)
-    temp = 23 (degC)   : original temperature for kinetic set
-    q10 = 2.3               : temperature sensitivity
+    gkbar = .01      (S/cm2)
 
     deterministic = 0   : if non-zero, will use deterministic version
     vmin = -120 (mV)    : range to construct tables for
@@ -91,33 +58,39 @@ PARAMETER {
 }
 
 ASSIGNED {
-    a       (/ms)
-    b       (/ms)
+    an      (/ms)
+    bn      (/ms)
+    al      (/ms)
+    bl      (/ms)
     ik      (mA/cm2)
     gk      (S/cm2)
     ek      (mV)
     ninf        : steady-state value
     ntau (ms)   : time constant for relaxation
-    tadj
+    linf        : steady-state value
+    ltau (ms)   : time constant for relaxation
 
     N
     scale_dens (pS/um2)
-    P_a     : probability of one channel making alpha transition
-    P_b     : probability of one channel making beta transition
+    P_an     : probability of one channel making alpha n transition
+    P_bn     : probability of one channel making beta n transition
+    P_al     : probability of one channel making alpha l transition
+    P_bl     : probability of one channel making beta l transition
 
     rng
-
-    n0_n1_new
     usingR123
 }
 
 
 STATE {
-    n         : state variable of deterministic description
+    n l  : state variable of deterministic description
 }
 ASSIGNED {
-    N0 N1     : N states populations (These currently will not be saved via the bbsavestate functionality.  Would need to be STATE again)
-    n0_n1 n1_n0 : number of channels moving from one state to the other
+    N0L0 N1L0 N0L1 N1L1     : N states populations (These currently will not be saved via the bbsavestate functionality.  Would need to be STATE again)
+    n0l0_n1l0 n0l0_n0l1     : number of channels moving from one state to the other
+    n1l0_n1l1 n1l0_n0l0
+    n0l1_n1l1 n0l1_n0l0
+    n1l1_n0l1 n1l1_n1l0
 }
 
 COMMENT
@@ -144,24 +117,35 @@ ENDVERBATIM
 INITIAL {
     VERBATIM
     if (cvode_active_ && !deterministic) {
-        hoc_execerror("StochKv with deterministic=0", "cannot be used with cvode");
+        hoc_execerror("StochKv2 with deterministic=0", "cannot be used with cvode");
     }
     ENDVERBATIM
 
-    eta = (gkbar / gamma) : * (10000) for proper fix
+    eta = (gkbar / gamma) * (10000)
     trates(v)
-    n = ninf
+    n=ninf
+    l=linf
     scale_dens = gamma/area
     N = floor(eta*area + 0.5)
 
-    N1 = n*N
+    N1L1 = n*l*N
+    N1L0 = n*(1-l)*N
+    N0L1 = (1-n)*l*N
     if( !deterministic) {
-        N1 = floor(N1 + 0.5)
+        N1L1 = floor(N1L1 + 0.5)
+        N1L0 = floor(N1L0 + 0.5)
+        N0L1 = floor(N0L1 + 0.5)
     }
-    N0 = N-N1       : any round off into non-conducting state
+    N0L0 = N - N1L1 - N1L0 - N0L1  : put rest into non-conducting state
 
-    n0_n1 = 0
-    n1_n0 = 0
+    n0l0_n1l0 = 0
+    n0l0_n0l1 = 0
+    n1l0_n1l1 = 0
+    n1l0_n0l0 = 0
+    n0l1_n1l1 = 0
+    n0l1_n0l0 = 0
+    n1l1_n0l1 = 0
+    n1l1_n1l0 = 0
 }
 
 : ----------------------------------------------------------------
@@ -169,9 +153,9 @@ INITIAL {
 BREAKPOINT {
   SOLVE states METHOD cnexp
 
-  gk = (strap(N1) * scale_dens * tadj) : * (0.0001) for proper fix
+  gk = (strap(N1L1) * scale_dens) * (0.0001)
 
-  ik = 1e-4 * gk * (v - ek) : remove 1e-4 for proper fix
+  ik = gk * (v - ek)
 }
 
 
@@ -181,66 +165,85 @@ DERIVATIVE states {
 
     trates(v)
 
-    n' = a - (a + b)*n
+    l' = al - (al + bl)*l
+    n' = an - (an + bn)*n
+
     if (deterministic || dt > 1) { : ForwardSkip is also deterministic
-        N1 = n*N
+
+      N1L1 = n*l*N
+      N1L0 = n*(1-l)*N
+      N0L1 = (1-n)*l*N
+
     }else{
 
-    : ensure that N0 is an integer for when transitioning from deterministic mode to stochastic mode
-    N0 = floor(N0+0.5)
-    N1 = N - N0
+      : ensure that N0 is an integer for when transitioning from deterministic mode to stochastic mode
+      N1L1 = floor(N1L1 + 0.5)
+      N1L0 = floor(N1L0 + 0.5)
+      N0L1 = floor(N0L1 + 0.5)
+      N0L0 = N - N1L1 - N1L0 - N0L1
 
-    P_a = strap(a*dt)
-    P_b = strap(b*dt)
+      P_an = strap(an*dt)
+      P_bn = strap(bn*dt)
+      : check that will represent probabilities when used
+      ChkProb(P_an)
+      ChkProb(P_bn)
 
-    : check that will represent probabilities when used
-    ChkProb( P_a)
-    ChkProb( P_b)
+      : n gate transitions
+      n0l0_n1l0 = BnlDev(P_an, N0L0)
+      n0l1_n1l1 = BnlDev(P_an, N0L1)
+      n1l1_n0l1 = BnlDev(P_bn, N1L1)
+      n1l0_n0l0 = BnlDev(P_bn, N1L0)
 
-    : transitions
-    n0_n1 = BnlDev(P_a, N0)
-    n1_n0 = BnlDev(P_b, N1)
+      : move the channels
+      N0L0 = strap(N0L0 - n0l0_n1l0 + n1l0_n0l0)
+      N1L0 = strap(N1L0 - n1l0_n0l0 + n0l0_n1l0)
+      N0L1 = strap(N0L1 - n0l1_n1l1 + n1l1_n0l1)
+      N1L1 = strap(N1L1 - n1l1_n0l1 + n0l1_n1l1)
 
-    : move the channels
-    N0    = strap(N0 - n0_n1 + n1_n0)
-    N1    = N - N0
+      : probabilities of making l gate transitions
+      P_al = strap(al*dt)
+      P_bl  = strap(bl*dt)
+      : check that will represent probabilities when used
+      ChkProb(P_al)
+      ChkProb(P_bl)
+
+      : number making l gate transitions
+      n0l0_n0l1 = BnlDev(P_al,N0L0-n0l0_n1l0)
+      n1l0_n1l1 = BnlDev(P_al,N1L0-n1l0_n0l0)
+      n0l1_n0l0 = BnlDev(P_bl,N0L1-n0l1_n1l1)
+      n1l1_n1l0 = BnlDev(P_bl,N1L1-n1l1_n0l1)
+
+      : move the channels
+      N0L0 = strap(N0L0 - n0l0_n0l1  + n0l1_n0l0)
+      N1L0 = strap(N1L0 - n1l0_n1l1  + n1l1_n1l0)
+      N0L1 = strap(N0L1 - n0l1_n0l0  + n0l0_n0l1)
+      N1L1 = strap(N1L1 - n1l1_n1l0  + n1l0_n1l1)
 
     }
 
-    N0 = N-N1       : any round off into non-conducting state
+    N0L0 = N - N1L1 - N1L0 - N0L1  : put rest into non-conducting state
 }
 
 : ----------------------------------------------------------------
 : trates - compute rates, using table if possible
 PROCEDURE trates(v (mV)) {
-    TABLE ntau, ninf, a, b, tadj
-    DEPEND dt, Ra, Rb, tha, qa, q10, temp, celsius
+    TABLE ntau,ltau,ninf,linf,al,bl,an,bn
+    DEPEND dt
     FROM vmin TO vmax WITH 199
 
-    tadj = q10 ^ ((celsius - temp)/(10 (K)))
-    a = SigmoidRate(v, tha, Ra, qa)
-    a = a * tadj
-    b = SigmoidRate(-v, -tha, Rb, qa)
-    b = b * tadj
-    ntau = 1/(a+b)
-    ninf = a*ntau
+    v = v + 10
+    linf = 1/(1+exp((-30(mV)-v)/10(mV)))
+    ltau = 0.346(ms)*exp(-v/(18.272(mV)))+2.09(ms)
+
+    ninf = 1/(1+exp(0.0878(1/mV)*(v+55.1(mV))))
+    ntau = 2.1(ms)*exp(-v/21.2(mV))+4.627(ms)
+    v = v - 10
+
+    al = linf/ltau
+    bl = 1/ltau - al
+    an = ninf/ntau
+    bn = 1/ntau - an
 }
-
-
-: ----------------------------------------------------------------
-: SigmoidRate - Compute a sigmoid rate function given the
-: 50% point th, the slope q, and the amplitude a.
-FUNCTION SigmoidRate(v (mV),th (mV),a (1/ms),q) (1/ms){
-    UNITSOFF
-    if (fabs(v-th) > 1e-6 ) {
-        SigmoidRate = a * (v - th) / (1 - exp(-(v - th)/q))
-    UNITSON
-
-    } else {
-        SigmoidRate = a * q
-    }
-}
-
 
 : ----------------------------------------------------------------
 : sign trap - trap for negative values and replace with zero
@@ -261,7 +264,7 @@ PROCEDURE ChkProb(p) {
 
   if (p < 0.0 || p > 1.0) {
     VERBATIM
-    fprintf(stderr, "StochKv.mod:ChkProb: argument not a probability.\n");
+    fprintf(stderr, "StochKv2.mod:ChkProb: argument not a probability.\n");
     ENDVERBATIM
   }
 
@@ -309,9 +312,7 @@ VERBATIM
     if( usingR123 ) {
         value = nrnran123_dblpick((nrnran123_State*)_p_rng);
     } else if (_p_rng) {
-#if !defined(CORENEURON_BUILD)
         value = nrn_random_pick(_p_rng);
-#endif
     } else {
         value = 0.5;
     }
@@ -330,7 +331,7 @@ static void bbcore_write(double* x, int* d, int* xx, int* offset, _threadargspro
         nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
         nrnran123_getids3(*pv, di, di+1, di+2);
       }
-//printf("StochKv.mod %p: bbcore_write offset=%d %d %d\n", _p, *offset, d?di[0]:-1, d?di[1]:-1);
+//printf("StochKv3.mod %p: bbcore_write offset=%d %d %d\n", _p, *offset, d?di[0]:-1, d?di[1]:-1);
     }
     *offset += 3;
 }
@@ -342,7 +343,7 @@ static void bbcore_read(double* x, int* d, int* xx, int* offset, _threadargsprot
       nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
       *pv = nrnran123_newstream3(di[0], di[1], di[2]);
         }
-//printf("StochKv.mod %p: bbcore_read offset=%d %d %d\n", _p, *offset, di[0], di[1]);
+//printf("StochKv3.mod %p: bbcore_read offset=%d %d %d\n", _p, *offset, di[0], di[1]);
     *offset += 3;
 }
 ENDVERBATIM
@@ -474,7 +475,7 @@ VERBATIM
 FUNCTION bbsavestate() {
         bbsavestate = 0
 VERBATIM
- #if !defined(CORENEURON_BUILD)
+#ifdef ENABLE_SAVE_STATE
         // TODO: since N0,N1 are no longer state variables, they will need to be written using this callback
         //  provided that it is the version that supports multivalue writing
         /* first arg is direction (-1 get info, 0 save, 1 restore), second is value*/
@@ -483,50 +484,36 @@ VERBATIM
         void nrn_set_random_sequence(void* r, int val);
         xdir = hoc_pgetarg(1);
         xval = hoc_pgetarg(2);
-        int saveCount = 0;
-
-        // N0 always needs to be saved (N1 is computed from N and N0)
-        if( *xdir == -1. ) {
-            saveCount = 1;
-        } else if ( *xdir == 0. ) {
-            xval[0] = N0;
-        } else {
-            N0 = xval[0];
-            N1 = N - N0;
-        }
-
-        // Handle RNG
         if (_p_rng) {
-            if (*xdir == -1.) {
-                if( usingR123 ) {
-                    saveCount += 2.0;
-                } else {
-                    saveCount += 1.0;
+                // tell how many items need saving
+                if (*xdir == -1.) {
+                    if( usingR123 ) {
+                        *xdir = 2.0;
+                    } else {
+                        *xdir = 1.0;
+                    }
+                    return 0.0;
                 }
-            } else if (*xdir == 0.) {
-                if( usingR123 ) {
-                    uint32_t seq;
-                    char which;
-                    nrnran123_getseq( (nrnran123_State*)_p_rng, &seq, &which );
-                    xval[1] = (double) seq;
-                    xval[2] = (double) which;
-                } else {
-                    xval[1] = (double)nrn_get_random_sequence(_p_rng);
+                else if (*xdir == 0.) {
+                    if( usingR123 ) {
+                        uint32_t seq;
+                        char which;
+                        nrnran123_getseq( (nrnran123_State*)_p_rng, &seq, &which );
+                        xval[0] = (double) seq;
+                        xval[1] = (double) which;
+                    } else {
+                        xval[0] = (double)nrn_get_random_sequence(_p_rng);
+                    }
+                } else{
+                    if( usingR123 ) {
+                        nrnran123_setseq( (nrnran123_State*)_p_rng, (uint32_t)xval[0], (char)xval[1] );
+                    } else {
+                        nrn_set_random_sequence(_p_rng, (long)(xval[0]));
+                    }
                 }
-            } else {
-                if( usingR123 ) {
-                    nrnran123_setseq( (nrnran123_State*)_p_rng, (uint32_t)xval[1], (char)xval[2] );
-                } else {
-                    nrn_set_random_sequence(_p_rng, (long)(xval[1]));
-                }
-            }
         }
 
-        if( *xdir == -1 ) {
-            *xdir = saveCount;
-        }
-
-        return 0.0;
+        // TODO: check for random123 and get the seq values
 #endif
 ENDVERBATIM
 }
