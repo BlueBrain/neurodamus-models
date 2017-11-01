@@ -33,6 +33,10 @@ proc init() { local tgid, x, synapseID, baseSeed  localobj synParams
     synapse.Use = abs( synParams.U )
     synapse.Dep = abs( synParams.D )
     synapse.Fac = abs( synParams.F )
+
+    if( synParams.nrrp >= 0 ) {
+        synapse.Nrrp = synParams.nrrp
+    }
     
     rng = new Random()
     rng.MCellRan4( synapseID*100000+100, tgid+250+baseSeed )
