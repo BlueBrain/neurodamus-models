@@ -1,7 +1,7 @@
 : Dynamics that track inside calcium concentration
 : modified from Destexhe et al. 1994
 : Dan Keller and Christian Roessert - removed shell, made dependent on geometry of individual sections via the surface to volume ratio
-
+: LJP: OK, correction not necessary, no voltage values
 
 NEURON	{
 	SUFFIX CaDynamics_DC0

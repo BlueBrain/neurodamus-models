@@ -5,6 +5,10 @@
 
 : Adapted by Werner Van Geit @ BBP, 2015 (with help from M.Hines):
 : channel detects TTX concentration set by TTXDynamicsSwitch.mod
+
+: LJP: OK, cell-attached modes bath and pipette solution almost identical ljp < 1mV "this procedure can be considered as valid in the case of a cell-attached or inside-out patch measurement provided that the pipette contains a solution identical to that of the bath" Erwin Neher, 1992
+
+
 NEURON {
 	SUFFIX Nap_Et2
 	USEION na READ ena WRITE ina

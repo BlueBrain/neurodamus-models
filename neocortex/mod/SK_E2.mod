@@ -1,5 +1,6 @@
 : SK-type calcium-activated potassium current
 : Reference : Kohler et al. 1996
+: LJP: OK, correction not necessary, no voltage values
 
 NEURON {
        SUFFIX SK_E2
