@@ -84,6 +84,9 @@ VERBATIM
 #include<stdio.h>
 #include<math.h>
 
+// for random123
+#include "nrnran123.h"
+
 double nrn_random_pick(void* r);
 void* nrn_random_arg(int argpos);
 
@@ -105,6 +108,7 @@ ASSIGNED {
 	factor_GABAA
         factor_GABAB
         rng
+        usingR123            : TEMPORARY until mcellran4 completely deprecated
 
     : MVR
     unoccupied (1) : no. of unoccupied sites following release event
@@ -264,44 +268,52 @@ ENDVERBATIM
 
 PROCEDURE setRNG() {
 VERBATIM
-    {
-        /**
-         * This function takes a NEURON Random object declared in hoc and makes it usable by this mod file.
-         * Note that this method is taken from Brett paper as used by netstim.hoc and netstim.mod
-         */
-        void** pv = (void**)(&_p_rng);
-        if( ifarg(1)) {
-            *pv = nrn_random_arg(1);
-        } else {
-            *pv = (void*)0;
+    // For compatibility, allow for either MCellRan4 or Random123
+    // Distinguish by the arg types
+    // Object => MCellRan4, seeds (double) => Random123
+    usingR123 = 0;
+    if( ifarg(1) && hoc_is_double_arg(1) ) {
+        nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
+        uint32_t a2 = 0;
+
+        if (*pv) {
+            nrnran123_deletestream(*pv);
+            *pv = (nrnran123_State*)0;
         }
+        if (ifarg(2)) {
+            a2 = (uint32_t)*getarg(2);
+        }
+        if (ifarg(3)) {
+            *pv = nrnran123_newstream3((uint32_t)*getarg(1), a2, (uint32_t)*getarg(3));
+        } else {
+            *pv = nrnran123_newstream((uint32_t)*getarg(1), a2);
+        }
+        usingR123 = 1;
+    } else if( ifarg(1) ) {   // not a double, so assume hoc object type
+        void** pv = (void**)(&_p_rng);
+        *pv = nrn_random_arg(1);
+    } else {  // no arg, so clear pointer
+        void** pv = (void**)(&_p_rng);
+        *pv = (void*)0;
     }
 ENDVERBATIM
 }
 
 FUNCTION urand() {
 VERBATIM
-        double value;
-        if (_p_rng) {
-                /*
-                :Supports separate independent but reproducible streams for
-                : each instance. However, the corresponding hoc Random
-                : distribution MUST be set to Random.uniform(1)
-                */
-                value = nrn_random_pick(_p_rng);
-                //printf("random stream for this simulation = %lf\n",value);
-                return value;
-        }else{
+    double value = 0.0;
+    if ( usingR123 ) {
+        value = nrnran123_dblpick((nrnran123_State*)_p_rng);
+    } else if (_p_rng) {
+        #if !defined(CORENEURON_BUILD)
+        value = nrn_random_pick(_p_rng);
+        #endif
+    } else {
+        // Note: prior versions used scop_random(1), but since we never use this model without configuring the rng.  Maybe should throw error?
+        value = 0.0;
+    }
+    _lurand = value;
 ENDVERBATIM
-                : the old standby. Cannot use if reproducible parallel sim
-                : independent of nhost or which host this instance is on
-                : is desired, since each instance on this cpu draws from
-                : the same stream
-                urand = scop_random(1)
-VERBATIM
-        }
-ENDVERBATIM
-        urand = value
 }
 
 

@@ -39,6 +39,8 @@ proc init() { local tgid, x, synapseID, baseSeed  localobj synParams, rngInfo
         rng.MCellRan4( synapseID*100000+100, tgid+250+baseSeed )
     } else if( rngInfo.getRNGMode() == rngInfo.UPMCELLRAN4 ) {
         rng.MCellRan4( synapseID*1000+100, tgid+250+baseSeed+rngInfo.getSynapseSeed() )
+    } else if( rngInfo.getRNGMode() == rngInfo.RANDOM123 ) {
+        rng.Random123( tgid+250, synapseID+100, rngInfo.getSynapseSeed()+450 )
     }
     rng.lognormal(0.2, 0.1)
     synapse.tau_r_GABAA = rng.repick()
@@ -52,15 +54,18 @@ proc init() { local tgid, x, synapseID, baseSeed  localobj synParams, rngInfo
         synapse.Nrrp = synParams.nrrp
     }
     
-    rng = new Random()
-    if( rngInfo.getRNGMode() == rngInfo.COMPATIBILITY ) {
-        rng.MCellRan4( synapseID*100000+100, tgid+250+baseSeed )
-    } else if( rngInfo.getRNGMode() == rngInfo.UPMCELLRAN4 ) {
-        //print "new style", rngInfo.getSynapseSeed()
-        rng.MCellRan4( synapseID*1000+100, tgid+250+baseSeed+rngInfo.getSynapseSeed() )
+    if( rngInfo.getRNGMode() == rngInfo.RANDOM123 ) {
+        synapse.setRNG( tgid+250, synapseID+100, rngInfo.getSynapseSeed()+300 )
+    } else {
+        rng = new Random()
+        if( rngInfo.getRNGMode() == rngInfo.COMPATIBILITY ) {
+            rng.MCellRan4( synapseID*100000+100, tgid+250+baseSeed )
+        } else if( rngInfo.getRNGMode() == rngInfo.UPMCELLRAN4 ) {
+            rng.MCellRan4( synapseID*1000+100, tgid+250+baseSeed+rngInfo.getSynapseSeed() )
+        }
+        rng.uniform(0,1)
+        synapse.setRNG( rng )
     }
-    rng.uniform(0,1)
-    synapse.setRNG( rng )
     synapse.synapseID = synapseID
 }
 
