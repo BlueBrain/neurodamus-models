@@ -35,6 +35,10 @@ proc init() { local tgid, x, synapseID, baseSeed  localobj synParams, rngInfo
     synapse.Use = abs( synParams.U )
     synapse.Dep = abs( synParams.D )
     synapse.Fac = abs( synParams.F )
+
+    if( synParams.nrrp >= 0 ) {
+        synapse.Nrrp = synParams.nrrp
+    }
     
     rngInfo = new RNGSettings()
     rng = new Random()

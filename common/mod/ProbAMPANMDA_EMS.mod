@@ -243,10 +243,10 @@ NET_RECEIVE (weight,weight_AMPA, weight_NMDA, Psurv) {
     tsyn = t
 
     if (ves > 0) { :no need to evaluate unless we have vesicle release
-        A_AMPA = A_AMPA + ves*weight_AMPA*factor_AMPA
-        B_AMPA = B_AMPA + ves*weight_AMPA*factor_AMPA
-        A_NMDA = A_NMDA + ves*weight_NMDA*factor_NMDA
-        B_NMDA = B_NMDA + ves*weight_NMDA*factor_NMDA
+        A_AMPA = A_AMPA + ves/Nrrp*weight_AMPA*factor_AMPA
+        B_AMPA = B_AMPA + ves/Nrrp*weight_AMPA*factor_AMPA
+        A_NMDA = A_NMDA + ves/Nrrp*weight_NMDA*factor_NMDA
+        B_NMDA = B_NMDA + ves/Nrrp*weight_NMDA*factor_NMDA
 
         if ( verboseLevel > 0 ) {
             UNITSOFF
