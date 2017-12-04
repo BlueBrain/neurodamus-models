@@ -277,6 +277,7 @@ VERBATIM
     if( ifarg(1) && hoc_is_double_arg(1) ) {
         nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
         uint32_t a2 = 0;
+        uint32_t a3 = 0;
 
         if (*pv) {
             nrnran123_deletestream(*pv);
@@ -286,10 +287,9 @@ VERBATIM
             a2 = (uint32_t)*getarg(2);
         }
         if (ifarg(3)) {
-            *pv = nrnran123_newstream3((uint32_t)*getarg(1), a2, (uint32_t)*getarg(3));
-        } else {
-            *pv = nrnran123_newstream((uint32_t)*getarg(1), a2);
-        }
+            a3 = (uint32_t)*getarg(3);
+        } 
+        *pv = nrnran123_newstream3((uint32_t)*getarg(1), a2, a3);
         usingR123 = 1;
     } else if( ifarg(1) ) {   // not a double, so assume hoc object type
         void** pv = (void**)(&_p_rng);
