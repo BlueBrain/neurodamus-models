@@ -329,10 +329,14 @@ static void bbcore_write(double* x, int* d, int* xx, int* offset, _threadargspro
       }else{
         nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
         nrnran123_getids3(*pv, di, di+1, di+2);
+        // write stream sequence
+        char which;
+        nrnran123_getseq(*pv, di+3, &which);
+        di[4] = (int)which;
       }
 //printf("StochKv.mod %p: bbcore_write offset=%d %d %d\n", _p, *offset, d?di[0]:-1, d?di[1]:-1);
     }
-    *offset += 3;
+    *offset += 5;
 }
 static void bbcore_read(double* x, int* d, int* xx, int* offset, _threadargsproto_) {
     assert(!_p_rng);
@@ -341,9 +345,11 @@ static void bbcore_read(double* x, int* d, int* xx, int* offset, _threadargsprot
         {
       nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
       *pv = nrnran123_newstream3(di[0], di[1], di[2]);
+      // restore stream sequence
+      nrnran123_setseq(*pv, di[3], (char)di[4]);
         }
 //printf("StochKv.mod %p: bbcore_read offset=%d %d %d\n", _p, *offset, di[0], di[1]);
-    *offset += 3;
+    *offset += 5;
 }
 ENDVERBATIM
 
