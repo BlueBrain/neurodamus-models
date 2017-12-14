@@ -88,7 +88,7 @@ VERBATIM
         fprintf(fp, "--dt %lf\n", *getarg(4));
         fprintf(fp, "--forwardskip %lf\n", *getarg(5));
         fprintf(fp, "--prcellgid %d\n", (int)*getarg(6));
-        fprintf(fp, "--report %s\n", REPORT_CONFIG_FILE);
+        fprintf(fp, "--report-conf %s\n", REPORT_CONFIG_FILE);
         fprintf(fp, "--cell-permute %d\n", DEFAULT_CELL_PERMUTE);
         fprintf(fp, "-mpi\n");
         fclose(fp);
