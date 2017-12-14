@@ -51,7 +51,7 @@ NEURON {
 	RANGE i, g, e
 	NONSPECIFIC_CURRENT i
     POINTER rng
-    RANGE synapseID, verboseLevel
+    RANGE synapseID, selected_for_report, verboseLevel
 }
 
 PARAMETER {
@@ -64,6 +64,7 @@ PARAMETER {
     gmax = .001 (uS) : weight conversion factor (from nS to uS)
     u0 = 0 :initial value of u, which is the running value of release probability
     synapseID = 0
+    selected_for_report = 0
     verboseLevel = 0
 }
 

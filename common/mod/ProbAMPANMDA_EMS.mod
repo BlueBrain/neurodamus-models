@@ -52,7 +52,7 @@ NEURON {
         RANGE A_AMPA_step, B_AMPA_step, A_NMDA_step, B_NMDA_step
         NONSPECIFIC_CURRENT i
         BBCOREPOINTER rng
-        RANGE synapseID, verboseLevel
+        RANGE synapseID, selected_for_report, verboseLevel
 }
 
 PARAMETER {
@@ -73,6 +73,7 @@ PARAMETER {
         Nrrp = 1 (1)  : Number of total release sites for given contact
         synapseID = 0
         verboseLevel = 0
+        selected_for_report = 0
         NMDA_ratio = 0.71 (1) : The ratio of NMDA to AMPA
 }
 

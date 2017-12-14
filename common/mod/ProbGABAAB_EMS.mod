@@ -53,7 +53,7 @@ NEURON {
         RANGE A_GABAA_step, B_GABAA_step, A_GABAB_step, B_GABAB_step
 	NONSPECIFIC_CURRENT i
     BBCOREPOINTER rng
-    RANGE synapseID, verboseLevel
+    RANGE synapseID, selected_for_report, verboseLevel
 }
 
 PARAMETER {
@@ -71,6 +71,7 @@ PARAMETER {
     Nrrp = 1 (1)  : Number of total release sites for given contact
     synapseID = 0
     verboseLevel = 0
+    selected_for_report = 0
 	GABAB_ratio = 0 (1) : The ratio of GABAB to GABAA
 }
 

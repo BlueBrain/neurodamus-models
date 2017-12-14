@@ -97,7 +97,7 @@ NEURON {
     : Basic Synapse and legacy
     RANGE NMDA_ratio, w, mg
     RANGE g                     : Could be converted to LOCAL (performance)
-    RANGE synapseID, verbose
+    RANGE synapseID, selected_for_report, verbose
     NONSPECIFIC_CURRENT i
 }
 
@@ -176,6 +176,7 @@ PARAMETER {
     mg          = 1     (mM)    : Extracellular magnesium concentration
     synapseID   = 0
     verbose     = 0
+    selected_for_report = 0
 }
 
 
