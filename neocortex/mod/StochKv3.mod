@@ -312,7 +312,9 @@ VERBATIM
     if( usingR123 ) {
         value = nrnran123_dblpick((nrnran123_State*)_p_rng);
     } else if (_p_rng) {
+#if !defined(CORENEURON_BUILD)
         value = nrn_random_pick(_p_rng);
+#endif
     } else {
         value = 0.5;
     }
