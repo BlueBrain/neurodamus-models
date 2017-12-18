@@ -35,17 +35,24 @@ proc init() { local tgid, x, synapseID, baseSeed  localobj synParams, rngInfo
     synapse.Use = abs( synParams.U )
     synapse.Dep = abs( synParams.D )
     synapse.Fac = abs( synParams.F )
+
+    if( synParams.nrrp >= 0 ) {
+        synapse.Nrrp = synParams.nrrp
+    }
     
     rngInfo = new RNGSettings()
-    rng = new Random()
-
-    if( rngInfo.getRNGMode() == rngInfo.COMPATIBILITY ) {
-        rng.MCellRan4( synapseID*100000+100, tgid+250+baseSeed )
-    } else if( rngInfo.getRNGMode() == rngInfo.UPMCELLRAN4 ) {
-        rng.MCellRan4( synapseID*1000+100, tgid+250+baseSeed+rngInfo.getSynapseSeed() )
+    if( rngInfo.getRNGMode() == rngInfo.RANDOM123 ) {
+        synapse.setRNG( tgid+250, synapseID+100, rngInfo.getSynapseSeed()+300 )
+    } else {
+        rng = new Random()
+        if( rngInfo.getRNGMode() == rngInfo.COMPATIBILITY ) {
+            rng.MCellRan4( synapseID*100000+100, tgid+250+baseSeed )
+        } else if( rngInfo.getRNGMode() == rngInfo.UPMCELLRAN4 ) {
+            rng.MCellRan4( synapseID*1000+100, tgid+250+baseSeed+rngInfo.getSynapseSeed() )
+        }
+        rng.uniform(0,1)
+        synapse.setRNG( rng )
     }
-    rng.uniform(0,1)
-    synapse.setRNG( rng )
     synapse.synapseID = synapseID
 }
 
