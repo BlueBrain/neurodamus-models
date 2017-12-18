@@ -1,9 +1,11 @@
 :Comment :
-:Reference : :		Reuveni, Friedman, Amitai, and Gutnick, J.Neurosci. 1993
-: LJP: not corrected!
+:Reference : : Reuveni, Friedman, Amitai, and Gutnick, J.Neurosci. 1993
+: activation from Sayer, Schwindt and Crill (1990)
+: inactivation from Dichter and Zona 1989
+: LJP: OK, inactivation corrected by 12.3 mV
 
 NEURON	{
-	SUFFIX Ca_HVA
+	SUFFIX Ca_HVA2
 	USEION ca READ eca WRITE ica
 	RANGE gCa_HVAbar, gCa_HVA, ica
 }
@@ -65,9 +67,11 @@ PROCEDURE rates(){
 		mBeta  =  (0.94*exp((-75-v)/17))
 		mInf = mAlpha/(mAlpha + mBeta)
 		mTau = 1/(mAlpha + mBeta)
+		v = v + 12.3
 		hAlpha =  (0.000457*exp((-13-v)/50))
 		hBeta  =  (0.0065/(exp((-v-15)/28)+1))
 		hInf = hAlpha/(hAlpha + hBeta)
 		hTau = 1/(hAlpha + hBeta)
+		v = v - 12.3
 	UNITSON
 }

@@ -2,10 +2,11 @@
 
 : Adapted by Werner Van Geit @ BBP, 2015 (with help from M.Hines):
 : channel detects TTX concentration set by TTXDynamicsSwitch.mod
-: LJP: not corrected!
+: LJP: OK, outside-out patch, corrected by 14.3 mV
+
 
 NEURON	{
-	SUFFIX NaTg
+	SUFFIX NaTg2
 	USEION na READ ena WRITE ina
 	USEION ttx READ ttxo, ttxi VALENCE 1
 	RANGE gNaTgbar, gNaTg, ina, vshifth, vshiftm, slopeh, slopem
@@ -84,6 +85,8 @@ PROCEDURE rates(){
   qt = 2.3^((34-21)/10)
 
   UNITSOFF
+		v = v + 14.3
+
     if(v == (-38+vshiftm)){
     	v = v+0.0001
     }
@@ -100,5 +103,7 @@ PROCEDURE rates(){
 		hBeta  = (-0.015 * (-v +(-66+vshifth)))/(1-(exp((-v +(-66+vshifth))/slopeh)))
 		hTau = (1/(hAlpha + hBeta))/qt
 		hInf = hAlpha/(hAlpha + hBeta)
+
+		v = v - 14.3
 	UNITSON
 }

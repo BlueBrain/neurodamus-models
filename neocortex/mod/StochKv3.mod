@@ -1,4 +1,4 @@
-TITLE StochKv2.mod
+TITLE StochKv3.mod
 
 COMMENT
 ----------------------------------------------------------------
@@ -15,7 +15,7 @@ Jan 1999, Mickey London, Hebrew University, mikilon@lobster.ls.huji.ac.il
 23 Nov 2011 Werner Van Geit @ BBP. Changed the file so that it can use the neuron random number generator. Tuned voltage dependence
 16 Mar 2016 James G King @ BBP.  Incorporate modifications suggested by Michael Hines to improve stiching to deterministic mode, thread safety, and using Random123
 26 Sep 2016 Christian Roessert @ BBP. Adding inactivation, changing dynamics to values reported in Mendonca et al. 2016
-: LJP: not corrected!
+: LJP: OK, whole-cell patch, corrected by 10 mV (Mendonca et al. 2016)
 
 ----------------------------------------------------------------
 ENDCOMMENT
@@ -23,7 +23,7 @@ ENDCOMMENT
 INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}
 
 NEURON {
-    SUFFIX StochKv2
+    SUFFIX StochKv3
     THREADSAFE
     USEION k READ ek WRITE ik
     RANGE N, eta, gk, gamma, deterministic, gkbar, ik
@@ -229,11 +229,13 @@ PROCEDURE trates(v (mV)) {
     DEPEND dt
     FROM vmin TO vmax WITH 199
 
+    v = v + 10
     linf = 1/(1+exp((-30(mV)-v)/10(mV)))
     ltau = 0.346(ms)*exp(-v/(18.272(mV)))+2.09(ms)
 
     ninf = 1/(1+exp(0.0878(1/mV)*(v+55.1(mV))))
     ntau = 2.1(ms)*exp(-v/21.2(mV))+4.627(ms)
+    v = v - 10
 
     al = linf/ltau
     bl = 1/ltau - al
@@ -271,11 +273,12 @@ PROCEDURE setRNG() {
 VERBATIM
     // For compatibility, allow for either MCellRan4 or Random123.  Distinguish by the arg types
     // Object => MCellRan4, seeds (double) => Random123
-#if !NRNBBCORE
+#if !defined(NRNBBCORE) || !NRNBBCORE
     usingR123 = 0;
     if( ifarg(1) && hoc_is_double_arg(1) ) {
         nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
         uint32_t a2 = 0;
+        uint32_t a3 = 0;
 
         if (*pv) {
             nrnran123_deletestream(*pv);
@@ -284,7 +287,10 @@ VERBATIM
         if (ifarg(2)) {
             a2 = (uint32_t)*getarg(2);
         }
-        *pv = nrnran123_newstream((uint32_t)*getarg(1), a2);
+        if (ifarg(3)) {
+            a3 = (uint32_t)*getarg(3);
+        }
+        *pv = nrnran123_newstream3((uint32_t)*getarg(1), a2, a3);
         usingR123 = 1;
     } else if( ifarg(1) ) {
         void** pv = (void**)(&_p_rng);
@@ -319,25 +325,25 @@ static void bbcore_write(double* x, int* d, int* xx, int* offset, _threadargspro
         uint32_t* di = ((uint32_t*)d) + *offset;
       // temporary just enough to see how much space is being used
       if (!_p_rng) {
-        di[0] = 0; di[1] = 0;
+        di[0] = 0; di[1] = 0, di[2] = 0;
       }else{
         nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
-        nrnran123_getids(*pv, di, di+1);
+        nrnran123_getids3(*pv, di, di+1, di+2);
       }
-//printf("StochKv2.mod %p: bbcore_write offset=%d %d %d\n", _p, *offset, d?di[0]:-1, d?di[1]:-1);
+//printf("StochKv3.mod %p: bbcore_write offset=%d %d %d\n", _p, *offset, d?di[0]:-1, d?di[1]:-1);
     }
-    *offset += 2;
+    *offset += 3;
 }
 static void bbcore_read(double* x, int* d, int* xx, int* offset, _threadargsproto_) {
     assert(!_p_rng);
     uint32_t* di = ((uint32_t*)d) + *offset;
-        if (di[0] != 0 || di[1] != 0)
+        if (di[0] != 0 || di[1] != 0|| di[2] != 0)
         {
       nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
-      *pv = nrnran123_newstream(di[0], di[1]);
+      *pv = nrnran123_newstream3(di[0], di[1], di[2]);
         }
-//printf("StochKv2.mod %p: bbcore_read offset=%d %d %d\n", _p, *offset, di[0], di[1]);
-    *offset += 2;
+//printf("StochKv3.mod %p: bbcore_read offset=%d %d %d\n", _p, *offset, di[0], di[1]);
+    *offset += 3;
 }
 */
 ENDVERBATIM
@@ -469,6 +475,7 @@ VERBATIM
 FUNCTION bbsavestate() {
         bbsavestate = 0
 VERBATIM
+#ifdef ENABLE_SAVE_STATE
         // TODO: since N0,N1 are no longer state variables, they will need to be written using this callback
         //  provided that it is the version that supports multivalue writing
         /* first arg is direction (-1 get info, 0 save, 1 restore), second is value*/
@@ -507,5 +514,6 @@ VERBATIM
         }
 
         // TODO: check for random123 and get the seq values
+#endif
 ENDVERBATIM
 }
