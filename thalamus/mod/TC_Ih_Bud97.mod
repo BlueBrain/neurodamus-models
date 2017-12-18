@@ -1,5 +1,5 @@
 :Ih current for thalamo-cortical neurons
-: Ref.: Huguenard et al., 1997 (taum), Cain et al., 2015 (minf)
+: Ref.: Huguenard et al., 1997 (taum), Budde et al., 1997 (minf)
 
 NEURON	{
 	SUFFIX TC_ih_Bud97
