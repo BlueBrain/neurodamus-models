@@ -160,6 +160,12 @@ INITIAL{
         B_AMPA_step = exp(dt*(( - 1.0 ) / tau_d_AMPA))
         A_NMDA_step = exp(dt*(( - 1.0 ) / tau_r_NMDA))
         B_NMDA_step = exp(dt*(( - 1.0 ) / tau_d_NMDA))
+
+        VERBATIM
+        if( usingR123 ) {
+            nrnran123_setseq((nrnran123_State*)_p_rng, 0, 0);
+        }
+        ENDVERBATIM
 }
 
 BREAKPOINT {
