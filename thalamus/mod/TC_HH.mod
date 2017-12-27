@@ -41,7 +41,7 @@ PARAMETER {
 	celsius         (degC)
 	dt              (ms)
 	v               (mV)
-	vtraub	= -63	(mV)             : From Destexhe et al.,1998
+	vtraub	= -48	(mV)             : From Amarillo et al., 2014 .mod file
 }
 
 STATE {
