@@ -156,6 +156,12 @@ INITIAL{
         B_GABAA_step = exp(dt*(( - 1.0 ) / tau_d_GABAA))
         A_GABAB_step = exp(dt*(( - 1.0 ) / tau_r_GABAB))
         B_GABAB_step = exp(dt*(( - 1.0 ) / tau_d_GABAB))
+
+        VERBATIM
+        if( usingR123 ) {
+            nrnran123_setseq((nrnran123_State*)_p_rng, 0, 0);
+        }
+        ENDVERBATIM
 }
 
 BREAKPOINT {
