@@ -119,6 +119,10 @@ INITIAL {
     if (cvode_active_ && !deterministic) {
         hoc_execerror("StochKv2 with deterministic=0", "cannot be used with cvode");
     }
+
+    if( usingR123 ) {
+        nrnran123_setseq((nrnran123_State*)_p_rng, 0, 0);
+    }
     ENDVERBATIM
 
     eta = (gkbar / gamma) * (10000)
