@@ -22,6 +22,7 @@ extern int nrnmpi_myid;
 // name of config files
 const char* SIM_CONFIG_FILE = "sim.conf";
 const char* REPORT_CONFIG_FILE = "report.conf";
+const int DEFAULT_CELL_PERMUTE = 0;
 
 // helper function to open file and error checking
 FILE* open_file(const char *filename, const char *mode) {
@@ -92,6 +93,7 @@ VERBATIM
         fprintf(fp, "--forwardskip %lf\n", *getarg(5));
         fprintf(fp, "--prcellgid %d\n", (int)*getarg(6));
         fprintf(fp, "--report %s\n", REPORT_CONFIG_FILE);
+        fprintf(fp, "--cell-permute %d\n", DEFAULT_CELL_PERMUTE);
         fprintf(fp, "-mpi\n");
         fclose(fp);
     }
