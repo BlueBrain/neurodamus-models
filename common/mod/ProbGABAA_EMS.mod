@@ -47,7 +47,7 @@ NEURON {
     THREADSAFE
 	POINT_PROCESS ProbGABAA_EMS
 	RANGE tau_r, tau_d
-	RANGE Use, u, Dep, Fac, u0, Rstate, tsyn_fac, tsyn, u
+	RANGE Use, u, Dep, Fac, u0, Rstate, tsyn_fac, tsyn
 	RANGE i, g, e
 	NONSPECIFIC_CURRENT i
     POINTER rng
