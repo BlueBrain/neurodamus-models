@@ -54,7 +54,7 @@ PROCEDURE write_report_config() {
 
             // write report information
             FILE *fp = open_file(REPORT_CONFIG_FILE, "a");
-            fprintf(fp, "\n%s %s %s %s %s %s %lf %lf %lf %d\n",
+            fprintf(fp, "%s %s %s %s %s %s %lf %lf %lf %d\n",
                     hoc_gargstr(1),
                     hoc_gargstr(2),
                     hoc_gargstr(3),
@@ -66,6 +66,7 @@ PROCEDURE write_report_config() {
                     *getarg(9),
                     num_gids);
             fwrite(gids, sizeof(int), num_gids, fp);
+            fprintf(fp, "%s", "\n");
             fclose(fp);
         }
     ENDVERBATIM
@@ -97,7 +98,7 @@ VERBATIM
     // should be done by rank 0 only
     if(nrnmpi_myid == 0) {
         FILE *fp = open_file(REPORT_CONFIG_FILE, "w");
-        fprintf(fp, "%d", (int)*getarg(1));
+        fprintf(fp, "%d\n", (int)*getarg(1));
         fclose(fp);
     }
 ENDVERBATIM
