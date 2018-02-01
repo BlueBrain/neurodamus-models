@@ -40,8 +40,8 @@ PROCEDURE write_report_config() {
     VERBATIM
         if(nrnmpi_myid == 0) {
             // gids to be reported is double vector
-            double *gid_vec = vector_vec(vector_arg(10));
-            int num_gids = vector_capacity(vector_arg(10));
+            double *gid_vec = vector_vec(vector_arg(11));
+            int num_gids = vector_capacity(vector_arg(11));
 
             // copy doible gids to int array
             int *gids = (int*) calloc(num_gids, sizeof(int));
@@ -54,16 +54,17 @@ PROCEDURE write_report_config() {
 
             // write report information
             FILE *fp = open_file(REPORT_CONFIG_FILE, "a");
-            fprintf(fp, "%s %s %s %s %s %s %lf %lf %lf %d\n",
+            fprintf(fp, "%s %s %s %s %s %s %d %lf %lf %lf %d\n",
                     hoc_gargstr(1),
                     hoc_gargstr(2),
                     hoc_gargstr(3),
                     hoc_gargstr(4),
                     hoc_gargstr(5),
                     hoc_gargstr(6),
-                    *getarg(7),
+                    (int)*getarg(7),
                     *getarg(8),
                     *getarg(9),
+                    *getarg(10),
                     num_gids);
             fwrite(gids, sizeof(int), num_gids, fp);
             fprintf(fp, "%s", "\n");
