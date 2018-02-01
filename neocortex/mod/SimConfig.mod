@@ -52,7 +52,6 @@ PROCEDURE write_report_config() {
 
             printf("Adding report %s for CoreNEURON with %d gids\n", hoc_gargstr(1), num_gids);
 
-#if 0
             // write report information
             FILE *fp = open_file(REPORT_CONFIG_FILE, "a");
             fprintf(fp, "\n%s %s %s %s %s %s %lf %lf %lf %d\n",
@@ -68,14 +67,6 @@ PROCEDURE write_report_config() {
                     num_gids);
             fwrite(gids, sizeof(int), num_gids, fp);
             fclose(fp);
-#else
-            char filename[1024];
-            sprintf(filename, "%s.filter", hoc_gargstr(1));
-            FILE *fp = open_file(filename, "wb");
-            fwrite(&num_gids, sizeof(int), 1, fp);
-            fwrite(gids, sizeof(int), num_gids, fp);
-            fclose(fp);
-#endif
         }
     ENDVERBATIM
 }
