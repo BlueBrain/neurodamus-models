@@ -70,3 +70,4 @@ proc init() { local tgid, x, synapseID, baseSeed  localobj synParams, rngInfo
 }
 
 endtemplate GABAABHelper
+

@@ -41,6 +41,7 @@ proc init() { local tgid, x, synapseID, baseSeed  localobj synParams, rngInfo
     }
     
     rngInfo = new RNGSettings()
+
     if( rngInfo.getRNGMode() == rngInfo.RANDOM123 ) {
         synapse.setRNG( tgid+250, synapseID+100, rngInfo.getSynapseSeed()+300 )
     } else {
@@ -57,3 +58,4 @@ proc init() { local tgid, x, synapseID, baseSeed  localobj synParams, rngInfo
 }
 
 endtemplate AMPANMDAHelper
+

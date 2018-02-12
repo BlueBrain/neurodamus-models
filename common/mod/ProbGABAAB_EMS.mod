@@ -52,7 +52,7 @@ NEURON {
 	RANGE i,i_GABAA, i_GABAB, g_GABAA, g_GABAB, g, e_GABAA, e_GABAB, GABAB_ratio
         RANGE A_GABAA_step, B_GABAA_step, A_GABAB_step, B_GABAB_step
 	NONSPECIFIC_CURRENT i
-    POINTER rng
+    BBCOREPOINTER rng
     RANGE synapseID, verboseLevel
 }
 
@@ -156,6 +156,12 @@ INITIAL{
         B_GABAA_step = exp(dt*(( - 1.0 ) / tau_d_GABAA))
         A_GABAB_step = exp(dt*(( - 1.0 ) / tau_r_GABAB))
         B_GABAB_step = exp(dt*(( - 1.0 ) / tau_d_GABAB))
+
+        VERBATIM
+        if( usingR123 ) {
+            nrnran123_setseq((nrnran123_State*)_p_rng, 0, 0);
+        }
+        ENDVERBATIM
 }
 
 BREAKPOINT {
@@ -317,29 +323,86 @@ VERBATIM
 ENDVERBATIM
 }
 
+
 FUNCTION bbsavestate() {
         bbsavestate = 0
 VERBATIM
-        /* first arg is direction (0 save, 1 restore), second is value*/
+#if !defined(CORENEURON_BUILD)
+        /* first arg is direction (0 save, 1 restore), second is array*/
+        /* if first arg is -1, fill xdir with the size of the array */
         double *xdir, *xval, *hoc_pgetarg();
         long nrn_get_random_sequence(void* r);
         void nrn_set_random_sequence(void* r, int val);
         xdir = hoc_pgetarg(1);
         xval = hoc_pgetarg(2);
         if (_p_rng) {
-                // tell how many items need saving
-                if (*xdir == -1. ) { *xdir = 1.0; return 0.0; }
-
-                else if (*xdir == 0.) {
-                        xval[0] = (double)nrn_get_random_sequence(_p_rng);
-                }else{
-                        nrn_set_random_sequence(_p_rng, (long)(xval[0]));
+            // tell how many items need saving
+            if (*xdir == -1) {  // count items
+                if( usingR123 ) {
+                    *xdir = 2.0;
+                } else {
+                    *xdir = 1.0;
                 }
+                return 0.0;
+            } else if(*xdir ==0 ) {  // save
+                if( usingR123 ) {
+                    uint32_t seq;
+                    char which;
+                    nrnran123_getseq( (nrnran123_State*)_p_rng, &seq, &which );
+                    xval[0] = (double) seq;
+                    xval[1] = (double) which;
+                } else {
+                    xval[0] = (double)nrn_get_random_sequence(_p_rng);
+                }
+            } else {  // restore
+                if( usingR123 ) {
+                    nrnran123_setseq( (nrnran123_State*)_p_rng, (uint32_t)xval[0], (char)xval[1] );
+                } else {
+                    nrn_set_random_sequence(_p_rng, (long)(xval[0]));
+                }
+            }
         }
-        //if( synapseID == 104211 ) { verboseLevel = 1; }
+#endif
 ENDVERBATIM
 }
+
 
 FUNCTION toggleVerbose() {
     verboseLevel = 1 - verboseLevel
 }
+
+
+
+VERBATIM
+static void bbcore_write(double* x, int* d, int* xx, int* offset, _threadargsproto_) {
+   if (d) {
+    // write stream ids
+    uint32_t* di = ((uint32_t*)d) + *offset;
+    nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
+    nrnran123_getids3(*pv, di, di+1, di+2);
+
+    // write strem sequence
+    char which;
+    nrnran123_getseq(*pv, di+3, &which);
+    di[4] = (int)which;
+    //printf("ProbGABAAB_EMS bbcore_write %d %d %d\n", di[0], di[1], di[2]);
+   }
+  *offset += 5;
+}
+
+static void bbcore_read(double* x, int* d, int* xx, int* offset, _threadargsproto_) {
+  assert(!_p_rng);
+  uint32_t* di = ((uint32_t*)d) + *offset;
+  if (di[0] != 0 || di[1] != 0 || di[2] != 0) {
+      nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
+      *pv = nrnran123_newstream3(di[0], di[1], di[2]);
+
+      // restore stream sequence
+      char which = (char)di[4];
+      nrnran123_setseq(*pv, di[3], which);
+  }
+  //printf("ProbGABAAB_EMS bbcore_read %d %d %d\n", di[0], di[1], di[2]);
+  *offset += 5;
+}
+ENDVERBATIM
+

@@ -70,7 +70,7 @@ NEURON {
     RANGE Use, Dep, Fac, Nrrp
     RANGE u, Psurv              : Could be converted to LOCAL (performance)
     RANGE tsyn, unoccupied, occupied
-    POINTER rng_rel
+    BBCOREPOINTER rng_rel
 
     : NMDAR-mediated calcium current
     RANGE Pf_NMDA, ica_NMDA
@@ -507,6 +507,7 @@ PROCEDURE setRNG() {
     if( ifarg(1) && hoc_is_double_arg(1) ) {
         nrnran123_State** pv = (nrnran123_State**)(&_p_rng_rel);
         uint32_t a2 = 0;
+        uint32_t a3 = 0;
 
         if (*pv) {
             nrnran123_deletestream(*pv);
@@ -516,10 +517,9 @@ PROCEDURE setRNG() {
             a2 = (uint32_t)*getarg(2);
         }
         if (ifarg(3)) {
-            *pv = nrnran123_newstream3((uint32_t)*getarg(1), a2, (uint32_t)*getarg(3));
-        } else {
-            *pv = nrnran123_newstream((uint32_t)*getarg(1), a2);
+            a3 = (uint32_t)*getarg(3);
         }
+        *pv = nrnran123_newstream3((uint32_t)*getarg(1), a2, a3);
         usingR123 = 1;
     } else if( ifarg(1) ) {   // not a double, so assume hoc object type
         void** pv = (void**)(&_p_rng_rel);
@@ -562,6 +562,7 @@ FUNCTION toggleVerbose() {
 FUNCTION bbsavestate() {
         bbsavestate = 0
 VERBATIM
+#if !defined(CORENEURON_BUILD)
         /* first arg is direction (0 save, 1 restore), second is array*/
         /* if first arg is -1, fill xdir with the size of the array */
         double *xdir, *xval, *hoc_pgetarg();
@@ -596,12 +597,12 @@ VERBATIM
                 }
             }
         }
+#endif
 ENDVERBATIM
 }
 
 VERBATIM
 
-/*
 static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset, _threadargsproto_) {
     // make sure offset array non-null
     if (iArray) {
@@ -613,11 +614,16 @@ static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset
         uint32_t* ia = ((uint32_t*)iArray) + *ioffset;
 
         // retrieve/store identifier seeds
-        nrnran123_getids(*pv, ia, ia+1);
+        nrnran123_getids3(*pv, ia, ia+1, ia+2);
+
+        // retrieve/store stream sequence
+        char which;
+        nrnran123_getseq(*pv, ia+3, &which);
+        ia[4] = (int)which;
     }
 
     // increment integer offset (2 identifier), no double data
-    *ioffset += 2;
+    *ioffset += 5;
     *doffset += 0;
 
 }
@@ -630,17 +636,19 @@ static void bbcore_read(double* dArray, int* iArray, int* doffset, int* ioffset,
     uint32_t* ia = ((uint32_t*)iArray) + *ioffset;
 
     // make sure non-zero identifier seeds
-    if (ia[0] != 0 || ia[1] != 0) {
+    if (ia[0] != 0 || ia[1] != 0 || ia[2] != 0) {
         nrnran123_State** pv = (nrnran123_State**)(&_p_rng_rel);
 
         // get new stream
-        *pv = nrnran123_newstream(ia[0], ia[1]);
+        *pv = nrnran123_newstream3(ia[0], ia[1], ia[2]);
+
+        // restore sequence
+        nrnran123_setseq(*pv, ia[3], (char)ia[4]);
     }
 
     // increment intger offset (2 identifiers), no double data
-    *ioffset += 2;
+    *ioffset += 5;
     *doffset += 0;
 }
-*/
 
 ENDVERBATIM

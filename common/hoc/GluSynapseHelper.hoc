@@ -13,6 +13,7 @@ objref synapseReaderGluSynapseHelper
 /**
  * This helper object will encapsulate the hoc actions needed to create our plastic excitatory synapse
  */
+{load_file("RNGSettings.hoc")}
 begintemplate GluSynapseHelper
 
 objref synapse
@@ -28,7 +29,7 @@ external synapseReaderGluSynapseHelper
  * @param baseSeed for random number generator
  * @param parseConnection Map of field/value pairs of Connection block taken from ConfigParser
  */
-proc init() { local tgid, x, synapseID, baseSeed, res, foundRow, rowIndex  localobj synParams, parseConnection, fname
+proc init() { local tgid, x, synapseID, baseSeed, res, foundRow, rowIndex  localobj synParams, parseConnection, fname, rngInfo
     strdef datasetName
 
     tgid = $1
@@ -38,6 +39,7 @@ proc init() { local tgid, x, synapseID, baseSeed, res, foundRow, rowIndex  local
     baseSeed = $5
     parseConnection = $o6
 
+    rngInfo = new RNGSettings()
     synapse = new GluSynapse(x)
 
     if( object_id( synapseReaderGluSynapseHelper, 1 ) == -1 ) {
@@ -102,7 +104,7 @@ proc init() { local tgid, x, synapseID, baseSeed, res, foundRow, rowIndex  local
 
     // for now, use two seeds based on gid and snyapseID.  In the future we will have an optional synapseSeed
     // also note that somewhere we must have set the random123 global seed (BlueConfig BaseSeed)
-    synapse.setRNG( tgid, 100000 + synapseID )
+    synapse.setRNG( tgid, 100000 + synapseID,  rngInfo.getSynapseSeed() + 200)
     synapse.synapseID = synapseID
 
     synapse.toggleLTPlasticity()
