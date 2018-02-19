@@ -93,9 +93,7 @@ NEURON {
 
     : Basic Synapse and legacy
     GLOBAL mg
-    RANGE NMDA_ratio, w
-    RANGE g                     : Could be converted to LOCAL (performance)
-    RANGE synapseID, verbose
+    RANGE NMDA_ratio, synapseID, verbose
     NONSPECIFIC_CURRENT i
 }
 
@@ -232,9 +230,7 @@ ASSIGNED {
     potentiate_GB       (1)
 
     : Basic Synapse and legacy
-    w           (1)
     v           (mV)
-    g           (uS)
     i           (nA)
 }
 
@@ -300,9 +296,6 @@ INITIAL{
     depress_GB      = 0
     potentiate_GB   = 0
 
-    : Basic Synapse and legacy
-    w           = 0
-
     : Initialize WATCH
     net_send(0, 1)
 }
@@ -333,7 +326,6 @@ BREAKPOINT {
     hinf_VDCC = 1 / (1 + exp(((vhh_VDCC - ljp_VDCC) - v) / kh_VDCC))
 
     : Update total g and inject current
-    g = g_AMPA + g_NMDA
     i = i_AMPA + i_NMDA + ica_VDCC
 }
 
