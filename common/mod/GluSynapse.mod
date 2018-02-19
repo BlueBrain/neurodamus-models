@@ -70,7 +70,7 @@ NEURON {
     BBCOREPOINTER rng_rel
 
     : NMDAR-mediated calcium current
-    RANGE Pf_NMDA, ica_NMDA
+    RANGE ica_NMDA
 
     : Spine
     RANGE volume_CR, area_CR
@@ -210,7 +210,6 @@ ASSIGNED {
     usingR123           : TEMPORARY until mcellran4 completely deprecated
 
     : NMDAR-mediated calcium current
-    Pf_NMDA     (1)     : Fractional NMDAR calcium current
     ica_NMDA    (nA)
 
     : Spine
@@ -257,8 +256,6 @@ STATE {
 }
 
 INITIAL{
-    LOCAL tp_AMPA, tp_NMDA
-
     : AMPA Receptor
     A_AMPA      = 0
     B_AMPA      = 0
@@ -272,9 +269,6 @@ INITIAL{
     u           = 0
     unoccupied  = 0
     occupied    = Nrrp
-
-    : NMDAR-mediated calcium current
-    Pf_NMDA     = (4*cao_CR) / (4*cao_CR + (1/1.38) * 120 (mM)) * 0.6
 
     : Spine
     UNITSOFF
@@ -302,7 +296,7 @@ INITIAL{
 
 
 BREAKPOINT {
-    LOCAL Eca_syn, mggate, i_AMPA, gmax_NMDA, i_NMDA
+    LOCAL Eca_syn, mggate, i_AMPA, gmax_NMDA, i_NMDA, Pf_NMDA
     SOLVE state METHOD euler
 
     : AMPA Receptor
@@ -316,6 +310,7 @@ BREAKPOINT {
     i_NMDA = g_NMDA*(v-E_NMDA)
 
     : NMDAR-mediated calcium current
+    Pf_NMDA  = (4*cao_CR) / (4*cao_CR + (1/1.38) * 120 (mM)) * 0.6  : Fractional current
     ica_NMDA = Pf_NMDA*g_NMDA*(v-40.0)
 
     : VDCC (R-type)
