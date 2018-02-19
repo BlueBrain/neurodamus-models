@@ -536,16 +536,6 @@ FUNCTION urand() {
 }
 
 
-FUNCTION toggleLTPlasticity() {
-    enable_GB = 1-enable_GB
-}
-
-
-FUNCTION toggleVerbose() {
-    verbose = 1-verbose
-}
-
-
 FUNCTION bbsavestate() {
         bbsavestate = 0
 VERBATIM
