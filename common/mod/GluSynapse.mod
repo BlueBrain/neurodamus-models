@@ -61,10 +61,8 @@ NEURON {
     RANGE g_AMPA        : Could be converted to LOCAL (performance)
 
     : NMDA Receptor
-    RANGE tau_r_NMDA, tau_d_NMDA, E_NMDA
-    RANGE factor_NMDA
-    RANGE gmax_NMDA             : Could be converted to LOCAL (performance)
-    RANGE g_NMDA, i_NMDA        : Could be converted to LOCAL (performance)
+    GLOBAL tau_r_NMDA, tau_d_NMDA, E_NMDA
+    RANGE g_NMDA        : Could be converted to LOCAL (performance)
 
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
     RANGE Use, Dep, Fac, Nrrp
@@ -95,7 +93,8 @@ NEURON {
     RANGE tau_Use_GB, Use_d_GB, Use_p_GB
 
     : Basic Synapse and legacy
-    RANGE NMDA_ratio, w, mg
+    GLOBAL mg
+    RANGE NMDA_ratio, w
     RANGE g                     : Could be converted to LOCAL (performance)
     RANGE synapseID, verbose
     NONSPECIFIC_CURRENT i
@@ -128,8 +127,8 @@ PARAMETER {
     gmax_AMPA   = 1.0   (nS)    : Maximal conductance
 
     : NMDA Receptor
-    tau_r_NMDA   = 0.29 (ms)    : Tau rise, dual-exponential conductance profile
-    tau_d_NMDA   = 43   (ms)    : Tau decay, IMPORTANT: tau_r < tau_d
+    tau_r_NMDA  = 0.29  (ms)    : Tau rise, dual-exponential conductance profile
+    tau_d_NMDA  = 43    (ms)    : Tau decay, IMPORTANT: tau_r < tau_d
     E_NMDA      = 0     (mV)    : Reversal potential
 
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
@@ -203,10 +202,7 @@ ASSIGNED {
     g_AMPA      (uS)
 
     : NMDA Receptor
-    factor_NMDA (1)
-    gmax_NMDA   (nS)
     g_NMDA      (uS)
-    i_NMDA      (nA)
 
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
     u           (1)     : Running release probability
@@ -276,11 +272,6 @@ INITIAL{
     : NMDA Receptor
     A_NMDA      = 0
     B_NMDA      = 0
-    : Time to peak of the conductance
-    tp_NMDA     = (tau_r_NMDA*tau_d_NMDA)/(tau_d_NMDA-tau_r_NMDA)*log(tau_d_NMDA/tau_r_NMDA)
-    : Normalization factor - so that when t = tp_NMDA, g_NMDA = gmax_NMDA
-    factor_NMDA = 1 / (-exp(-tp_NMDA/tau_r_NMDA)+exp(-tp_NMDA/tau_d_NMDA))
-    gmax_NMDA   = gmax_AMPA*NMDA_ratio
 
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
     tsyn        = 0
@@ -321,7 +312,7 @@ INITIAL{
 
 
 BREAKPOINT {
-    LOCAL Eca_syn, mggate, i_AMPA
+    LOCAL Eca_syn, mggate, i_AMPA, gmax_NMDA, i_NMDA
     SOLVE state METHOD euler
 
     : AMPA Receptor
@@ -329,8 +320,9 @@ BREAKPOINT {
     i_AMPA = g_AMPA*(v-E_AMPA)
 
     : NMDA Receptor
+    gmax_NMDA = gmax_AMPA*NMDA_ratio
     mggate = 1 / (1 + exp(0.062 (/mV) * -(v)) * (mg / 3.57 (mM)))
-    g_NMDA = w*(1e-3)*gmax_NMDA*mggate*(B_NMDA-A_NMDA)
+    g_NMDA = (1e-3)*gmax_NMDA*mggate*(B_NMDA-A_NMDA)
     i_NMDA = g_NMDA*(v-E_NMDA)
 
     : NMDAR-mediated calcium current
@@ -464,15 +456,18 @@ NET_RECEIVE (weight) {
         A_AMPA = weight*(A_AMPA + ves/Nrrp*factor)
         B_AMPA = weight*(B_AMPA + ves/Nrrp*factor)
 
+
+        : Update NMDA variables
+        tp = (tau_r_NMDA*tau_d_NMDA)/(tau_d_NMDA-tau_r_NMDA)*log(tau_d_NMDA/tau_r_NMDA)  : Time to peak of the conductance
+        factor = 1 / (-exp(-tp/tau_r_NMDA)+exp(-tp/tau_d_NMDA))  : Normalization factor - so that when t = tp, g_NMDA = gmax_NMDA
+        A_NMDA = weight*(A_NMDA + ves/Nrrp*factor)
+        B_NMDA = weight*(B_NMDA + ves/Nrrp*factor)
+
         : Update tsyn
         : tsyn knows about all spikes, not only those that released
         : i.e. each spike can increase the u, regardless of recovered state.
         :      and each spike trigger an evaluation of recovery
         tsyn = t
-
-        : Update state variables
-        A_NMDA = A_NMDA + ves/Nrrp*factor_NMDA
-        B_NMDA = B_NMDA + ves/Nrrp*factor_NMDA
 
         if ( verbose > 0 ) {
             UNITSOFF
