@@ -65,8 +65,7 @@ NEURON {
     RANGE g_NMDA        : Could be converted to LOCAL (performance)
 
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
-    RANGE Use, Dep, Fac, Nrrp
-    RANGE u, Psurv              : Could be converted to LOCAL (performance)
+    RANGE Use, Dep, Fac, Nrrp, u
     RANGE tsyn, unoccupied, occupied
     BBCOREPOINTER rng_rel
 
@@ -207,7 +206,6 @@ ASSIGNED {
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
     u           (1)     : Running release probability
     tsyn        (ms)    : Time of the last presynaptic spike
-    Psurv       (1)     : Survival prob. of unrecovered state
     unoccupied  (1)     : Number of unoccupied release sites
     occupied    (1)     : Number of occupied release sites
     rng_rel             : Random Number Generator
@@ -275,7 +273,6 @@ INITIAL{
 
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
     tsyn        = 0
-    Psurv       = 0
     u           = 0
     unoccupied  = 0
     occupied    = Nrrp
@@ -367,7 +364,7 @@ DERIVATIVE state {
 
 
 NET_RECEIVE (weight) {
-    LOCAL result, ves, occu, Use_actual, tp, factor
+    LOCAL result, ves, occu, Use_actual, tp, factor, Psurv
 
     if(flag == 1) {
         : Flag 1, Initialize watch calls
