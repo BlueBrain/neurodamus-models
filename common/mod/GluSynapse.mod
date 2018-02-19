@@ -83,10 +83,11 @@ NEURON {
     GLOBAL gamma_ca_CR, tau_ca_CR, min_ca_CR, cao_CR
 
     : Long-term synaptic plasticity
-    RANGE tau_GB, theta_d_GB, theta_p_GB, gamma_d_GB, gamma_p_GB
-    RANGE rho_star_GB, rho0_GB
+    GLOBAL tau_GB, gamma_d_GB, gamma_p_GB, rho_star_GB, tau_Use_GB, tau_effca_GB
+    RANGE theta_d_GB, theta_p_GB
+    RANGE rho0_GB
     RANGE enable_GB, depress_GB, potentiate_GB
-    RANGE tau_Use_GB, Use_d_GB, Use_p_GB
+    RANGE Use_d_GB, Use_p_GB
 
     : Basic Synapse and legacy
     GLOBAL mg
@@ -112,63 +113,64 @@ UNITS {
 
 
 PARAMETER {
-    celsius             (degC)
+    celsius                     (degC)
 
     : AMPA Receptor
-    tau_r_AMPA      = 0.2       (ms)    : Tau rise, dual-exponential conductance profile
-    tau_d_AMPA      = 1.7       (ms)    : Tau decay, IMPORTANT: tau_r < tau_d
-    E_AMPA          = 0         (mV)    : Reversal potential
-    gmax_AMPA       = 1.0       (nS)    : Maximal conductance
+    tau_r_AMPA      = 0.2       (ms)        : Tau rise, dual-exponential conductance profile
+    tau_d_AMPA      = 1.7       (ms)        : Tau decay, IMPORTANT: tau_r < tau_d
+    E_AMPA          = 0         (mV)        : Reversal potential
+    gmax_AMPA       = 1.0       (nS)        : Maximal conductance
 
     : NMDA Receptor
-    tau_r_NMDA      = 0.29      (ms)    : Tau rise, dual-exponential conductance profile
-    tau_d_NMDA      = 43        (ms)    : Tau decay, IMPORTANT: tau_r < tau_d
-    E_NMDA          = 0         (mV)    : Reversal potential
+    tau_r_NMDA      = 0.29      (ms)        : Tau rise, dual-exponential conductance profile
+    tau_d_NMDA      = 43        (ms)        : Tau decay, IMPORTANT: tau_r < tau_d
+    E_NMDA          = 0         (mV)        : Reversal potential
 
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
-    Use             = 1.0       (1)     : Utilization of synaptic efficacy
-    Dep             = 100       (ms)    : Relaxation time constant from depression
-    Fac             = 10        (ms)    : Relaxation time constant from facilitation
-    Nrrp            = 1         (1)     : Number of release sites for given contact
+    Use             = 1.0       (1)         : Utilization of synaptic efficacy
+    Dep             = 100       (ms)        : Relaxation time constant from depression
+    Fac             = 10        (ms)        : Relaxation time constant from facilitation
+    Nrrp            = 1         (1)         : Number of release sites for given contact
 
     : Spine
-    volume_CR       = 0.087     (um3)   : From spine data by Ruth Benavides-Piccione
-                                        : (unpublished), value overwritten at runtime
+    volume_CR       = 0.087     (um3)       : From spine data by Ruth Benavides-Piccione
+                                            : (unpublished), value overwritten at runtime
 
     : VDCC (R-type)
     gca_bar_VDCC    = 0.0744    (nS/um2)
     ljp_VDCC        = 0         (mV)
-    vhm_VDCC        = -5.9      (mV)    : v 1/2 for act, Magee and Johnston 1995 (corrected for m*m)
-    km_VDCC         = 9.5       (mV)    : act slope, Magee and Johnston 1995 (corrected for m*m)
-    vhh_VDCC        = -39       (mV)    : v 1/2 for inact, Magee and Johnston 1995
-    kh_VDCC         = -9.2      (mV)    : inact, Magee and Johnston 1995
-    mtau_VDCC       = 1         (ms)    : max time constant (guess)
-    htau_VDCC       = 27        (ms)    : max time constant 100*0.27
+    vhm_VDCC        = -5.9      (mV)        : v 1/2 for act, Magee and Johnston 1995 (corrected for m*m)
+    km_VDCC         = 9.5       (mV)        : act slope, Magee and Johnston 1995 (corrected for m*m)
+    vhh_VDCC        = -39       (mV)        : v 1/2 for inact, Magee and Johnston 1995
+    kh_VDCC         = -9.2      (mV)        : inact, Magee and Johnston 1995
+    mtau_VDCC       = 1         (ms)        : max time constant (guess)
+    htau_VDCC       = 27        (ms)        : max time constant 100*0.27
 
     : Postsynaptic Ca2+ dynamics
-    gamma_ca_CR     = 0.04      (1)     : Percent of free calcium (not buffered), Sabatini et al 2002: kappa_e = 24+-11 (also 14 (2-31) or 22 (18-33))
-    tau_ca_CR       = 12        (ms)    : Rate of removal of calcium, Sabatini et al 2002: 14ms (12-20ms)
-    min_ca_CR       = 70e-6     (mM)    : Sabatini et al 2002: 70+-29 nM, per AP: 1.1 (0.6-8.2) uM = 1100 e-6 mM = 1100 nM
-    cao_CR          = 2.0       (mM)    : Extracellular calcium concentration in slices
+    gamma_ca_CR     = 0.04      (1)         : Percent of free calcium (not buffered), Sabatini et al 2002: kappa_e = 24+-11 (also 14 (2-31) or 22 (18-33))
+    tau_ca_CR       = 12        (ms)        : Rate of removal of calcium, Sabatini et al 2002: 14ms (12-20ms)
+    min_ca_CR       = 70e-6     (mM)        : Sabatini et al 2002: 70+-29 nM, per AP: 1.1 (0.6-8.2) uM = 1100 e-6 mM = 1100 nM
+    cao_CR          = 2.0       (mM)        : Extracellular calcium concentration in slices
 
     : Long-term synaptic plasticity
-    tau_GB       = 100      (s)
-    theta_d_GB   = 0.006    (mM)
-    theta_p_GB   = 0.001    (mM)
-    gamma_d_GB   = 100      (1)
-    gamma_p_GB   = 450      (1)
-    rho_star_GB  = 0.5      (1)
-    rho0_GB      = 0        (1)
-    enable_GB    = 0        (1)
-    tau_Use_GB   = 100      (s)
-    Use_d_GB     = 0.2      (1)
-    Use_p_GB     = 0.8      (1)
+    tau_GB          = 100       (s)
+    tau_effca_GB    = 200       (ms)
+    theta_d_GB      = 0.006     (us/liter)
+    theta_p_GB      = 0.001     (us/liter)
+    gamma_d_GB      = 100       (1)
+    gamma_p_GB      = 450       (1)
+    rho_star_GB     = 0.5       (1)
+    rho0_GB         = 0         (1)
+    enable_GB       = 0         (1)
+    tau_Use_GB      = 100       (s)
+    Use_d_GB        = 0.2       (1)
+    Use_p_GB        = 0.8       (1)
 
     : Basic Synapse and legacy
-    NMDA_ratio  = 0.71  (1)     : In this model gmax_NMDA = gmax_AMPA*ratio_NMDA
-    mg          = 1     (mM)    : Extracellular magnesium concentration
-    synapseID   = 0
-    verbose     = 0
+    NMDA_ratio      = 0.71      (1)         : In this model gmax_NMDA = gmax_AMPA*ratio_NMDA
+    mg              = 1         (mM)        : Extracellular magnesium concentration
+    synapseID       = 0
+    verbose         = 0
 }
 
 
@@ -193,32 +195,32 @@ ENDVERBATIM
 
 ASSIGNED {
     : AMPA Receptor
-    g_AMPA      (uS)
+    g_AMPA          (uS)
 
     : NMDA Receptor
-    g_NMDA      (uS)
+    g_NMDA          (uS)
 
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
-    u           (1)     : Running release probability
-    tsyn        (ms)    : Time of the last presynaptic spike
-    unoccupied  (1)     : Number of unoccupied release sites
-    occupied    (1)     : Number of occupied release sites
-    rng_rel             : Random Number Generator
-    usingR123           : TEMPORARY until mcellran4 completely deprecated
+    u               (1)     : Running release probability
+    tsyn            (ms)    : Time of the last presynaptic spike
+    unoccupied      (1)     : Number of unoccupied release sites
+    occupied        (1)     : Number of occupied release sites
+    rng_rel                 : Random Number Generator
+    usingR123               : TEMPORARY until mcellran4 completely deprecated
 
     : NMDAR-mediated calcium current
-    ica_NMDA    (nA)
+    ica_NMDA        (nA)
 
     : VDCC (R-type)
-    ica_VDCC            (nA)
+    ica_VDCC        (nA)
 
     : Long-term synaptic plasticity
-    depress_GB          (1)
-    potentiate_GB       (1)
+    depress_GB      (1)
+    potentiate_GB   (1)
 
     : Basic Synapse and legacy
-    v           (mV)
-    i           (nA)
+    v               (mV)
+    i               (nA)
 }
 
 STATE {
@@ -322,7 +324,7 @@ DERIVATIVE state {
     cai_CR'     = -(1e-9)*(ica_NMDA + ica_VDCC)*gamma_ca_CR/((1e-15)*volume_CR*2*FARADAY) - (cai_CR - min_ca_CR)/tau_ca_CR
 
     : Long-term synaptic plasticity
-    effcai_GB'  = -0.005*effcai_GB + (cai_CR - min_ca_CR)
+    effcai_GB'  = -effcai_GB/tau_effca_GB + (cai_CR - min_ca_CR)
     Rho_GB'     = ( - Rho_GB*(1-Rho_GB)*(rho_star_GB-Rho_GB)
                     + potentiate_GB*gamma_p_GB*(1-Rho_GB)
                     - depress_GB*gamma_d_GB*Rho_GB ) / ((1e3)*tau_GB)
