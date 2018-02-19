@@ -3,9 +3,9 @@ COMMENT
  * @file GluSynapse.mod
  * @brief Probabilistic synapse with short- and long-term plasticity
  * @author king, chindemi, rossert
- * @date 2017-03-16
- * @version 0.3.4
- * @remark Copyright © BBP/EPFL 2005-2017; All rights reserved.
+ * @date 2018-02-19
+ * @version 1.0.0dev
+ * @remark Copyright © BBP/EPFL 2005-2018; All rights reserved.
            Do not distribute without further notice.
  */
 ENDCOMMENT
@@ -56,9 +56,9 @@ NEURON {
     POINT_PROCESS GluSynapse
 
     : AMPA Receptor
-    RANGE tau_r_AMPA, tau_d_AMPA, E_AMPA, gmax_AMPA
-    RANGE factor_AMPA
-    RANGE g_AMPA, i_AMPA        : Could be converted to LOCAL (performance)
+    GLOBAL tau_r_AMPA, E_AMPA
+    RANGE tau_d_AMPA, gmax_AMPA
+    RANGE g_AMPA        : Could be converted to LOCAL (performance)
 
     : NMDA Receptor
     RANGE tau_r_NMDA, tau_d_NMDA, E_NMDA
@@ -200,9 +200,7 @@ ENDVERBATIM
 
 ASSIGNED {
     : AMPA Receptor
-    factor_AMPA (1)
     g_AMPA      (uS)
-    i_AMPA      (nA)
 
     : NMDA Receptor
     factor_NMDA (1)
@@ -274,10 +272,6 @@ INITIAL{
     : AMPA Receptor
     A_AMPA      = 0
     B_AMPA      = 0
-    : Time to peak of the conductance
-    tp_AMPA     = (tau_r_AMPA*tau_d_AMPA)/(tau_d_AMPA-tau_r_AMPA)*log(tau_d_AMPA/tau_r_AMPA)
-    : Normalization factor - so that when t = tp_AMPA, g_AMPA = gmax_AMPA
-    factor_AMPA = 1 / (-exp(-tp_AMPA/tau_r_AMPA)+exp(-tp_AMPA/tau_d_AMPA))
 
     : NMDA Receptor
     A_NMDA      = 0
@@ -327,11 +321,11 @@ INITIAL{
 
 
 BREAKPOINT {
-    LOCAL Eca_syn, mggate
+    LOCAL Eca_syn, mggate, i_AMPA
     SOLVE state METHOD euler
 
     : AMPA Receptor
-    g_AMPA = w*(1e-3)*gmax_AMPA*(B_AMPA-A_AMPA)
+    g_AMPA = (1e-3)*gmax_AMPA*(B_AMPA-A_AMPA)
     i_AMPA = g_AMPA*(v-E_AMPA)
 
     : NMDA Receptor
@@ -381,7 +375,7 @@ DERIVATIVE state {
 
 
 NET_RECEIVE (weight) {
-    LOCAL result, ves, occu, Use_actual
+    LOCAL result, ves, occu, Use_actual, tp, factor
 
     if(flag == 1) {
         : Flag 1, Initialize watch calls
@@ -410,9 +404,6 @@ NET_RECEIVE (weight) {
             return;
             ENDVERBATIM
         }
-
-        : Set synapse weight
-        w = weight
 
         if(verbose > 0){
             UNITSOFF
@@ -467,6 +458,12 @@ NET_RECEIVE (weight) {
         : Update number of unoccupied sites
         unoccupied = Nrrp - occupied
 
+        : Update AMPA variables
+        tp = (tau_r_AMPA*tau_d_AMPA)/(tau_d_AMPA-tau_r_AMPA)*log(tau_d_AMPA/tau_r_AMPA)  : Time to peak of the conductance
+        factor = 1 / (-exp(-tp/tau_r_AMPA)+exp(-tp/tau_d_AMPA))  : Normalization factor - so that when t = tp, g_AMPA = gmax_AMPA
+        A_AMPA = weight*(A_AMPA + ves/Nrrp*factor)
+        B_AMPA = weight*(B_AMPA + ves/Nrrp*factor)
+
         : Update tsyn
         : tsyn knows about all spikes, not only those that released
         : i.e. each spike can increase the u, regardless of recovered state.
@@ -474,8 +471,6 @@ NET_RECEIVE (weight) {
         tsyn = t
 
         : Update state variables
-        A_AMPA = A_AMPA + ves/Nrrp*factor_AMPA
-        B_AMPA = B_AMPA + ves/Nrrp*factor_AMPA
         A_NMDA = A_NMDA + ves/Nrrp*factor_NMDA
         B_NMDA = B_NMDA + ves/Nrrp*factor_NMDA
 
