@@ -133,10 +133,7 @@ extern int cvode_active_;
 #include <stdio.h>
 #include <math.h>
 
-#if !defined(CORENEURON_BUILD)
 double nrn_random_pick(void* r);
-void* nrn_random_arg(int argpos);
-#endif
 
 ENDVERBATIM
 : ----------------------------------------------------------------
@@ -276,7 +273,7 @@ PROCEDURE setRNG() {
 VERBATIM
     // For compatibility, allow for either MCellRan4 or Random123.  Distinguish by the arg types
     // Object => MCellRan4, seeds (double) => Random123
-#if !defined(NRNBBCORE) || !NRNBBCORE
+#if !NRNBBCORE
     usingR123 = 0;
     if( ifarg(1) && hoc_is_double_arg(1) ) {
         nrnran123_State** pv = (nrnran123_State**)(&_p_rng);

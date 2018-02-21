@@ -38,6 +38,7 @@ ENDVERBATIM
 : write report defined in BlueConfig
 PROCEDURE write_report_config() {
     VERBATIM
+    #if !NRNBBCORE
         if(nrnmpi_myid == 0) {
             // gids to be reported is double vector
             double *gid_vec = vector_vec(vector_arg(11));
@@ -70,12 +71,14 @@ PROCEDURE write_report_config() {
             fprintf(fp, "%s", "\n");
             fclose(fp);
         }
+    #endif
     ENDVERBATIM
 }
 
 : Write basic sim settings from Run block of BlueConfig
 PROCEDURE write_sim_config() {
 VERBATIM
+    #if !NRNBBCORE
     // should be done by rank 0 only
     if(nrnmpi_myid == 0) {
         FILE *fp = open_file(SIM_CONFIG_FILE, "w");
@@ -90,17 +93,20 @@ VERBATIM
         fprintf(fp, "-mpi\n");
         fclose(fp);
     }
+    #endif
 ENDVERBATIM
 }
 
 : Write report count as first line
 PROCEDURE write_report_count() {
 VERBATIM
+    #if !NRNBBCORE
     // should be done by rank 0 only
     if(nrnmpi_myid == 0) {
         FILE *fp = open_file(REPORT_CONFIG_FILE, "w");
         fprintf(fp, "%d\n", (int)*getarg(1));
         fclose(fp);
     }
+    #endif
 ENDVERBATIM
 }
