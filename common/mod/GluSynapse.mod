@@ -500,6 +500,7 @@ FUNCTION nernst(ci(mM), co(mM), z) (mV) {
 
 PROCEDURE setRNG() {
     VERBATIM
+    #if !NRNBBCORE
     // For compatibility, allow for either MCellRan4 or Random123
     // Distinguish by the arg types
     // Object => MCellRan4, seeds (double) => Random123
@@ -528,6 +529,7 @@ PROCEDURE setRNG() {
         void** pv = (void**)(&_p_rng_rel);
         *pv = (void*)0;
     }
+    #endif
     ENDVERBATIM
 }
 
@@ -538,7 +540,7 @@ FUNCTION urand() {
     if ( usingR123 ) {
         value = nrnran123_dblpick((nrnran123_State*)_p_rng_rel);
     } else if (_p_rng_rel) {
-        #if !defined(CORENEURON_BUILD)
+        #if !NRNBBCORE
         value = nrn_random_pick(_p_rng_rel);
         #endif
     } else {
@@ -562,7 +564,7 @@ FUNCTION toggleVerbose() {
 FUNCTION bbsavestate() {
         bbsavestate = 0
 VERBATIM
-#if !defined(CORENEURON_BUILD)
+#if !NRNBBCORE
         /* first arg is direction (0 save, 1 restore), second is array*/
         /* if first arg is -1, fill xdir with the size of the array */
         double *xdir, *xval, *hoc_pgetarg();

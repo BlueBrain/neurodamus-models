@@ -274,6 +274,7 @@ ENDVERBATIM
 
 PROCEDURE setRNG() {
 VERBATIM
+    #if !NRNBBCORE
     // For compatibility, allow for either MCellRan4 or Random123
     // Distinguish by the arg types
     // Object => MCellRan4, seeds (double) => Random123
@@ -302,6 +303,7 @@ VERBATIM
         void** pv = (void**)(&_p_rng);
         *pv = (void*)0;
     }
+    #endif
 ENDVERBATIM
 }
 
