@@ -1,10 +1,6 @@
 TITLE  Na persistent channel
 
 : EI, Downloaded from ModelDB (Accession: 20212), CA1 pyramidal neuron, modified according to Amarillo et al., 2014
-: Original comments
-: used in distal oblique dendrites to assist Ca spike initiation  
-: a typo in the exponential function was pointed out by Michele Migliore and
-: corrected by Yiota Poirazi on December 4th, 2003
 
 NEURON {
 	SUFFIX TC_NaP

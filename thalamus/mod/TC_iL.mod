@@ -2,14 +2,8 @@ TITLE high threshold calcium current (L-current)
 
 : EI: from modelDB, accession: 3808
 : EI: Modifications from Amarillo et al., 2014
-COMMENT
-        *********************************************
-        reference:      McCormick & Huguenard (1992) 
-			J.Neurophysiology 68(4), 1384-1400
-        found in:       hippocampal pyramidal cells
-        *********************************************
-	Assembled for MyFirstNEURON by Arthur Houweling
-ENDCOMMENT
+: Based on the model by McCormick & Huguenard, J Neurophysiol, 1992
+: and errata in https://huguenardlab.stanford.edu/reprints/Errata_thalamic_cell_models.pdf
 
 INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}
 
@@ -61,11 +55,6 @@ DERIVATIVE states {
        m'= (m_inf-m) / tau_m 
 }
   
-:PROCEDURE states() {
-:        rates(v)
-
-:        m= m + (1-exp(-dt/tau_m))*(m_inf-m)
-:}
 INITIAL {
 	rates(v)
 	tcorr = 3^((celsius-23.5)/10)
