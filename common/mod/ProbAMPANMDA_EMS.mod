@@ -67,7 +67,6 @@ PARAMETER {
         Fac = 10   (ms)  :  relaxation time constant from facilitation
         e = 0     (mV)  : AMPA and NMDA reversal potential
         mg = 1   (mM)  : initial concentration of mg2+
-        mggate
         gmax = .001 (uS) : weight conversion factor (from nS to uS)
         u0 = 0 :initial value of u, which is the running value of release probability
         Nrrp = 1 (1)  : Number of total release sites for given contact
@@ -113,6 +112,7 @@ ASSIGNED {
         A_NMDA_step
         B_NMDA_step
         rng
+        mggate
         usingR123            : TEMPORARY until mcellran4 completely deprecated
 
         : MVR
