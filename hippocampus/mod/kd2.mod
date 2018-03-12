@@ -74,3 +74,17 @@ PROCEDURE rates(v (mV)) { :callable from hoc
         taun = betn(v)/(qt*a0n*(1+a))
 	if (taun<nmax) {taun=nmax/qt}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
