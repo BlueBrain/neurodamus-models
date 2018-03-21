@@ -2,6 +2,8 @@
 
 : Adapted by Werner Van Geit @ BBP, 2015 (with help from M.Hines):
 : channel detects TTX concentration set by TTXDynamicsSwitch.mod
+: LJP: not corrected!
+
 NEURON	{
 	SUFFIX NaTg
 	USEION na READ ena WRITE ina
