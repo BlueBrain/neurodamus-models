@@ -223,6 +223,7 @@ ASSIGNED {
     i               (nA)
 }
 
+
 STATE {
     : AMPA Receptor
     A_AMPA      (1)                 : Decays with conductance tau_r_AMPA
@@ -244,6 +245,7 @@ STATE {
     Use_GB      (1)
     effcai_GB   (us/liter)  <1e-3>
 }
+
 
 INITIAL{
     : AMPA Receptor
@@ -546,6 +548,7 @@ VERBATIM
 #endif
 ENDVERBATIM
 }
+
 
 VERBATIM
 
