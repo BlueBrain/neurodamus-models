@@ -62,6 +62,7 @@ NEURON {
 
     : NMDA Receptor
     GLOBAL tau_r_NMDA, tau_d_NMDA, E_NMDA
+    RANGE using_mggate_VC : TEMPORARY
     RANGE g_NMDA        : Could be converted to LOCAL (performance)
 
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
@@ -124,7 +125,8 @@ PARAMETER {
     : NMDA Receptor
     tau_r_NMDA      = 0.29      (ms)        : Tau rise, dual-exponential conductance profile
     tau_d_NMDA      = 43        (ms)        : Tau decay, IMPORTANT: tau_r < tau_d
-    E_NMDA          = 0         (mV)        : Reversal potential
+    E_NMDA          = -3        (mV)        : Reversal potential, Vargas-Caballero and Robinson (2003)
+    using_mggate_VC = 1
 
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
     Use             = 1.0       (1)         : Utilization of synaptic efficacy
@@ -287,7 +289,13 @@ BREAKPOINT {
 
     : NMDA Receptor
     gmax_NMDA = gmax_AMPA*NMDA_ratio
-    mggate = 1 / (1 + exp(0.062 (/mV) * -(v)) * (mg / 3.57 (mM)))
+    if (using_mggate_VC == 1) {
+        : Jahr and Stevens (1990) model fitted on cortical data from
+        : Vargas-Caballero and Robinson (2003).
+        mggate = 1 / (1 + exp(0.07207477 (/mV) * -(v)) * (mg / 2.5522415 (mM)))
+    } else {
+        mggate = 1 / (1 + exp(0.062 (/mV) * -(v)) * (mg / 3.57 (mM)))
+    }
     g_NMDA = (1e-3)*gmax_NMDA*mggate*(B_NMDA-A_NMDA)
     i_NMDA = g_NMDA*(v-E_NMDA)
 
