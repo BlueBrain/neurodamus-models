@@ -350,7 +350,7 @@ VERBATIM
             } else if(*xdir ==0 ) {  // save
                 if( usingR123 ) {
                     uint32_t seq;
-                    char which;
+                    unsigned char which;
                     nrnran123_getseq( (nrnran123_State*)_p_rng, &seq, &which );
                     xval[0] = (double) seq;
                     xval[1] = (double) which;
@@ -385,7 +385,7 @@ static void bbcore_write(double* x, int* d, int* xx, int* offset, _threadargspro
     nrnran123_getids3(*pv, di, di+1, di+2);
 
     // write strem sequence
-    char which;
+    unsigned char which;
     nrnran123_getseq(*pv, di+3, &which);
     di[4] = (int)which;
     //printf("ProbGABAAB_EMS bbcore_write %d %d %d\n", di[0], di[1], di[2]);

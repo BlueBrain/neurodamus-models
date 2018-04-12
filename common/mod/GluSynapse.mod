@@ -585,7 +585,7 @@ VERBATIM
             } else if(*xdir ==0 ) {  // save
                 if( usingR123 ) {
                     uint32_t seq;
-                    char which;
+                    unsigned char which;
                     nrnran123_getseq( (nrnran123_State*)_p_rng_rel, &seq, &which );
                     xval[0] = (double) seq;
                     xval[1] = (double) which;
@@ -620,7 +620,7 @@ static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset
         nrnran123_getids3(*pv, ia, ia+1, ia+2);
 
         // retrieve/store stream sequence
-        char which;
+        unsigned char which;
         nrnran123_getseq(*pv, ia+3, &which);
         ia[4] = (int)which;
     }
