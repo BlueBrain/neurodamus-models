@@ -39,6 +39,11 @@ proc init() { local tgid, x, synapseID, baseSeed  localobj synParams, rngInfo
     if( synParams.nrrp >= 0 ) {
         synapse.Nrrp = synParams.nrrp
     }
+
+    if( synParams.maskValue > 1 ) {
+        // for now, setting weight to 0
+        synParams.weight = 0
+    }
     
     rngInfo = new RNGSettings()
 

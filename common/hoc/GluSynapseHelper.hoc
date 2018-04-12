@@ -51,6 +51,11 @@ proc init() { local tgid, x, synapseID, baseSeed, res, foundRow, rowIndex  local
         synapseReaderGluSynapseHelper = new HDF5Reader( fname.s )
     }
 
+    if( synParams.maskValue > 1 ) {
+        // for now, setting weight to 0
+        //synParams.weight = 0
+    }
+
     // Note that HDF5readers remember the last data set loaded.  As long as the same gid is requested, it will not go back to the disk
     {sprint( datasetName, "a%d", tgid )}
     res = synapseReaderGluSynapseHelper.loadData( datasetName )
