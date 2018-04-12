@@ -331,7 +331,7 @@ static void bbcore_write(double* x, int* d, int* xx, int* offset, _threadargspro
         nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
         nrnran123_getids3(*pv, di, di+1, di+2);
         // write stream sequence
-        char which;
+        unsigned char which;
         nrnran123_getseq(*pv, di+3, &which);
         di[4] = (int)which;
       }
@@ -513,7 +513,7 @@ VERBATIM
             } else if (*xdir == 0.) {
                 if( usingR123 ) {
                     uint32_t seq;
-                    char which;
+                    unsigned char which;
                     nrnran123_getseq( (nrnran123_State*)_p_rng, &seq, &which );
                     xval[1] = (double) seq;
                     xval[2] = (double) which;
