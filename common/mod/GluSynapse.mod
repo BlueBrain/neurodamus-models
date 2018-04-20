@@ -243,7 +243,7 @@ STATE {
     h_VDCC      (1)
 
     : Postsynaptic Ca2+ dynamics
-    cai_CR      (mM)        <1e-3>  : Intracellular calcium concentration
+    cai_CR      (mM)        <1e-6>  : Intracellular calcium concentration
 
     : Long-term synaptic plasticity
     Rho_GB      (1)
