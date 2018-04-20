@@ -92,6 +92,7 @@ NEURON {
 
     : Basic Synapse and legacy
     GLOBAL mg
+    RANGE vsyn
     RANGE NMDA_ratio, synapseID, verbose
     NONSPECIFIC_CURRENT i
 }
@@ -223,6 +224,7 @@ ASSIGNED {
 
     : Basic Synapse and legacy
     v               (mV)
+    vsyn            (mV)
     i               (nA)
 }
 
@@ -312,6 +314,9 @@ BREAKPOINT {
 
     : Update total g and inject current
     i = i_AMPA + i_NMDA + ica_VDCC
+
+    : Update synaptic voltage (for recording convenience)
+    vsyn = v
 }
 
 
