@@ -140,7 +140,7 @@ PARAMETER {
                                             : (unpublished), value overwritten at runtime
 
     : VDCC (R-type)
-    gca_bar_VDCC    = 0.0558    (nS/um2)    : Density spines: 15 um-2 (Sabatini 2000: 20um-2)
+    gca_bar_VDCC    = 0.0372    (nS/um2)    : Density spines: 10 um-2 (Sabatini 2000: 20um-2)
                                             : Unitary conductance VGCC 3.72 pS (Bartol 2015)
     ljp_VDCC        = 0         (mV)
     vhm_VDCC        = -5.9      (mV)        : v 1/2 for act, Magee and Johnston 1995 (corrected for m*m)
