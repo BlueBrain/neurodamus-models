@@ -42,18 +42,20 @@ proc init() { local tgid, x, synapseID, baseSeed, res, foundRow, rowIndex  local
     rngInfo = new RNGSettings()
     synapse = new GluSynapse(x)
 
-    if( object_id( synapseReaderGluSynapseHelper, 1 ) == -1 ) {
+    if( synParams.maskValue > 1 ) {
+        // for now, setting weight to 0
+        synParams.weight = 0
+    }
+
+  if( parseConnection.exists( "OtherSynPath" ) ) {
+
+    if( object_id( synapseReaderGluSynapseHelper, 1 ) ) {
         // This field can be named whatever the user wants.  Needs to just use 'get' method
         fname = parseConnection.get( "OtherSynPath" )
         // print "access more info at ", fname.s
 
         // This requires there be a single HDF5 file.  If multiple files are to be supported, we need to change code structure
         synapseReaderGluSynapseHelper = new HDF5Reader( fname.s )
-    }
-
-    if( synParams.maskValue > 1 ) {
-        // for now, setting weight to 0
-        //synParams.weight = 0
     }
 
     // Note that HDF5readers remember the last data set loaded.  As long as the same gid is requested, it will not go back to the disk
@@ -68,7 +70,7 @@ proc init() { local tgid, x, synapseID, baseSeed, res, foundRow, rowIndex  local
         // Take the synapseID passed and find the corresponding row (avoid linear search)
         //TODO avoid linear search
     }
-
+    
     // TODO: How do we make finding the appropriate row fast/easy?
     //synapseReaderGluSynapseHelper.numberofrows
 
@@ -106,6 +108,7 @@ proc init() { local tgid, x, synapseID, baseSeed, res, foundRow, rowIndex  local
     synapse.Dep = abs( synParams.D )
     synapse.Fac = abs( synParams.F )
     synapse.Nrrp = 2
+  }
 
     // for now, use two seeds based on gid and snyapseID.  In the future we will have an optional synapseSeed
     // also note that somewhere we must have set the random123 global seed (BlueConfig BaseSeed)
@@ -113,6 +116,7 @@ proc init() { local tgid, x, synapseID, baseSeed, res, foundRow, rowIndex  local
     synapse.synapseID = synapseID
 
     synapse.toggleLTPlasticity()
+
 }
 
 endtemplate GluSynapseHelper
