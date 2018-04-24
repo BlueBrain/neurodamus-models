@@ -275,7 +275,7 @@ ENDVERBATIM
 
 PROCEDURE setRNG() {
 VERBATIM
-    #if !NRNBBCORE
+    #ifndef CORENEURON_BUILD
     // For compatibility, allow for either MCellRan4 or Random123
     // Distinguish by the arg types
     // Object => MCellRan4, seeds (double) => Random123
@@ -315,7 +315,7 @@ VERBATIM
     if ( usingR123 ) {
         value = nrnran123_dblpick((nrnran123_State*)_p_rng);
     } else if (_p_rng) {
-        #if !defined(CORENEURON_BUILD)
+        #ifndef CORENEURON_BUILD
         value = nrn_random_pick(_p_rng);
         #endif
     } else {
@@ -330,7 +330,7 @@ ENDVERBATIM
 FUNCTION bbsavestate() {
         bbsavestate = 0
 VERBATIM
-#if !defined(CORENEURON_BUILD)
+#ifndef CORENEURON_BUILD
         /* first arg is direction (0 save, 1 restore), second is array*/
         /* if first arg is -1, fill xdir with the size of the array */
         double *xdir, *xval, *hoc_pgetarg();
