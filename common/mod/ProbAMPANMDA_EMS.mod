@@ -1,14 +1,14 @@
 COMMENT
 /**
  * @file ProbAMPANMDA_EMS.mod
- * @brief 
+ * @brief
  * @author king, muller, reimann, ramaswamy
  * @date 2011-08-17
  * @remark Copyright © BBP/EPFL 2005-2011; All rights reserved. Do not distribute without further notice.
  */
 ENDCOMMENT
 
-TITLE Probabilistic AMPA and NMDA receptor with presynaptic short-term plasticity 
+TITLE Probabilistic AMPA and NMDA receptor with presynaptic short-term plasticity
 
 
 COMMENT
@@ -19,9 +19,9 @@ _EMS (Eilif Michael Srikanth)
 Modification of ProbAMPANMDA: 2-State model by Eilif Muller, Michael Reimann, Srikanth Ramaswamy, Blue Brain Project, August 2011
 This new model was motivated by the following constraints:
 
-1) No consumption on failure.  
+1) No consumption on failure.
 2) No release just after release until recovery.
-3) Same ensemble averaged trace as deterministic/canonical Tsodyks-Markram 
+3) Same ensemble averaged trace as deterministic/canonical Tsodyks-Markram
    using same parameters determined from experiment.
 4) Same quantal size as present production probabilistic model.
 
@@ -43,7 +43,7 @@ ENDCOMMENT
 
 
 NEURON {
-    THREADSAFE
+        THREADSAFE
         POINT_PROCESS ProbAMPANMDA_EMS
         RANGE tau_r_AMPA, tau_d_AMPA, tau_r_NMDA, tau_d_NMDA
         RANGE Use, u, Dep, Fac, u0, mg, tsyn
@@ -56,13 +56,11 @@ NEURON {
 }
 
 PARAMETER {
-
-
         tau_r_AMPA = 0.2   (ms)  : dual-exponential conductance profile
         tau_d_AMPA = 1.7    (ms)  : IMPORTANT: tau_r < tau_d
         tau_r_NMDA = 0.29   (ms) : dual-exponential conductance profile
         tau_d_NMDA = 43     (ms) : IMPORTANT: tau_r < tau_d
-        Use = 1.0   (1)   : Utilization of synaptic efficacy (just initial values! Use, Dep and Fac are overwritten by BlueBuilder assigned values) 
+        Use = 1.0   (1)   : Utilization of synaptic efficacy (just initial values! Use, Dep and Fac are overwritten by BlueBuilder assigned values)
         Dep = 100   (ms)  : relaxation time constant from depression
         Fac = 10   (ms)  :  relaxation time constant from facilitation
         e = 0     (mV)  : AMPA and NMDA reversal potential
@@ -77,7 +75,7 @@ PARAMETER {
 }
 
 COMMENT
-The Verbatim block is needed to generate random nos. from a uniform distribution between 0 and 1 
+The Verbatim block is needed to generate random nos. from a uniform distribution between 0 and 1
 for comparison with Pr to decide whether to activate the synapse or not
 ENDCOMMENT
 
@@ -86,15 +84,13 @@ VERBATIM
 #include<stdlib.h>
 #include<stdio.h>
 #include<math.h>
-
-// for random123
 #include "nrnran123.h"
 
 double nrn_random_pick(void* r);
 void* nrn_random_arg(int argpos);
 
 ENDVERBATIM
-  
+
 
 ASSIGNED {
 
@@ -120,8 +116,8 @@ ASSIGNED {
         occupied   (1) : no. of occupied sites following one epoch of recovery
         tsyn (ms) : the time of the last spike
         u (1) : running release probability
-
 }
+
 
 STATE {
 
@@ -131,8 +127,8 @@ STATE {
         B_NMDA       : NMDA state variable to construct the dual-exponential profile - decays with conductance tau_d_NMDA
 }
 
-INITIAL{
 
+INITIAL {
         LOCAL tp_AMPA, tp_NMDA
 
         tsyn = 0
@@ -144,16 +140,16 @@ INITIAL{
 
         A_AMPA = 0
         B_AMPA = 0
-        
+
         A_NMDA = 0
         B_NMDA = 0
-        
+
         tp_AMPA = (tau_r_AMPA*tau_d_AMPA)/(tau_d_AMPA-tau_r_AMPA)*log(tau_d_AMPA/tau_r_AMPA) :time to peak of the conductance
         tp_NMDA = (tau_r_NMDA*tau_d_NMDA)/(tau_d_NMDA-tau_r_NMDA)*log(tau_d_NMDA/tau_r_NMDA) :time to peak of the conductance
-        
+
         factor_AMPA = -exp(-tp_AMPA/tau_r_AMPA)+exp(-tp_AMPA/tau_d_AMPA) :AMPA Normalization factor - so that when t = tp_AMPA, gsyn = gpeak
         factor_AMPA = 1/factor_AMPA
-        
+
         factor_NMDA = -exp(-tp_NMDA/tau_r_NMDA)+exp(-tp_NMDA/tau_d_NMDA) :NMDA Normalization factor - so that when t = tp_NMDA, gsyn = gpeak
         factor_NMDA = 1/factor_NMDA
 
@@ -170,7 +166,6 @@ INITIAL{
 }
 
 BREAKPOINT {
-
         SOLVE state
         mggate = 1 / (1 + exp(0.062 (/mV) * -(v)) * (mg / 3.57 (mM))) :mggate kinetics - Jahr & Stevens 1990
         g_AMPA = gmax*(B_AMPA-A_AMPA) :compute time varying conductance as the difference of state variables B_AMPA and A_AMPA
@@ -208,13 +203,13 @@ NET_RECEIVE (weight,weight_AMPA, weight_NMDA, Psurv) {
 
     : calc u at event-
     if (Fac > 0) {
-            u = u*exp(-(t - tsyn)/Fac) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
-       } else {
-              u = Use  
-       } 
-       if(Fac > 0){
-              u = u + Use*(1-u) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
-       }    
+        u = u*exp(-(t - tsyn)/Fac) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
+    } else {
+        u = Use
+    }
+    if(Fac > 0){
+        u = u + Use*(1-u) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
+    }
 
     : recovery
     FROM counter = 0 TO (unoccupied - 1) {
@@ -275,6 +270,7 @@ NET_RECEIVE (weight,weight_AMPA, weight_NMDA, Psurv) {
     }
 }
 
+
 PROCEDURE setRNG() {
 VERBATIM
     #ifndef CORENEURON_BUILD
@@ -296,7 +292,7 @@ VERBATIM
         }
         if (ifarg(3)) {
             a3 = (uint32_t)*getarg(3);
-        } 
+        }
         *pv = nrnran123_newstream3((uint32_t)*getarg(1), a2, a3);
         usingR123 = 1;
     } else if( ifarg(1) ) {   // not a double, so assume hoc object type
@@ -309,6 +305,7 @@ VERBATIM
     #endif
 ENDVERBATIM
 }
+
 
 FUNCTION urand() {
 VERBATIM
@@ -326,6 +323,7 @@ VERBATIM
     _lurand = value;
 ENDVERBATIM
 }
+
 
 FUNCTION bbsavestate() {
         bbsavestate = 0
@@ -388,6 +386,7 @@ static void bbcore_write(double* x, int* d, int* xx, int* offset, _threadargspro
     }
   *offset += 5;
 }
+
 static void bbcore_read(double* x, int* d, int* xx, int* offset, _threadargsproto_) {
   assert(!_p_rng);
   uint32_t* di = ((uint32_t*)d) + *offset;

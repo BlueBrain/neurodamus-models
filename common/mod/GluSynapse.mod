@@ -185,13 +185,12 @@ The Verbatim block is needed to generate random nos. from a uniform distribution
 between 0 and 1 for comparison with Pr to decide whether to activate the synapse
 or not.
 ENDCOMMENT
+
+
 VERBATIM
-// for MCellRan4
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-
-// for random123
 #include "nrnran123.h"
 
 double nrn_random_pick(void* r);
@@ -247,6 +246,7 @@ ASSIGNED {
     i           (nA)
 }
 
+
 STATE {
     : AMPA Receptor
     A_AMPA      (1)             : Decays with conductance tau_r_AMPA
@@ -269,7 +269,8 @@ STATE {
     effcai_GB   (1)     <1e-3>
 }
 
-INITIAL{
+
+INITIAL {
     LOCAL tp_AMPA, tp_NMDA
 
     : AMPA Receptor
@@ -604,6 +605,7 @@ VERBATIM
 ENDVERBATIM
 }
 
+
 VERBATIM
 
 static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset, _threadargsproto_) {
@@ -628,11 +630,9 @@ static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset
     // increment integer offset (2 identifier), no double data
     *ioffset += 5;
     *doffset += 0;
-
 }
 
 static void bbcore_read(double* dArray, int* iArray, int* doffset, int* ioffset, _threadargsproto_) {
-
     // make sure it's not previously set
     assert(!_p_rng_rel);
 

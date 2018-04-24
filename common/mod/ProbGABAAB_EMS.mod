@@ -1,14 +1,14 @@
 COMMENT
 /**
  * @file ProbGABAAB.mod
- * @brief 
+ * @brief
  * @author king, muller
  * @date 2011-08-17
  * @remark Copyright © BBP/EPFL 2005-2011; All rights reserved. Do not distribute without further notice.
  */
 ENDCOMMENT
 
-TITLE GABAAB receptor with presynaptic short-term plasticity 
+TITLE GABAAB receptor with presynaptic short-term plasticity
 
 
 COMMENT
@@ -20,9 +20,9 @@ _EMS (Eilif Michael Srikanth)
 Modification of ProbGABAA: 2-State model by Eilif Muller, Michael Reimann, Srikanth Ramaswamy, Blue Brain Project, August 2011
 This new model was motivated by the following constraints:
 
-1) No consumption on failure.  
+1) No consumption on failure.
 2) No release just after release until recovery.
-3) Same ensemble averaged trace as deterministic/canonical Tsodyks-Markram 
+3) Same ensemble averaged trace as deterministic/canonical Tsodyks-Markram
    using same parameters determined from experiment.
 4) Same quantal size as present production probabilistic model.
 
@@ -46,7 +46,7 @@ ENDCOMMENT
 NEURON {
     THREADSAFE
 	POINT_PROCESS ProbGABAAB_EMS
-	RANGE tau_r_GABAA, tau_d_GABAA, tau_r_GABAB, tau_d_GABAB 
+	RANGE tau_r_GABAA, tau_d_GABAA, tau_r_GABAB, tau_d_GABAB
 	RANGE Use, u, Dep, Fac, u0, tsyn
     RANGE unoccupied, occupied, Nrrp
 	RANGE i,i_GABAA, i_GABAB, g_GABAA, g_GABAB, g, e_GABAA, e_GABAB, GABAB_ratio
@@ -60,8 +60,8 @@ PARAMETER {
 	tau_r_GABAA  = 0.2   (ms)  : dual-exponential conductance profile
 	tau_d_GABAA = 8   (ms)  : IMPORTANT: tau_r < tau_d
     tau_r_GABAB  = 3.5   (ms)  : dual-exponential conductance profile :Placeholder value from hippocampal recordings SR
-	tau_d_GABAB = 260.9   (ms)  : IMPORTANT: tau_r < tau_d  :Placeholder value from hippocampal recordings 
-	Use        = 1.0   (1)   : Utilization of synaptic efficacy (just initial values! Use, Dep and Fac are overwritten by BlueBuilder assigned values) 
+	tau_d_GABAB = 260.9   (ms)  : IMPORTANT: tau_r < tau_d  :Placeholder value from hippocampal recordings
+	Use        = 1.0   (1)   : Utilization of synaptic efficacy (just initial values! Use, Dep and Fac are overwritten by BlueBuilder assigned values)
 	Dep   = 100   (ms)  : relaxation time constant from depression
 	Fac   = 10   (ms)  :  relaxation time constant from facilitation
 	e_GABAA    = -80     (mV)  : GABAA reversal potential
@@ -76,23 +76,20 @@ PARAMETER {
 }
 
 COMMENT
-The Verbatim block is needed to generate random nos. from a uniform distribution between 0 and 1 
+The Verbatim block is needed to generate random nos. from a uniform distribution between 0 and 1
 for comparison with Pr to decide whether to activate the synapse or not
 ENDCOMMENT
-   
+
 VERBATIM
 #include<stdlib.h>
 #include<stdio.h>
 #include<math.h>
-
-// for random123
 #include "nrnran123.h"
 
 double nrn_random_pick(void* r);
 void* nrn_random_arg(int argpos);
-
 ENDVERBATIM
-  
+
 
 ASSIGNED {
 	v (mV)
@@ -116,8 +113,6 @@ ASSIGNED {
     occupied   (1) : no. of occupied sites following one epoch of recovery
     tsyn (ms) : the time of the last spike
     u (1) : running release probability
-
-
 }
 
 STATE {
@@ -128,7 +123,6 @@ STATE {
 }
 
 INITIAL{
-
         LOCAL tp_GABAA, tp_GABAB
 
         tsyn = 0
@@ -140,19 +134,19 @@ INITIAL{
 
         A_GABAA = 0
         B_GABAA = 0
-        
+
         A_GABAB = 0
         B_GABAB = 0
-        
+
         tp_GABAA = (tau_r_GABAA*tau_d_GABAA)/(tau_d_GABAA-tau_r_GABAA)*log(tau_d_GABAA/tau_r_GABAA) :time to peak of the conductance
         tp_GABAB = (tau_r_GABAB*tau_d_GABAB)/(tau_d_GABAB-tau_r_GABAB)*log(tau_d_GABAB/tau_r_GABAB) :time to peak of the conductance
-        
+
         factor_GABAA = -exp(-tp_GABAA/tau_r_GABAA)+exp(-tp_GABAA/tau_d_GABAA) :GABAA Normalization factor - so that when t = tp_GABAA, gsyn = gpeak
         factor_GABAA = 1/factor_GABAA
-        
+
         factor_GABAB = -exp(-tp_GABAB/tau_r_GABAB)+exp(-tp_GABAB/tau_d_GABAB) :GABAB Normalization factor - so that when t = tp_GABAB, gsyn = gpeak
         factor_GABAB = 1/factor_GABAB
-        
+
         A_GABAA_step = exp(dt*(( - 1.0 ) / tau_r_GABAA))
         B_GABAA_step = exp(dt*(( - 1.0 ) / tau_d_GABAA))
         A_GABAB_step = exp(dt*(( - 1.0 ) / tau_r_GABAB))
@@ -167,9 +161,9 @@ INITIAL{
 
 BREAKPOINT {
 	SOLVE state
-	
+
         g_GABAA = gmax*(B_GABAA-A_GABAA) :compute time varying conductance as the difference of state variables B_GABAA and A_GABAA
-        g_GABAB = gmax*(B_GABAB-A_GABAB) :compute time varying conductance as the difference of state variables B_GABAB and A_GABAB 
+        g_GABAB = gmax*(B_GABAB-A_GABAB) :compute time varying conductance as the difference of state variables B_GABAB and A_GABAB
         g = g_GABAA + g_GABAB
         i_GABAA = g_GABAA*(v-e_GABAA) :compute the GABAA driving force based on the time varying conductance, membrane potential, and GABAA reversal
         i_GABAB = g_GABAB*(v-e_GABAB) :compute the GABAB driving force based on the time varying conductance, membrane potential, and GABAB reversal
@@ -206,11 +200,11 @@ ENDVERBATIM
     if (Fac > 0) {
             u = u*exp(-(t - tsyn)/Fac) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
        } else {
-              u = Use  
-       } 
+              u = Use
+       }
        if(Fac > 0){
               u = u + Use*(1-u) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
-       }    
+       }
 
     : recovery
     FROM counter = 0 TO (unoccupied - 1) {
@@ -373,7 +367,6 @@ ENDVERBATIM
 FUNCTION toggleVerbose() {
     verboseLevel = 1 - verboseLevel
 }
-
 
 
 VERBATIM
