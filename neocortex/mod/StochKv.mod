@@ -52,11 +52,10 @@ NEURON {
     USEION k READ ek WRITE ik
     RANGE N, eta, gk, gamma, deterministic, gkbar, ik
     RANGE N0, N1, n0_n1, n1_n0
-    GLOBAL ninf, ntau, a, b, P_a, P_b
-    GLOBAL Ra, Rb
-    GLOBAL vmin, vmax, q10, temp, tadj
+    RANGE ninf, ntau, a, b, P_a, P_b
+    RANGE Ra, Rb, tadj
+    GLOBAL vmin, vmax, q10, temp
     BBCOREPOINTER rng
-    :POINTER rng
 }
 
 UNITS {

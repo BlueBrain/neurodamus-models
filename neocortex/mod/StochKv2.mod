@@ -28,8 +28,8 @@ NEURON {
     USEION k READ ek WRITE ik
     RANGE N, eta, gk, gamma, deterministic, gkbar, ik
     RANGE N0, N1, n0_n1, n1_n0
-    GLOBAL ninf, linf, ltau, ntau, an, bn, al, bl
-    GLOBAL P_an, P_bn, P_al, P_bl
+    RANGE ninf, linf, ltau, ntau, an, bn, al, bl
+    RANGE P_an, P_bn, P_al, P_bl
     GLOBAL vmin, vmax
     :BBCOREPOINTER rng
     POINTER rng
