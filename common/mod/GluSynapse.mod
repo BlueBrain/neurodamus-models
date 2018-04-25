@@ -185,13 +185,12 @@ The Verbatim block is needed to generate random nos. from a uniform distribution
 between 0 and 1 for comparison with Pr to decide whether to activate the synapse
 or not.
 ENDCOMMENT
+
+
 VERBATIM
-// for MCellRan4
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-
-// for random123
 #include "nrnran123.h"
 
 double nrn_random_pick(void* r);
@@ -247,6 +246,7 @@ ASSIGNED {
     i           (nA)
 }
 
+
 STATE {
     : AMPA Receptor
     A_AMPA      (1)             : Decays with conductance tau_r_AMPA
@@ -269,7 +269,8 @@ STATE {
     effcai_GB   (1)     <1e-3>
 }
 
-INITIAL{
+
+INITIAL {
     LOCAL tp_AMPA, tp_NMDA
 
     : AMPA Receptor
@@ -501,7 +502,7 @@ FUNCTION nernst(ci(mM), co(mM), z) (mV) {
 
 PROCEDURE setRNG() {
     VERBATIM
-    #if !NRNBBCORE
+    #ifndef CORENEURON_BUILD
     // For compatibility, allow for either MCellRan4 or Random123
     // Distinguish by the arg types
     // Object => MCellRan4, seeds (double) => Random123
@@ -541,7 +542,7 @@ FUNCTION urand() {
     if ( usingR123 ) {
         value = nrnran123_dblpick((nrnran123_State*)_p_rng_rel);
     } else if (_p_rng_rel) {
-        #if !NRNBBCORE
+        #ifndef CORENEURON_BUILD
         value = nrn_random_pick(_p_rng_rel);
         #endif
     } else {
@@ -565,7 +566,7 @@ FUNCTION toggleVerbose() {
 FUNCTION bbsavestate() {
         bbsavestate = 0
 VERBATIM
-#if !NRNBBCORE
+#ifndef CORENEURON_BUILD
         /* first arg is direction (0 save, 1 restore), second is array*/
         /* if first arg is -1, fill xdir with the size of the array */
         double *xdir, *xval, *hoc_pgetarg();
@@ -585,7 +586,7 @@ VERBATIM
             } else if(*xdir ==0 ) {  // save
                 if( usingR123 ) {
                     uint32_t seq;
-                    char which;
+                    unsigned char which;
                     nrnran123_getseq( (nrnran123_State*)_p_rng_rel, &seq, &which );
                     xval[0] = (double) seq;
                     xval[1] = (double) which;
@@ -604,6 +605,7 @@ VERBATIM
 ENDVERBATIM
 }
 
+
 VERBATIM
 
 static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset, _threadargsproto_) {
@@ -620,7 +622,7 @@ static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset
         nrnran123_getids3(*pv, ia, ia+1, ia+2);
 
         // retrieve/store stream sequence
-        char which;
+        unsigned char which;
         nrnran123_getseq(*pv, ia+3, &which);
         ia[4] = (int)which;
     }
@@ -628,11 +630,9 @@ static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset
     // increment integer offset (2 identifier), no double data
     *ioffset += 5;
     *doffset += 0;
-
 }
 
 static void bbcore_read(double* dArray, int* iArray, int* doffset, int* ioffset, _threadargsproto_) {
-
     // make sure it's not previously set
     assert(!_p_rng_rel);
 
