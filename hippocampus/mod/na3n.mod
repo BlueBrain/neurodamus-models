@@ -2,10 +2,12 @@ TITLE na3
 : Na current 
 : modified from Jeff Magee. M.Migliore may97
 : added sh to account for higher threshold M.Migliore, Apr.2002
+: WVG @ BBP 2018: add ttx sensitivity
 
 NEURON {
 	SUFFIX na3
 	USEION na READ ena WRITE ina
+    USEION ttx READ ttxo, ttxi VALENCE 1
 	RANGE  gbar, ar, sh
 	GLOBAL minf, hinf, mtau, htau, sinf, taus,qinf, thinf
 }
@@ -56,6 +58,8 @@ UNITS {
 } 
 
 ASSIGNED {
+    ttxo        (mM)
+    ttxi        (mM)
 	ina 		(mA/cm2)
 	thegna		(mho/cm2)
 	minf 		hinf 		
@@ -73,7 +77,17 @@ BREAKPOINT {
 } 
 
 INITIAL {
-	trates(v,ar,sh)
+    if (ttxi == 0.015625 && ttxo > 1e-12) {
+        minf = 0.0
+        mtau = 1e-12
+        hinf = 1.0
+        htau = 1e-12
+        sinf = 0.0
+        taus = 1e-12
+    } else {
+        trates(v,ar,sh)      
+    }
+
 	m=minf  
 	h=hinf
 	s=sinf
@@ -94,11 +108,21 @@ FUNCTION bets(v(mV)) {
 
 LOCAL mexp, hexp, sexp
 
-DERIVATIVE states {   
+DERIVATIVE states { 
+    if (ttxi == 0.015625 && ttxo > 1e-12) {
+        minf = 0.0
+        mtau = 1e-12
+        hinf = 1.0
+        htau = 1e-12
+        sinf = 0.0
+        taus = 1e-12
+    } else {
         trates(v,ar,sh)      
-        m' = (minf-m)/mtau
-        h' = (hinf-h)/htau
-        s' = (sinf - s)/taus
+    }
+
+    m' = (minf-m)/mtau
+    h' = (hinf-h)/htau
+    s' = (sinf - s)/taus
 }
 
 PROCEDURE trates(vm,a2,sh2) {  
