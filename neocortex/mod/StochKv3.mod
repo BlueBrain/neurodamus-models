@@ -486,7 +486,7 @@ VERBATIM
 FUNCTION bbsavestate() {
         bbsavestate = 0
 VERBATIM
-#ifdef ENABLE_SAVE_STATE
+ #ifndef CORENEURON_BUILD
         // TODO: since N0,N1 are no longer state variables, they will need to be written using this callback
         //  provided that it is the version that supports multivalue writing
         /* first arg is direction (-1 get info, 0 save, 1 restore), second is value*/

@@ -313,7 +313,9 @@ VERBATIM
     if( usingR123 ) {
         value = nrnran123_dblpick((nrnran123_State*)_p_rng);
     } else if (_p_rng) {
+#ifndef CORENEURON_BUILD
         value = nrn_random_pick(_p_rng);
+#endif
     } else {
         value = 0.5;
     }
@@ -478,6 +480,7 @@ VERBATIM
 FUNCTION bbsavestate() {
         bbsavestate = 0
 VERBATIM
+ #ifndef CORENEURON_BUILD
         // TODO: since N0,N1 are no longer state variables, they will need to be written using this callback
         //  provided that it is the version that supports multivalue writing
         /* first arg is direction (-1 get info, 0 save, 1 restore), second is value*/
@@ -516,5 +519,6 @@ VERBATIM
         }
 
         // TODO: check for random123 and get the seq values
+#endif
 ENDVERBATIM
 }
