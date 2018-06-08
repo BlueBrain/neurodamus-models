@@ -3,9 +3,9 @@ COMMENT
  * @file GluSynapse.mod
  * @brief Probabilistic synapse with short- and long-term plasticity
  * @author king, chindemi, rossert
- * @date 2018-02-19
- * @version 1.0.0dev
- * @remark Copyright © BBP/EPFL 2005-2018; All rights reserved.
+ * @date 2017-03-16
+ * @version 0.3.4
+ * @remark Copyright © BBP/EPFL 2005-2017; All rights reserved.
            Do not distribute without further notice.
  */
 ENDCOMMENT
@@ -56,44 +56,48 @@ NEURON {
     POINT_PROCESS GluSynapse
 
     : AMPA Receptor
-    GLOBAL tau_r_AMPA, E_AMPA
-    RANGE tau_d_AMPA, gmax_AMPA
-    RANGE g_AMPA        : Could be converted to LOCAL (performance)
+    RANGE tau_r_AMPA, tau_d_AMPA, E_AMPA, gmax_AMPA
+    RANGE factor_AMPA
+    RANGE g_AMPA, i_AMPA        : Could be converted to LOCAL (performance)
 
     : NMDA Receptor
-    GLOBAL tau_r_NMDA, tau_d_NMDA, E_NMDA
-    RANGE using_mggate_VC : TEMPORARY
-    RANGE g_NMDA        : Could be converted to LOCAL (performance)
+    RANGE tau_r_NMDA, tau_d_NMDA, E_NMDA
+    RANGE factor_NMDA
+    RANGE gmax_NMDA             : Could be converted to LOCAL (performance)
+    RANGE g_NMDA, i_NMDA        : Could be converted to LOCAL (performance)
 
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
-    RANGE Use, Dep, Fac, Nrrp, u
+    RANGE Use, Dep, Fac, Nrrp
+    RANGE u, Psurv              : Could be converted to LOCAL (performance)
     RANGE tsyn, unoccupied, occupied
     BBCOREPOINTER rng_rel
 
     : NMDAR-mediated calcium current
-    RANGE ica_NMDA
+    RANGE Pf_NMDA, ica_NMDA
 
     : Spine
-    RANGE volume_CR
+    RANGE volume_CR, area_CR
 
     : VDCC (R-type)
-    GLOBAL ljp_VDCC, vhm_VDCC, km_VDCC, mtau_VDCC, vhh_VDCC, kh_VDCC, htau_VDCC
-    RANGE gca_bar_VDCC, ica_VDCC
+    RANGE gca_bar_VDCC, gca_bar_abs_VDCC, ica_VDCC, ljp_VDCC
+    RANGE gca_VDCC              : Could be converted to LOCAL (performance)
+    RANGE vhm_VDCC, km_VDCC, mtau_VDCC, minf_VDCC
+    RANGE vhh_VDCC, kh_VDCC, htau_VDCC, hinf_VDCC
+    RANGE tm_VDCC, th_VDCC
 
     : Postsynaptic Ca2+ dynamics
-    GLOBAL gamma_ca_CR, tau_ca_CR, min_ca_CR, cao_CR
+    RANGE gamma_ca_CR, tau_ca_CR, min_ca_CR, cao_CR
 
     : Long-term synaptic plasticity
-    GLOBAL tau_GB, gamma_d_GB, gamma_p_GB, rho_star_GB, tau_Use_GB, tau_effca_GB
-    RANGE theta_d_GB, theta_p_GB
-    RANGE rho0_GB
+    RANGE tau_GB, theta_d_GB, theta_p_GB, gamma_d_GB, gamma_p_GB
+    RANGE rho_star_GB, rho0_GB
     RANGE enable_GB, depress_GB, potentiate_GB
-    RANGE Use_d_GB, Use_p_GB
+    RANGE tau_Use_GB, Use_d_GB, Use_p_GB
 
     : Basic Synapse and legacy
-    GLOBAL mg
-    RANGE vsyn
-    RANGE NMDA_ratio, synapseID, selected_for_report, verbose
+    RANGE NMDA_ratio, w, mg
+    RANGE g                     : Could be converted to LOCAL (performance)
+    RANGE synapseID, selected_for_report, verbose
     NONSPECIFIC_CURRENT i
 }
 
@@ -115,66 +119,63 @@ UNITS {
 
 
 PARAMETER {
-    celsius                     (degC)
+    celsius             (degC)
 
     : AMPA Receptor
-    tau_r_AMPA      = 0.2       (ms)        : Tau rise, dual-exponential conductance profile
-    tau_d_AMPA      = 1.7       (ms)        : Tau decay, IMPORTANT: tau_r < tau_d
-    E_AMPA          = 0         (mV)        : Reversal potential
-    gmax_AMPA       = 1.0       (nS)        : Maximal conductance
+    tau_r_AMPA  = 0.2   (ms)    : Tau rise, dual-exponential conductance profile
+    tau_d_AMPA  = 1.7   (ms)    : Tau decay, IMPORTANT: tau_r < tau_d
+    E_AMPA      = 0     (mV)    : Reversal potential
+    gmax_AMPA   = 1.0   (nS)    : Maximal conductance
 
     : NMDA Receptor
-    tau_r_NMDA      = 0.29      (ms)        : Tau rise, dual-exponential conductance profile
-    tau_d_NMDA      = 43        (ms)        : Tau decay, IMPORTANT: tau_r < tau_d
-    E_NMDA          = -3        (mV)        : Reversal potential, Vargas-Caballero and Robinson (2003)
-    using_mggate_VC = 1
+    tau_r_NMDA   = 0.29 (ms)    : Tau rise, dual-exponential conductance profile
+    tau_d_NMDA   = 43   (ms)    : Tau decay, IMPORTANT: tau_r < tau_d
+    E_NMDA      = 0     (mV)    : Reversal potential
 
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
-    Use             = 1.0       (1)         : Utilization of synaptic efficacy
-    Dep             = 100       (ms)        : Relaxation time constant from depression
-    Fac             = 10        (ms)        : Relaxation time constant from facilitation
-    Nrrp            = 1         (1)         : Number of release sites for given contact
+    Use         = 1.0   (1)     : Utilization of synaptic efficacy
+    Dep         = 100   (ms)    : Relaxation time constant from depression
+    Fac         = 10    (ms)    : Relaxation time constant from facilitation
+    Nrrp        = 1     (1)     : Number of release sites for given contact
 
     : Spine
-    volume_CR       = 0.087     (um3)       : From spine data by Ruth Benavides-Piccione
-                                            : (unpublished), value overwritten at runtime
+    volume_CR   = 0.087 (um3)   : From spine data by Ruth Benavides-Piccione
+                                : (unpublished), value overwritten at runtime
 
     : VDCC (R-type)
-    gca_bar_VDCC    = 0.0372    (nS/um2)    : Density spines: 10 um-2 (Sabatini 2000: 20um-2)
-                                            : Unitary conductance VGCC 3.72 pS (Bartol 2015)
-    ljp_VDCC        = 0         (mV)
-    vhm_VDCC        = -5.9      (mV)        : v 1/2 for act, Magee and Johnston 1995 (corrected for m*m)
-    km_VDCC         = 9.5       (mV)        : act slope, Magee and Johnston 1995 (corrected for m*m)
-    vhh_VDCC        = -39       (mV)        : v 1/2 for inact, Magee and Johnston 1995
-    kh_VDCC         = -9.2      (mV)        : inact, Magee and Johnston 1995
-    mtau_VDCC       = 1         (ms)        : max time constant (guess)
-    htau_VDCC       = 27        (ms)        : max time constant 100*0.27
+    gca_bar_VDCC = 0.0744   (nS/um2)
+    ljp_VDCC     = 0        (mV)
+    vhm_VDCC     = -5.9     (mV)    : v 1/2 for act, Magee and Johnston 1995 (corrected for m*m)
+    km_VDCC      = 9.5      (mV)    : act slope, Magee and Johnston 1995 (corrected for m*m)
+    vhh_VDCC     = -39      (mV)    : v 1/2 for inact, Magee and Johnston 1995
+    kh_VDCC      = -9.2     (mV)    : inact, Magee and Johnston 1995
+    tm_VDCC      = 1        (ms)    : max time constant (guess)
+    th_VDCC      = 27       (ms)    : max time constant 100*0.27
 
     : Postsynaptic Ca2+ dynamics
-    gamma_ca_CR     = 0.04      (1)         : Percent of free calcium (not buffered), Sabatini et al 2002: kappa_e = 24+-11 (also 14 (2-31) or 22 (18-33))
-    tau_ca_CR       = 12        (ms)        : Rate of removal of calcium, Sabatini et al 2002: 14ms (12-20ms)
-    min_ca_CR       = 70e-6     (mM)        : Sabatini et al 2002: 70+-29 nM, per AP: 1.1 (0.6-8.2) uM = 1100 e-6 mM = 1100 nM
-    cao_CR          = 2.0       (mM)        : Extracellular calcium concentration in slices
+    gamma_ca_CR  = 0.04     (1)     : Percent of free calcium (not buffered), Sabatini et al 2002: kappa_e = 24+-11 (also 14 (2-31) or 22 (18-33))
+    tau_ca_CR    = 12       (ms)    : Rate of removal of calcium, Sabatini et al 2002: 14ms (12-20ms)
+    min_ca_CR    = 70e-6    (mM)    : Sabatini et al 2002: 70+-29 nM, per AP: 1.1 (0.6-8.2) uM = 1100 e-6 mM = 1100 nM
+    cao_CR       = 2.0      (mM)    : Extracellular calcium concentration in slices
 
     : Long-term synaptic plasticity
-    tau_GB          = 100       (s)
-    tau_effca_GB    = 200       (ms)
-    theta_d_GB      = 0.006     (us/liter)
-    theta_p_GB      = 0.001     (us/liter)
-    gamma_d_GB      = 100       (1)
-    gamma_p_GB      = 450       (1)
-    rho_star_GB     = 0.5       (1)
-    rho0_GB         = 0         (1)
-    enable_GB       = 0         (1)
-    tau_Use_GB      = 100       (s)
-    Use_d_GB        = 0.2       (1)
-    Use_p_GB        = 0.8       (1)
+    tau_GB       = 100      (s)
+    theta_d_GB   = 0.006    (mM)
+    theta_p_GB   = 0.001    (mM)
+    gamma_d_GB   = 100      (1)
+    gamma_p_GB   = 450      (1)
+    rho_star_GB  = 0.5      (1)
+    rho0_GB      = 0        (1)
+    enable_GB    = 0        (1)
+    tau_Use_GB   = 100      (s)
+    Use_d_GB     = 0.2      (1)
+    Use_p_GB     = 0.8      (1)
 
     : Basic Synapse and legacy
-    NMDA_ratio      = 0.71      (1)         : In this model gmax_NMDA = gmax_AMPA*ratio_NMDA
-    mg              = 1         (mM)        : Extracellular magnesium concentration
-    synapseID       = 0
-    verbose         = 0
+    NMDA_ratio  = 0.71  (1)     : In this model gmax_NMDA = gmax_AMPA*ratio_NMDA
+    mg          = 1     (mM)    : Extracellular magnesium concentration
+    synapseID   = 0
+    verbose     = 0
     selected_for_report = 0
 }
 
@@ -199,76 +200,118 @@ ENDVERBATIM
 
 ASSIGNED {
     : AMPA Receptor
-    g_AMPA          (uS)
+    factor_AMPA (1)
+    g_AMPA      (uS)
+    i_AMPA      (nA)
 
     : NMDA Receptor
-    g_NMDA          (uS)
+    factor_NMDA (1)
+    gmax_NMDA   (nS)
+    g_NMDA      (uS)
+    i_NMDA      (nA)
 
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
-    u               (1)     : Running release probability
-    tsyn            (ms)    : Time of the last presynaptic spike
-    unoccupied      (1)     : Number of unoccupied release sites
-    occupied        (1)     : Number of occupied release sites
-    rng_rel                 : Random Number Generator
-    usingR123               : TEMPORARY until mcellran4 completely deprecated
+    u           (1)     : Running release probability
+    tsyn        (ms)    : Time of the last presynaptic spike
+    Psurv       (1)     : Survival prob. of unrecovered state
+    unoccupied  (1)     : Number of unoccupied release sites
+    occupied    (1)     : Number of occupied release sites
+    rng_rel             : Random Number Generator
+    usingR123           : TEMPORARY until mcellran4 completely deprecated
 
     : NMDAR-mediated calcium current
-    ica_NMDA        (nA)
+    Pf_NMDA     (1)     : Fractional NMDAR calcium current
+    ica_NMDA    (nA)
+
+    : Spine
+    area_CR     (um2)
 
     : VDCC (R-type)
-    ica_VDCC        (nA)
+    gca_VDCC            (uS)
+    gca_bar_abs_VDCC    (nS)
+    minf_VDCC           (1)
+    hinf_VDCC           (1)
+    mtau_VDCC           (ms)
+    htau_VDCC           (ms)
+    ica_VDCC            (nA)
 
     : Long-term synaptic plasticity
-    depress_GB      (1)
-    potentiate_GB   (1)
+    depress_GB          (1)
+    potentiate_GB       (1)
 
     : Basic Synapse and legacy
-    v               (mV)
-    vsyn            (mV)
-    i               (nA)
+    w           (1)
+    v           (mV)
+    g           (uS)
+    i           (nA)
 }
 
 
 STATE {
     : AMPA Receptor
-    A_AMPA      (1)                 : Decays with conductance tau_r_AMPA
-    B_AMPA      (1)                 : Decays with conductance tau_d_AMPA
+    A_AMPA      (1)             : Decays with conductance tau_r_AMPA
+    B_AMPA      (1)             : Decays with conductance tau_d_AMPA
 
     : NMDA Receptor
-    A_NMDA      (1)                 : Decays with conductance tau_r_NMDA
-    B_NMDA      (1)                 : Decays with conductance tau_d_NMDA
+    A_NMDA      (1)             : Decays with conductance tau_r_NMDA
+    B_NMDA      (1)             : Decays with conductance tau_d_NMDA
 
     : VDCC (R-type)
     m_VDCC      (1)
     h_VDCC      (1)
 
     : Postsynaptic Ca2+ dynamics
-    cai_CR      (mM)        <1e-6>  : Intracellular calcium concentration
+    cai_CR      (mM)    <1e-3>  : Intracellular calcium concentration
 
     : Long-term synaptic plasticity
     Rho_GB      (1)
     Use_GB      (1)
-    effcai_GB   (us/liter)  <1e-3>
+    effcai_GB   (1)     <1e-3>
 }
 
 
-INITIAL{
+INITIAL {
+    LOCAL tp_AMPA, tp_NMDA
+
     : AMPA Receptor
-    A_AMPA          = 0
-    B_AMPA          = 0
+    A_AMPA      = 0
+    B_AMPA      = 0
+    : Time to peak of the conductance
+    tp_AMPA     = (tau_r_AMPA*tau_d_AMPA)/(tau_d_AMPA-tau_r_AMPA)*log(tau_d_AMPA/tau_r_AMPA)
+    : Normalization factor - so that when t = tp_AMPA, g_AMPA = gmax_AMPA
+    factor_AMPA = 1 / (-exp(-tp_AMPA/tau_r_AMPA)+exp(-tp_AMPA/tau_d_AMPA))
 
     : NMDA Receptor
-    A_NMDA          = 0
-    B_NMDA          = 0
+    A_NMDA      = 0
+    B_NMDA      = 0
+    : Time to peak of the conductance
+    tp_NMDA     = (tau_r_NMDA*tau_d_NMDA)/(tau_d_NMDA-tau_r_NMDA)*log(tau_d_NMDA/tau_r_NMDA)
+    : Normalization factor - so that when t = tp_NMDA, g_NMDA = gmax_NMDA
+    factor_NMDA = 1 / (-exp(-tp_NMDA/tau_r_NMDA)+exp(-tp_NMDA/tau_d_NMDA))
+    gmax_NMDA   = gmax_AMPA*NMDA_ratio
 
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
-    tsyn            = 0
-    u               = 0
-    unoccupied      = 0
-    occupied        = Nrrp
+    tsyn        = 0
+    Psurv       = 0
+    u           = 0
+    unoccupied  = 0
+    occupied    = Nrrp
+
+    : NMDAR-mediated calcium current
+    Pf_NMDA     = (4*cao_CR) / (4*cao_CR + (1/1.38) * 120 (mM)) * 0.6
+
+    : Spine
+    UNITSOFF
+    area_CR     = 4*PI*(3/4*volume_CR*1/PI)^(2/3)   : Assuming sphere for spine head
+    UNITSON
+
+    : VDCC (R-type)
+    gca_bar_abs_VDCC    = gca_bar_VDCC * area_CR
+    mtau_VDCC           = tm_VDCC
+    htau_VDCC           = th_VDCC
 
     : Postsynaptic Ca2+ dynamics
-    cai_CR          = min_ca_CR
+    cai_CR      = min_ca_CR
 
     : Long-term synaptic plasticity
     Rho_GB          = rho0_GB
@@ -277,51 +320,44 @@ INITIAL{
     depress_GB      = 0
     potentiate_GB   = 0
 
+    : Basic Synapse and legacy
+    w           = 0
+
     : Initialize WATCH
     net_send(0, 1)
 }
 
 
 BREAKPOINT {
-    LOCAL Eca_syn, mggate, i_AMPA, gmax_NMDA, i_NMDA, Pf_NMDA, gca_bar_abs_VDCC, gca_VDCC
+    LOCAL Eca_syn, mggate
     SOLVE state METHOD euler
 
     : AMPA Receptor
-    g_AMPA = (1e-3)*gmax_AMPA*(B_AMPA-A_AMPA)
+    g_AMPA = w*(1e-3)*gmax_AMPA*(B_AMPA-A_AMPA)
     i_AMPA = g_AMPA*(v-E_AMPA)
 
     : NMDA Receptor
-    gmax_NMDA = gmax_AMPA*NMDA_ratio
-    if (using_mggate_VC == 1) {
-        : Jahr and Stevens (1990) model fitted on cortical data from
-        : Vargas-Caballero and Robinson (2003).
-        mggate = 1 / (1 + exp(0.07207477 (/mV) * -(v)) * (mg / 2.5522415 (mM)))
-    } else {
-        mggate = 1 / (1 + exp(0.062 (/mV) * -(v)) * (mg / 3.57 (mM)))
-    }
-    g_NMDA = (1e-3)*gmax_NMDA*mggate*(B_NMDA-A_NMDA)
+    mggate = 1 / (1 + exp(0.062 (/mV) * -(v)) * (mg / 3.57 (mM)))
+    g_NMDA = w*(1e-3)*gmax_NMDA*mggate*(B_NMDA-A_NMDA)
     i_NMDA = g_NMDA*(v-E_NMDA)
 
     : NMDAR-mediated calcium current
-    Pf_NMDA  = (4*cao_CR) / (4*cao_CR + (1/1.38) * 120 (mM)) * 0.6  : Fractional current
     ica_NMDA = Pf_NMDA*g_NMDA*(v-40.0)
 
     : VDCC (R-type)
-    gca_bar_abs_VDCC = gca_bar_VDCC * 4(um2)*PI*(3(1/um3)/4*volume_CR*1/PI)^(2/3)   : Assuming sphere for spine head
-    gca_VDCC = (1e-3) * gca_bar_abs_VDCC * m_VDCC * m_VDCC * h_VDCC
     Eca_syn = nernst(cai_CR, cao_CR, 2)     : Ca reversal potential
+    gca_VDCC = (1e-3) * gca_bar_abs_VDCC * m_VDCC * m_VDCC * h_VDCC
     ica_VDCC = gca_VDCC*(v-Eca_syn)
+    minf_VDCC = 1 / (1 + exp(((vhm_VDCC - ljp_VDCC) - v) / km_VDCC))
+    hinf_VDCC = 1 / (1 + exp(((vhh_VDCC - ljp_VDCC) - v) / kh_VDCC))
 
     : Update total g and inject current
+    g = g_AMPA + g_NMDA
     i = i_AMPA + i_NMDA + ica_VDCC
-
-    : Update synaptic voltage (for recording convenience)
-    vsyn = v
 }
 
 
 DERIVATIVE state {
-    LOCAL minf_VDCC, hinf_VDCC
     : AMPA Receptor
     A_AMPA'     = -A_AMPA/tau_r_AMPA
     B_AMPA'     = -B_AMPA/tau_d_AMPA
@@ -331,8 +367,6 @@ DERIVATIVE state {
     B_NMDA'     = -B_NMDA/tau_d_NMDA
 
     : VDCC (R-type)
-    minf_VDCC = 1 / (1 + exp(((vhm_VDCC - ljp_VDCC) - v) / km_VDCC))
-    hinf_VDCC = 1 / (1 + exp(((vhh_VDCC - ljp_VDCC) - v) / kh_VDCC))
     m_VDCC'     = (minf_VDCC-m_VDCC)/mtau_VDCC
     h_VDCC'     = (hinf_VDCC-h_VDCC)/htau_VDCC
 
@@ -340,7 +374,7 @@ DERIVATIVE state {
     cai_CR'     = -(1e-9)*(ica_NMDA + ica_VDCC)*gamma_ca_CR/((1e-15)*volume_CR*2*FARADAY) - (cai_CR - min_ca_CR)/tau_ca_CR
 
     : Long-term synaptic plasticity
-    effcai_GB'  = -effcai_GB/tau_effca_GB + (cai_CR - min_ca_CR)
+    effcai_GB'  = -0.005*effcai_GB + (cai_CR - min_ca_CR)
     Rho_GB'     = ( - Rho_GB*(1-Rho_GB)*(rho_star_GB-Rho_GB)
                     + potentiate_GB*gamma_p_GB*(1-Rho_GB)
                     - depress_GB*gamma_d_GB*Rho_GB ) / ((1e3)*tau_GB)
@@ -349,7 +383,7 @@ DERIVATIVE state {
 
 
 NET_RECEIVE (weight) {
-    LOCAL result, ves, occu, Use_actual, tp, factor, Psurv
+    LOCAL result, ves, occu, Use_actual
 
     if(flag == 1) {
         : Flag 1, Initialize watch calls
@@ -378,6 +412,9 @@ NET_RECEIVE (weight) {
             return;
             ENDVERBATIM
         }
+
+        : Set synapse weight
+        w = weight
 
         if(verbose > 0){
             UNITSOFF
@@ -432,24 +469,17 @@ NET_RECEIVE (weight) {
         : Update number of unoccupied sites
         unoccupied = Nrrp - occupied
 
-        : Update AMPA variables
-        tp = (tau_r_AMPA*tau_d_AMPA)/(tau_d_AMPA-tau_r_AMPA)*log(tau_d_AMPA/tau_r_AMPA)  : Time to peak of the conductance
-        factor = 1 / (-exp(-tp/tau_r_AMPA)+exp(-tp/tau_d_AMPA))  : Normalization factor - so that when t = tp, g_AMPA = gmax_AMPA
-        A_AMPA = weight*(A_AMPA + ves/Nrrp*factor)
-        B_AMPA = weight*(B_AMPA + ves/Nrrp*factor)
-
-
-        : Update NMDA variables
-        tp = (tau_r_NMDA*tau_d_NMDA)/(tau_d_NMDA-tau_r_NMDA)*log(tau_d_NMDA/tau_r_NMDA)  : Time to peak of the conductance
-        factor = 1 / (-exp(-tp/tau_r_NMDA)+exp(-tp/tau_d_NMDA))  : Normalization factor - so that when t = tp, g_NMDA = gmax_NMDA
-        A_NMDA = weight*(A_NMDA + ves/Nrrp*factor)
-        B_NMDA = weight*(B_NMDA + ves/Nrrp*factor)
-
         : Update tsyn
         : tsyn knows about all spikes, not only those that released
         : i.e. each spike can increase the u, regardless of recovered state.
         :      and each spike trigger an evaluation of recovery
         tsyn = t
+
+        : Update state variables
+        A_AMPA = A_AMPA + ves/Nrrp*factor_AMPA
+        B_AMPA = B_AMPA + ves/Nrrp*factor_AMPA
+        A_NMDA = A_NMDA + ves/Nrrp*factor_NMDA
+        B_NMDA = B_NMDA + ves/Nrrp*factor_NMDA
 
         if ( verbose > 0 ) {
             UNITSOFF
@@ -520,6 +550,16 @@ FUNCTION urand() {
     }
     _lurand = value;
     ENDVERBATIM
+}
+
+
+FUNCTION toggleLTPlasticity() {
+    enable_GB = 1-enable_GB
+}
+
+
+FUNCTION toggleVerbose() {
+    verbose = 1-verbose
 }
 
 

@@ -115,7 +115,8 @@ proc init() { local tgid, x, synapseID, baseSeed, res, foundRow, rowIndex  local
     synapse.setRNG( tgid, 100000 + synapseID,  rngInfo.getSynapseSeed() + 200)
     synapse.synapseID = synapseID
 
-    synapse.enable_GB = 1
+    synapse.toggleLTPlasticity()
+
 }
 
 endtemplate GluSynapseHelper
