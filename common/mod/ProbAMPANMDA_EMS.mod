@@ -44,15 +44,23 @@ ENDCOMMENT
 
 NEURON {
     THREADSAFE
-        POINT_PROCESS ProbAMPANMDA_EMS
-        RANGE tau_r_AMPA, tau_d_AMPA, tau_r_NMDA, tau_d_NMDA
-        RANGE Use, u, Dep, Fac, u0, mg, tsyn
-        RANGE unoccupied, occupied, Nrrp
-        RANGE i, i_AMPA, i_NMDA, g_AMPA, g_NMDA, g, e, NMDA_ratio
-        RANGE A_AMPA_step, B_AMPA_step, A_NMDA_step, B_NMDA_step
-        NONSPECIFIC_CURRENT i
-        BBCOREPOINTER rng
-        RANGE synapseID, verboseLevel
+    POINT_PROCESS ProbAMPANMDA_EMS
+
+    GLOBAL tau_r_AMPA
+    RANGE tau_d_AMPA, g_AMPA, i_AMPA
+
+    GLOBAL tau_r_NMDA, tau_d_NMDA
+    RANGE g_NMDA, i_NMDA
+
+    RANGE Use, u, Dep, Fac, u0, tsyn
+    RANGE unoccupied, occupied, Nrrp
+
+    RANGE g, NMDA_ratio
+    RANGE A_AMPA_step, B_AMPA_step, A_NMDA_step, B_NMDA_step
+    GLOBAL mg, e
+    NONSPECIFIC_CURRENT i
+    BBCOREPOINTER rng
+    RANGE synapseID, verboseLevel
 }
 
 PARAMETER {
