@@ -29,7 +29,7 @@ external synapseReaderGluSynapseHelper
  * @param baseSeed for random number generator
  * @param parseConnection Map of field/value pairs of Connection block taken from ConfigParser
  */
-proc init() { local tgid, x, synapseID, baseSeed, res, foundRow, rowIndex  localobj synParams, parseConnection, fname, rngInfo
+proc init() { local tgid, x, synapseID, baseSeed, res, foundRow  localobj synParams, parseConnection, fname, rngInfo
     strdef datasetName
 
     tgid = $1
@@ -68,28 +68,19 @@ proc init() { local tgid, x, synapseID, baseSeed, res, foundRow, rowIndex  local
     //synapseReaderGluSynapseHelper.numberofrows
 
     // Find the correct row
-    foundRow = -1
-    for rowIndex=0, synapseReaderGluSynapseHelper.numberofrows(datasetName)-1 {
-        if( synapseReaderGluSynapseHelper.getData( datasetName, rowIndex, 1 ) == synapseID ) {
-            foundRow = rowIndex
-        }
-    }
-    if( foundRow == -1 ) {
-        //TODO Handle error
-        print "Error: failed to find matching row for ", tgid, " ", synapseID, " among ", synapseReaderGluSynapseHelper.numberofrows(datasetName), " rows"
-    }
+    foundRow = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 1 )
 
     // Use parameters
     synapse.Use_d_GB = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 3 )
     synapse.Use_p_GB = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 4 )
-    synapse.tau_Use_GB = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 5 )
+    tau_Use_GB_GluSynapse = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 5 )
 
     // Rho parameters
-    synapse.tau_GB = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 8 )
+    tau_GB_GluSynapse = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 8 )
     synapse.theta_d_GB = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 9 )
     synapse.theta_p_GB = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 10 )
-    synapse.gamma_d_GB = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 11 )
-    synapse.gamma_p_GB = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 12 )
+    gamma_d_GB_GluSynapse = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 11 )
+    gamma_p_GB_GluSynapse = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 12 )
     synapse.rho0_GB = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 13 )
 
     // Spine parameters
