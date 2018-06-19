@@ -43,16 +43,23 @@ ENDCOMMENT
 
 
 NEURON {
-        THREADSAFE
-        POINT_PROCESS ProbAMPANMDA_EMS
-        RANGE tau_r_AMPA, tau_d_AMPA, tau_r_NMDA, tau_d_NMDA
-        RANGE Use, u, Dep, Fac, u0, mg, tsyn
-        RANGE unoccupied, occupied, Nrrp
-        RANGE i, i_AMPA, i_NMDA, g_AMPA, g_NMDA, g, e, NMDA_ratio
-        RANGE A_AMPA_step, B_AMPA_step, A_NMDA_step, B_NMDA_step
-        NONSPECIFIC_CURRENT i
-        BBCOREPOINTER rng
-        RANGE synapseID, selected_for_report, verboseLevel
+    THREADSAFE
+    POINT_PROCESS ProbAMPANMDA_EMS
+
+    GLOBAL tau_r_AMPA
+    RANGE tau_d_AMPA, g_AMPA, i_AMPA
+
+    GLOBAL tau_r_NMDA, tau_d_NMDA
+    RANGE g_NMDA, i_NMDA
+
+    RANGE Use, u, Dep, Fac, u0, tsyn
+    RANGE unoccupied, occupied, Nrrp
+
+    RANGE g, NMDA_ratio
+    GLOBAL mg, e
+    NONSPECIFIC_CURRENT i
+    BBCOREPOINTER rng
+    RANGE synapseID, selected_for_report, verboseLevel
 }
 
 PARAMETER {
@@ -103,10 +110,6 @@ ASSIGNED {
         g (uS)
         factor_AMPA
         factor_NMDA
-        A_AMPA_step
-        B_AMPA_step
-        A_NMDA_step
-        B_NMDA_step
         rng
         mggate
         usingR123            : TEMPORARY until mcellran4 completely deprecated
@@ -153,11 +156,6 @@ INITIAL {
         factor_NMDA = -exp(-tp_NMDA/tau_r_NMDA)+exp(-tp_NMDA/tau_d_NMDA) :NMDA Normalization factor - so that when t = tp_NMDA, gsyn = gpeak
         factor_NMDA = 1/factor_NMDA
 
-        A_AMPA_step = exp(dt*(( - 1.0 ) / tau_r_AMPA))
-        B_AMPA_step = exp(dt*(( - 1.0 ) / tau_d_AMPA))
-        A_NMDA_step = exp(dt*(( - 1.0 ) / tau_r_NMDA))
-        B_NMDA_step = exp(dt*(( - 1.0 ) / tau_d_NMDA))
-
         VERBATIM
         if( usingR123 ) {
             nrnran123_setseq((nrnran123_State*)_p_rng, 0, 0);
@@ -166,8 +164,10 @@ INITIAL {
 }
 
 BREAKPOINT {
-        SOLVE state
-        mggate = 1 / (1 + exp(0.062 (/mV) * -(v)) * (mg / 3.57 (mM))) :mggate kinetics - Jahr & Stevens 1990
+
+        SOLVE state METHOD cnexp
+        : Jahr and Stevens (1990) model fitted on cortical data from Vargas-Caballero and Robinson (2003).
+        mggate = 1 / (1 + exp(0.07207477 (/mV) * -(v)) * (mg / 2.5522415 (mM)))
         g_AMPA = gmax*(B_AMPA-A_AMPA) :compute time varying conductance as the difference of state variables B_AMPA and A_AMPA
         g_NMDA = gmax*(B_NMDA-A_NMDA) * mggate :compute time varying conductance as the difference of state variables B_NMDA and A_NMDA and mggate kinetics
         g = g_AMPA + g_NMDA
@@ -176,11 +176,11 @@ BREAKPOINT {
         i = i_AMPA + i_NMDA
 }
 
-PROCEDURE state() {
-        A_AMPA = A_AMPA*A_AMPA_step
-        B_AMPA = B_AMPA*B_AMPA_step
-        A_NMDA = A_NMDA*A_NMDA_step
-        B_NMDA = B_NMDA*B_NMDA_step
+DERIVATIVE state{
+        A_AMPA' = -A_AMPA/tau_r_AMPA
+        B_AMPA' = -B_AMPA/tau_d_AMPA
+        A_NMDA' = -A_NMDA/tau_r_NMDA
+        B_NMDA' = -B_NMDA/tau_d_NMDA
 }
 
 
