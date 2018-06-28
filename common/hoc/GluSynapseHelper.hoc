@@ -75,7 +75,7 @@ proc init() { local tgid, x, synapseID, baseSeed, res, foundRow  localobj synPar
     //synapseReaderGluSynapseHelper.numberofrows
 
     // Find the correct row
-    foundRow = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 1 )
+    foundRow = synapseID //synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 1 )
 
     // Use parameters
     synapse.Use_d_GB = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 3 )
