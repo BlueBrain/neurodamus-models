@@ -29,7 +29,7 @@ external synapseReaderGluSynapseHelper
  * @param baseSeed for random number generator
  * @param parseConnection Map of field/value pairs of Connection block taken from ConfigParser
  */
-proc init() { local tgid, x, synapseID, baseSeed, res, foundRow  localobj synParams, parseConnection, fname, rngInfo
+proc init() { local tgid, x, synapseID, baseSeed, res  localobj synParams, parseConnection, fname, rngInfo
     strdef datasetName
 
     tgid = $1
@@ -47,66 +47,53 @@ proc init() { local tgid, x, synapseID, baseSeed, res, foundRow  localobj synPar
         synParams.weight = 0
     }
 
-  if( parseConnection.exists( "OtherSynPath" ) ) {
-
-    if( object_id( synapseReaderGluSynapseHelper, 1 ) ) {
-        // This field can be named whatever the user wants.  Needs to just use 'get' method
-        fname = parseConnection.get( "OtherSynPath" )
-        // print "access more info at ", fname.s
-
-        // This requires there be a single HDF5 file.  If multiple files are to be supported, we need to change code structure
-        synapseReaderGluSynapseHelper = new HDF5Reader( fname.s )
-    }
-
-    // Note that HDF5readers remember the last data set loaded.  As long as the same gid is requested, it will not go back to the disk
-    {sprint( datasetName, "a%d", tgid )}
-    res = synapseReaderGluSynapseHelper.loadData( datasetName )
-    if( res < 0 ) {
-        print "Error loading data for gid ", datasetName
-        return
-    } else {
-        // Build a lookup map if the dataset has changed
-        // This dataset has a subset of synapseIDs
-        // Take the synapseID passed and find the corresponding row (avoid linear search)
-        //TODO avoid linear search
+    if( parseConnection.exists( "OtherSynPath" ) ) {
+        if( object_id( synapseReaderGluSynapseHelper, 1 ) ) {
+            // This field can be named whatever the user wants.  Needs to just use 'get' method
+            fname = parseConnection.get( "OtherSynPath" )
+            // print "access more info at ", fname.s
+    
+            // This requires there be a single HDF5 file.  If multiple files are to be supported, we need to change code structure
+            synapseReaderGluSynapseHelper = new HDF5Reader( fname.s )
+        }
+    
+        // Note that HDF5readers remember the last data set loaded.  As long as the same gid is requested, it will not go back to the disk
+        {sprint( datasetName, "a%d", tgid )}
+        res = synapseReaderGluSynapseHelper.loadData( datasetName )
+        if( res < 0 ) {
+            print "Error loading data for gid ", datasetName
+            return
+        }
+        
+        // Use parameters
+        synapse.Use_d_GB = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 3 )
+        synapse.Use_p_GB = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 4 )
+        tau_Use_GB_GluSynapse = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 5 )
+    
+        // Rho parameters
+        tau_GB_GluSynapse = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 8 )
+        synapse.theta_d_GB = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 9 )
+        synapse.theta_p_GB = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 10 )
+        gamma_d_GB_GluSynapse = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 11 )
+        gamma_p_GB_GluSynapse = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 12 )
+        synapse.rho0_GB = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 13 )
+    
+        // Spine parameters
+        synapse.volume_CR = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 16 )
+    
+        // Release parameters
+        synapse.tau_d_AMPA = synParams.DTC
+        synapse.Use = abs( synParams.U )
+        synapse.Dep = abs( synParams.D )
+        synapse.Fac = abs( synParams.F )
+        synapse.Nrrp = 2
     }
     
-    // TODO: How do we make finding the appropriate row fast/easy?
-    //synapseReaderGluSynapseHelper.numberofrows
-
-    // Find the correct row
-    foundRow = synapseID //synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 1 )
-
-    // Use parameters
-    synapse.Use_d_GB = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 3 )
-    synapse.Use_p_GB = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 4 )
-    tau_Use_GB_GluSynapse = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 5 )
-
-    // Rho parameters
-    tau_GB_GluSynapse = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 8 )
-    synapse.theta_d_GB = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 9 )
-    synapse.theta_p_GB = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 10 )
-    gamma_d_GB_GluSynapse = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 11 )
-    gamma_p_GB_GluSynapse = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 12 )
-    synapse.rho0_GB = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 13 )
-
-    // Spine parameters
-    synapse.volume_CR = synapseReaderGluSynapseHelper.getData( datasetName, foundRow, 16 )
-
-    // Release parameters
-    synapse.tau_d_AMPA = synParams.DTC
-    synapse.Use = abs( synParams.U )
-    synapse.Dep = abs( synParams.D )
-    synapse.Fac = abs( synParams.F )
-    synapse.Nrrp = 2
-  }
-
     // for now, use two seeds based on gid and snyapseID.  In the future we will have an optional synapseSeed
     // also note that somewhere we must have set the random123 global seed (BlueConfig BaseSeed)
-    synapse.setRNG( tgid, 100000 + synapseID,  rngInfo.getSynapseSeed() + 200)
+    synapse.setRNG( tgid, 100000 + synapseID, rngInfo.getSynapseSeed() + 200)
     synapse.synapseID = synapseID
-
-    synapse.enable_GB = 1
 }
 
 endtemplate GluSynapseHelper
+
