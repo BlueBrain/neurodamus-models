@@ -56,7 +56,8 @@ proc init() { local tgid, x, synapseID, baseSeed  localobj synParams, rngInfo
 
     // verify that only mask value if 1 (functional) or -1 (unset)
     if( !( synParams.maskValue == -1 || synParams.maskValue == 1 )) {
-        print "Red flag! Inh synapse should not have mask value: ", synParams.maskValue
+        print "Error synapse configuration. Inh synapse should not have mask value: ", synParams.maskValue
+        quit()
     }
     
     if( rngInfo.getRNGMode() == rngInfo.RANDOM123 ) {

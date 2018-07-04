@@ -39,10 +39,11 @@ proc init() { local tgid, x, synapseID, baseSeed  localobj synParams, rngInfo
     if( synParams.nrrp >= 0 ) {
         synapse.Nrrp = synParams.nrrp
     }
-
-    if( synParams.maskValue > 1 ) {
-        // for now, setting weight to 0
-        synParams.weight = 0
+    
+    // verify that only mask value if 1 (functional) or -1 (unset)
+    if( !( synParams.maskValue == -1 || synParams.maskValue == 1 )) {
+        print "Error synapse configuration. AMPA NMDA synapse should not have mask value: ", synParams.maskValue
+        quit()
     }
     
     rngInfo = new RNGSettings()
