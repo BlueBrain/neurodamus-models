@@ -43,8 +43,8 @@ proc init() { local tgid, x, synapseID, baseSeed, res  localobj synParams, parse
     synapse = new GluSynapse(x)
 
     if( synParams.maskValue > 1 ) {
-        // for now, setting weight to 0
-        synParams.weight = 0
+        // deactivate synapses not part of original functional circuit
+        synapse.synstate_RW = 0
     }
 
     if( parseConnection.exists( "OtherSynPath" ) ) {
