@@ -48,7 +48,7 @@ proc init() { local tgid, x, synapseID, baseSeed, res  localobj synParams, parse
     }
 
     if( parseConnection.exists( "OtherSynPath" ) ) {
-        if( object_id( synapseReaderGluSynapseHelper, 1 ) ) {
+        if( object_id( synapseReaderGluSynapseHelper, 1 ) == -1 ) {
             // This field can be named whatever the user wants.  Needs to just use 'get' method
             fname = parseConnection.get( "OtherSynPath" )
             // print "access more info at ", fname.s
