@@ -52,8 +52,10 @@ PARAMETER {
 	actshift = 0 	(mV)	: shift of activation curve (towards hyperpol)
 	cai	= 2.4e-4 (mM)	: adjusted for eca=120 mV
 	cao	= 2	(mM)
-	qm	= 5		: q10's for activation and inactivation
-	qh	= 3		: from Coulter et al., J Physiol 414: 587, 1989
+	:qm	= 5		: q10's for activation and inactivation
+	:qh	= 3		: from Coulter et al., J Physiol 414: 587, 1989
+	qm      = 2.5		: EI: From Amarillo mod file
+	qh      = 2.5           : EI: from Amarillo mod file
 }
 
 STATE {

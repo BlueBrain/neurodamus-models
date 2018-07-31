@@ -32,7 +32,7 @@ NEURON {
 	SUFFIX ican
 	USEION n READ en WRITE in VALENCE 1
 	USEION ca READ cai
-        RANGE gbar, m_inf, tau_m
+        RANGE gbar, m_inf, tau_m, in
 	GLOBAL beta, cac, taumin
 }
 

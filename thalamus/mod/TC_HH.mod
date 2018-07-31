@@ -41,8 +41,9 @@ PARAMETER {
 	celsius         (degC)
 	dt              (ms)
 	v               (mV)
-	vtraub	= -48	(mV)             : From Amarillo et al., 2014 .mod file
+	:vtraub	= -48	(mV)             : From Amarillo et al., 2014 .mod file
 	:vtraub = -63    (mV)		 : EI: original value
+	vtraub = -55.5                   : EI: avg of -48 and -63
 }
 
 STATE {
