@@ -43,7 +43,8 @@ PARAMETER {
 	v               (mV)
 	:vtraub	= -48	(mV)             : From Amarillo et al., 2014 .mod file
 	:vtraub = -63    (mV)		 : EI: original value
-	vtraub = -55.5                   : EI: avg of -48 and -63
+	vtraub = -55.5                   : EI: avg of -48 and -63, use for Na
+	vtraub2 = -45.5  		 : EI: for K
 }
 
 STATE {
@@ -111,6 +112,7 @@ INITIAL {
 PROCEDURE evaluate_fct(v(mV)) { LOCAL a,b,v2
 
 	v2 = v - vtraub : convert to traub convention
+	v3 = v - vtraub2 : EI: shift only K
 
 	if(v2 == 13 || v2 == 40 || v2 == 15 ){
     	v = v+0.0001
@@ -126,8 +128,8 @@ PROCEDURE evaluate_fct(v(mV)) { LOCAL a,b,v2
 	tau_h = 1 / (a + b) / tcorr
 	h_inf = a / (a + b)
 
-	a = 0.032 * (15-v2) / ( exp((15-v2)/5) - 1)
-	b = 0.5 * exp((10-v2)/40)
+	a = 0.032 * (15-v3) / ( exp((15-v3)/5) - 1)
+	b = 0.5 * exp((10-v3)/40)
 	tau_n = 1 / (a + b) / tcorr
 	n_inf = a / (a + b)
 
