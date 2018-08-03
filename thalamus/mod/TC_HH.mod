@@ -18,7 +18,7 @@ NEURON {
 	SUFFIX TC_HH
 	USEION na READ ena WRITE ina
 	USEION k READ ek WRITE ik
-	RANGE gna_max, gk_max, vtraub, i_rec
+	RANGE gna_max, gk_max, vtraub, vtraub2, i_rec
 	RANGE m_inf, h_inf, n_inf
 	RANGE tau_m, tau_h, tau_n
 	RANGE m_exp, h_exp, n_exp
@@ -109,7 +109,7 @@ INITIAL {
 	tcorr = 3.0 ^ ((celsius-36)/ 10 )
 }
 
-PROCEDURE evaluate_fct(v(mV)) { LOCAL a,b,v2
+PROCEDURE evaluate_fct(v(mV)) { LOCAL a,b,v2, v3
 
 	v2 = v - vtraub : convert to traub convention
 	v3 = v - vtraub2 : EI: shift only K
