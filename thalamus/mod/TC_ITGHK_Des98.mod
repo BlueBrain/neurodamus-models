@@ -121,6 +121,7 @@ PROCEDURE evaluate_fct(v(mV)) {
 	} else {
 		tau_h = ( 28 + exp(-(v+shift+22)/10.5) ) / phi_h
 	}
+	:EI compare with tau_h on ModelDB, no. 3817
 }
 
 FUNCTION ghk(v(mV), ci(mM), co(mM)) (.001 coul/cm3) {

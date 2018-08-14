@@ -2,7 +2,7 @@
 :Comment : so I used the equations from NaT and multiplied by 6
 :Reference : Modeled according to kinetics derived from Magistretti & Alonso 1999
 :Comment: corrected rates using q10 = 2.3, target temperature 34, orginal 21
-:mInf and hInf for th models, see eqs for references
+:EI: mInf and hInf for th models, see eqs for references
 									  
 NEURON	{
 	SUFFIX TC_Nap_Et2
