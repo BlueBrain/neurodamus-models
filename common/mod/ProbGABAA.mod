@@ -92,6 +92,7 @@ DERIVATIVE state{
 }
 
 
+
 NET_RECEIVE (weight, Pv, Pr, u, tsyn (ms)){
     LOCAL result
 	INITIAL{
@@ -173,6 +174,29 @@ VERBATIM
 ENDVERBATIM
         erand = value
 }
+
+
+
+FUNCTION bbsavestate() {
+	bbsavestate = 0
+VERBATIM
+	/* first arg is direction (0 save, 1 restore), second is value*/
+	double *xdir, *xval, *hoc_pgetarg();
+	long nrn_get_random_sequence(void* r);
+	void nrn_set_random_sequence(void* r, int val);
+	xdir = hoc_pgetarg(1);
+	xval = hoc_pgetarg(2);
+	if (_p_rng) {
+		if (*xdir == 0.) {
+			*xval = (double)nrn_get_random_sequence(_p_rng);
+		}else{
+			nrn_set_random_sequence(_p_rng, (long)(*xval));
+		}
+	}
+ENDVERBATIM
+}
+
+
 
 FUNCTION toggleVerbose() {
     verboseLevel = 1 - verboseLevel

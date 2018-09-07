@@ -19,7 +19,6 @@ ENDCOMMENT
 
 NEURON {
     THREADSAFE
-
         POINT_PROCESS ProbAMPANMDA  
         RANGE tau_r_AMPA, tau_d_AMPA, tau_r_NMDA, tau_d_NMDA
         RANGE Use, u, Dep, Fac, u0, mg, NMDA_ratio
@@ -143,36 +142,36 @@ NET_RECEIVE (weight,weight_AMPA, weight_NMDA, Pv, Pr, u, tsyn (ms)){
         : calc u at event-
         if (Fac > 0) {
                 u = u*exp(-(t - tsyn)/Fac) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
-           } else {
-                  u = Use  
-           } 
-           if(Fac > 0){
-                  u = u + Use*(1-u) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
-           }    
+        } else {
+            u = Use  
+        }
 
-        
-            Pv  = 1 - (1-Pv) * exp(-(t-tsyn)/Dep) :Probability Pv for a vesicle to be available for release, analogous to the pool of synaptic
-                                                 :resources available for release in the deterministic model. Eq. 3 in Fuhrmann et al.
-            Pr  = u * Pv                         :Pr is calculated as Pv * u (running value of Use)
-            Pv  = Pv - u * Pv                    :update Pv as per Eq. 3 in Fuhrmann et al.
-            result = erand()                     : throw the random number
-            
+        if(Fac > 0){
+            u = u + Use*(1-u) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
+        }    
+
+        Pv  = 1 - (1-Pv) * exp(-(t-tsyn)/Dep) :Probability Pv for a vesicle to be available for release, analogous to the pool of synaptic
+            :resources available for release in the deterministic model. Eq. 3 in Fuhrmann et al.
+        Pr  = u * Pv                         :Pr is calculated as Pv * u (running value of Use)
+        Pv  = Pv - u * Pv                    :update Pv as per Eq. 3 in Fuhrmann et al.
+        result = erand()                     : throw the random number
+
+        if( verboseLevel > 0 ) {
+            printf("Synapse %f at time %g: Pv = %g Pr = %g erand = %g\n", synapseID, t, Pv, Pr, result )
+        }
+
+        tsyn = t
+
+        if (result < Pr) {
+            A_AMPA = A_AMPA + weight_AMPA*factor_AMPA
+            B_AMPA = B_AMPA + weight_AMPA*factor_AMPA
+            A_NMDA = A_NMDA + weight_NMDA*factor_NMDA
+            B_NMDA = B_NMDA + weight_NMDA*factor_NMDA
+
             if( verboseLevel > 0 ) {
-                printf("Synapse %f at time %g: Pv = %g Pr = %g erand = %g\n", synapseID, t, Pv, Pr, result )
+                printf( " vals %g %g %g %g\n", A_AMPA, weight_AMPA, factor_AMPA, weight )
             }
-                
-            tsyn = t
-            
-            if (result < Pr) {
-                A_AMPA = A_AMPA + weight_AMPA*factor_AMPA
-                B_AMPA = B_AMPA + weight_AMPA*factor_AMPA
-                A_NMDA = A_NMDA + weight_NMDA*factor_NMDA
-                B_NMDA = B_NMDA + weight_NMDA*factor_NMDA
-                
-                if( verboseLevel > 0 ) {
-                    printf( " vals %g %g %g %g\n", A_AMPA, weight_AMPA, factor_AMPA, weight )
-                }
-            }
+        }
 }
 
 PROCEDURE setRNG() {
@@ -218,6 +217,29 @@ ENDVERBATIM
         erand = value
 }
 
+
+
+FUNCTION bbsavestate() {
+	bbsavestate = 0
+VERBATIM
+	/* first arg is direction (0 save, 1 restore), second is value*/
+	double *xdir, *xval, *hoc_pgetarg();
+	long nrn_get_random_sequence(void* r);
+	void nrn_set_random_sequence(void* r, int val);
+	xdir = hoc_pgetarg(1);
+	xval = hoc_pgetarg(2);
+	if (_p_rng) {
+		if (*xdir == 0.) {
+			*xval = (double)nrn_get_random_sequence(_p_rng);
+		}else{
+			nrn_set_random_sequence(_p_rng, (long)(*xval));
+		}
+	}
+ENDVERBATIM
+}
+
+
 FUNCTION toggleVerbose() {
     verboseLevel = 1-verboseLevel
 }
+
