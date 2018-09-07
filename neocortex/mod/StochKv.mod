@@ -55,8 +55,7 @@ NEURON {
     RANGE ninf, ntau, a, b, P_a, P_b
     RANGE Ra, Rb, tadj
     GLOBAL vmin, vmax, q10, temp
-    :BBCOREPOINTER rng
-    POINTER rng
+    BBCOREPOINTER rng
 }
 
 UNITS {
@@ -134,7 +133,6 @@ extern int cvode_active_;
 #include <math.h>
 
 double nrn_random_pick(void* r);
-void* nrn_random_arg(int argpos);
 
 ENDVERBATIM
 : ----------------------------------------------------------------
@@ -274,7 +272,7 @@ PROCEDURE setRNG() {
 VERBATIM
     // For compatibility, allow for either MCellRan4 or Random123.  Distinguish by the arg types
     // Object => MCellRan4, seeds (double) => Random123
-#if !defined(NRNBBCORE) || !NRNBBCORE
+#ifndef CORENEURON_BUILD
     usingR123 = 0;
     if( ifarg(1) && hoc_is_double_arg(1) ) {
         nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
@@ -311,7 +309,9 @@ VERBATIM
     if( usingR123 ) {
         value = nrnran123_dblpick((nrnran123_State*)_p_rng);
     } else if (_p_rng) {
+#ifndef CORENEURON_BUILD
         value = nrn_random_pick(_p_rng);
+#endif
     } else {
         value = 0.5;
     }
@@ -320,7 +320,6 @@ ENDVERBATIM
 }
 
 VERBATIM
-/*
 static void bbcore_write(double* x, int* d, int* xx, int* offset, _threadargsproto_) {
     if (d) {
         uint32_t* di = ((uint32_t*)d) + *offset;
@@ -330,10 +329,14 @@ static void bbcore_write(double* x, int* d, int* xx, int* offset, _threadargspro
       }else{
         nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
         nrnran123_getids3(*pv, di, di+1, di+2);
+        // write stream sequence
+        unsigned char which;
+        nrnran123_getseq(*pv, di+3, &which);
+        di[4] = (int)which;
       }
-//printf("StochKv.mod %p: bbcore_write offset=%d %d %d\n", _p, *offset, d?di[0]:-1, d?di[1]:-1);
+      //printf("StochKv.mod %p: bbcore_write offset=%d %d %d\n", _p, *offset, d?di[0]:-1, d?di[1]:-1);
     }
-    *offset += 3;
+    *offset += 5;
 }
 static void bbcore_read(double* x, int* d, int* xx, int* offset, _threadargsproto_) {
     assert(!_p_rng);
@@ -342,11 +345,12 @@ static void bbcore_read(double* x, int* d, int* xx, int* offset, _threadargsprot
         {
       nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
       *pv = nrnran123_newstream3(di[0], di[1], di[2]);
+      // restore stream sequence
+      nrnran123_setseq(*pv, di[3], (char)di[4]);
         }
-//printf("StochKv.mod %p: bbcore_read offset=%d %d %d\n", _p, *offset, di[0], di[1]);
-    *offset += 3;
+      //printf("StochKv.mod %p: bbcore_read offset=%d %d %d\n", _p, *offset, di[0], di[1]);
+    *offset += 5;
 }
-*/
 ENDVERBATIM
 
 : Returns random numbers drawn from a binomial distribution
@@ -476,7 +480,7 @@ VERBATIM
 FUNCTION bbsavestate() {
         bbsavestate = 0
 VERBATIM
-#ifdef ENABLE_SAVE_STATE
+ #ifndef CORENEURON_BUILD
         // TODO: since N0,N1 are no longer state variables, they will need to be written using this callback
         //  provided that it is the version that supports multivalue writing
         /* first arg is direction (-1 get info, 0 save, 1 restore), second is value*/
@@ -485,36 +489,50 @@ VERBATIM
         void nrn_set_random_sequence(void* r, int val);
         xdir = hoc_pgetarg(1);
         xval = hoc_pgetarg(2);
-        if (_p_rng) {
-                // tell how many items need saving
-                if (*xdir == -1.) {
-                    if( usingR123 ) {
-                        *xdir = 2.0;
-                    } else {
-                        *xdir = 1.0;
-                    }
-                    return 0.0;
-                }
-                else if (*xdir == 0.) {
-                    if( usingR123 ) {
-                        uint32_t seq;
-                        char which;
-                        nrnran123_getseq( (nrnran123_State*)_p_rng, &seq, &which );
-                        xval[0] = (double) seq;
-                        xval[1] = (double) which;
-                    } else {
-                        xval[0] = (double)nrn_get_random_sequence(_p_rng);
-                    }
-                } else{
-                    if( usingR123 ) {
-                        nrnran123_setseq( (nrnran123_State*)_p_rng, (uint32_t)xval[0], (char)xval[1] );
-                    } else {
-                        nrn_set_random_sequence(_p_rng, (long)(xval[0]));
-                    }
-                }
+        int saveCount = 0;
+
+        // N0 always needs to be saved (N1 is computed from N and N0)
+        if( *xdir == -1. ) {
+            saveCount = 1;
+        } else if ( *xdir == 0. ) {
+            xval[0] = N0;
+        } else {
+            N0 = xval[0];
+            N1 = N - N0;
         }
 
-        // TODO: check for random123 and get the seq values
+        // Handle RNG
+        if (_p_rng) {
+            if (*xdir == -1.) {
+                if( usingR123 ) {
+                    saveCount += 2.0;
+                } else {
+                    saveCount += 1.0;
+                }
+            } else if (*xdir == 0.) {
+                if( usingR123 ) {
+                    uint32_t seq;
+                    unsigned char which;
+                    nrnran123_getseq( (nrnran123_State*)_p_rng, &seq, &which );
+                    xval[1] = (double) seq;
+                    xval[2] = (double) which;
+                } else {
+                    xval[1] = (double)nrn_get_random_sequence(_p_rng);
+                }
+            } else {
+                if( usingR123 ) {
+                    nrnran123_setseq( (nrnran123_State*)_p_rng, (uint32_t)xval[1], (char)xval[2] );
+                } else {
+                    nrn_set_random_sequence(_p_rng, (long)(xval[1]));
+                }
+            }
+        }
+
+        if( *xdir == -1 ) {
+            *xdir = saveCount;
+        }
+
+        return 0.0;
 #endif
 ENDVERBATIM
 }

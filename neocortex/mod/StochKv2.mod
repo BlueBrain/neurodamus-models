@@ -276,7 +276,7 @@ PROCEDURE setRNG() {
 VERBATIM
     // For compatibility, allow for either MCellRan4 or Random123.  Distinguish by the arg types
     // Object => MCellRan4, seeds (double) => Random123
-#if !NRNBBCORE
+#ifndef CORENEURON_BUILD
     usingR123 = 0;
     if( ifarg(1) && hoc_is_double_arg(1) ) {
         nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
@@ -313,7 +313,9 @@ VERBATIM
     if( usingR123 ) {
         value = nrnran123_dblpick((nrnran123_State*)_p_rng);
     } else if (_p_rng) {
+#ifndef CORENEURON_BUILD
         value = nrn_random_pick(_p_rng);
+#endif
     } else {
         value = 0.5;
     }
@@ -478,7 +480,7 @@ VERBATIM
 FUNCTION bbsavestate() {
         bbsavestate = 0
 VERBATIM
-#ifdef ENABLE_SAVE_STATE
+ #ifndef CORENEURON_BUILD
         // TODO: since N0,N1 are no longer state variables, they will need to be written using this callback
         //  provided that it is the version that supports multivalue writing
         /* first arg is direction (-1 get info, 0 save, 1 restore), second is value*/

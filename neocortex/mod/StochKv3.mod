@@ -31,8 +31,8 @@ NEURON {
     RANGE ninf, linf, ltau, ntau, an, bn, al, bl
     RANGE P_an, P_bn, P_al, P_bl
     GLOBAL vmin, vmax
-    :BBCOREPOINTER rng
-    POINTER rng
+    BBCOREPOINTER rng
+    :POINTER rng
 }
 
 UNITS {
@@ -106,8 +106,10 @@ extern int cvode_active_;
 #include <stdio.h>
 #include <math.h>
 
+#ifndef CORENEURON_BUILD
 double nrn_random_pick(void* r);
 void* nrn_random_arg(int argpos);
+#endif
 
 ENDVERBATIM
 : ----------------------------------------------------------------
@@ -277,7 +279,7 @@ PROCEDURE setRNG() {
 VERBATIM
     // For compatibility, allow for either MCellRan4 or Random123.  Distinguish by the arg types
     // Object => MCellRan4, seeds (double) => Random123
-#if !defined(NRNBBCORE) || !NRNBBCORE
+#ifndef CORENEURON_BUILD
     usingR123 = 0;
     if( ifarg(1) && hoc_is_double_arg(1) ) {
         nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
@@ -314,7 +316,9 @@ VERBATIM
     if( usingR123 ) {
         value = nrnran123_dblpick((nrnran123_State*)_p_rng);
     } else if (_p_rng) {
+#ifndef CORENEURON_BUILD
         value = nrn_random_pick(_p_rng);
+#endif
     } else {
         value = 0.5;
     }
@@ -323,7 +327,6 @@ ENDVERBATIM
 }
 
 VERBATIM
-/*
 static void bbcore_write(double* x, int* d, int* xx, int* offset, _threadargsproto_) {
     if (d) {
         uint32_t* di = ((uint32_t*)d) + *offset;
@@ -333,10 +336,14 @@ static void bbcore_write(double* x, int* d, int* xx, int* offset, _threadargspro
       }else{
         nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
         nrnran123_getids3(*pv, di, di+1, di+2);
+        // write stream sequence
+        unsigned char which;
+        nrnran123_getseq(*pv, di+3, &which);
+        di[4] = (int)which;
       }
-//printf("StochKv3.mod %p: bbcore_write offset=%d %d %d\n", _p, *offset, d?di[0]:-1, d?di[1]:-1);
+      //printf("StochKv3.mod %p: bbcore_write offset=%d %d %d\n", _p, *offset, d?di[0]:-1, d?di[1]:-1);
     }
-    *offset += 3;
+    *offset += 5;
 }
 static void bbcore_read(double* x, int* d, int* xx, int* offset, _threadargsproto_) {
     assert(!_p_rng);
@@ -345,11 +352,11 @@ static void bbcore_read(double* x, int* d, int* xx, int* offset, _threadargsprot
         {
       nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
       *pv = nrnran123_newstream3(di[0], di[1], di[2]);
+      nrnran123_setseq(*pv, di[3], (char)di[4]);
         }
-//printf("StochKv3.mod %p: bbcore_read offset=%d %d %d\n", _p, *offset, di[0], di[1]);
-    *offset += 3;
+      //printf("StochKv3.mod %p: bbcore_read offset=%d %d %d\n", _p, *offset, di[0], di[1]);
+    *offset += 5;
 }
-*/
 ENDVERBATIM
 
 : Returns random numbers drawn from a binomial distribution
@@ -479,7 +486,7 @@ VERBATIM
 FUNCTION bbsavestate() {
         bbsavestate = 0
 VERBATIM
-#ifdef ENABLE_SAVE_STATE
+ #ifndef CORENEURON_BUILD
         // TODO: since N0,N1 are no longer state variables, they will need to be written using this callback
         //  provided that it is the version that supports multivalue writing
         /* first arg is direction (-1 get info, 0 save, 1 restore), second is value*/
@@ -501,7 +508,7 @@ VERBATIM
                 else if (*xdir == 0.) {
                     if( usingR123 ) {
                         uint32_t seq;
-                        char which;
+                        unsigned char which;
                         nrnran123_getseq( (nrnran123_State*)_p_rng, &seq, &which );
                         xval[0] = (double) seq;
                         xval[1] = (double) which;
