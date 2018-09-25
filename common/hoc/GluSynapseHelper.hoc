@@ -83,7 +83,7 @@ proc init() { local tgid, x, synapseID, baseSeed, res  localobj synParams, parse
     
         // Release parameters
         synapse.tau_d_AMPA = synParams.DTC
-        if (synapse.rho0_GB > synapse.rho_star_GB) {
+        if (synapse.rho0_GB > rho_star_GB_GluSynapse) {
             // Instantiate a potentiated synapse
             synapse.Use = synapse.Use_p_GB
         } else {
