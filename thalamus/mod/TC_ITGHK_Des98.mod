@@ -112,6 +112,7 @@ PROCEDURE evaluate_fct(v(mV)) {
 :   using these values reproduce more closely the voltage clamp experiments.
 :   (cfr. Huguenard & McCormick, J Neurophysiol, 1992).
 :
+	v = v + 10
 	m_inf = 1.0 / ( 1 + exp(-(v+shift+actshift+57)/6.2) )
 	h_inf = 1.0 / ( 1 + exp((v+shift+81)/4.0) )
 
@@ -121,6 +122,7 @@ PROCEDURE evaluate_fct(v(mV)) {
 	} else {
 		tau_h = ( 28 + exp(-(v+shift+22)/10.5) ) / phi_h
 	}
+	v = v - 10
 	:EI compare with tau_h on ModelDB, no. 3817
 }
 
