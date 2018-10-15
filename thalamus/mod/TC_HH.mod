@@ -42,8 +42,8 @@ PARAMETER {
 	dt              (ms)
 	v               (mV)
 	:vtraub	= -48	(mV)             : From Amarillo et al., 2014 .mod file
-	vtraub = -63    (mV)		 : EI: original value
-	:vtraub = -60                   : EI: avg of -48 and -63 gives still slightly too high thresh (e.g noise)
+	:vtraub = -63    (mV)		 : EI: original value
+	vtraub = -55.5                   : EI: avg of -48 and -63 gives still slightly too high thresh (e.g noise)
 	vtraub2 = -45.5  		 : EI: for K
 }
 
