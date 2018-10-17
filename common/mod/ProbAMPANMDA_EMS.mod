@@ -56,7 +56,7 @@ NEURON {
     RANGE unoccupied, occupied, Nrrp
 
     RANGE g, NMDA_ratio
-    GLOBAL mg, e
+    GLOBAL mg, slope_mg, scale_mg, e
     NONSPECIFIC_CURRENT i
     BBCOREPOINTER rng
     RANGE synapseID, selected_for_report, verboseLevel
@@ -72,6 +72,8 @@ PARAMETER {
         Fac = 10   (ms)  :  relaxation time constant from facilitation
         e = 0     (mV)  : AMPA and NMDA reversal potential
         mg = 1   (mM)  : initial concentration of mg2+
+        slope_mg = 0.0720748 (/mV)
+        scale_mg = 2.5522415 (mM)
         gmax = .001 (uS) : weight conversion factor (from nS to uS)
         u0 = 0 :initial value of u, which is the running value of release probability
         Nrrp = 1 (1)  : Number of total release sites for given contact
@@ -167,7 +169,7 @@ BREAKPOINT {
 
         SOLVE state METHOD cnexp
         : Jahr and Stevens (1990) model fitted on cortical data from Vargas-Caballero and Robinson (2003).
-        mggate = 1 / (1 + exp(0.07207477 (/mV) * -(v)) * (mg / 2.5522415 (mM)))
+        mggate = 1 / (1 + exp(slope_mg * -(v)) * (mg / scale_mg))
         g_AMPA = gmax*(B_AMPA-A_AMPA) :compute time varying conductance as the difference of state variables B_AMPA and A_AMPA
         g_NMDA = gmax*(B_NMDA-A_NMDA) * mggate :compute time varying conductance as the difference of state variables B_NMDA and A_NMDA and mggate kinetics
         g = g_AMPA + g_NMDA

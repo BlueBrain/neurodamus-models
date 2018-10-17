@@ -82,7 +82,7 @@ NEURON {
     GLOBAL p_gen_RW, p_elim0_RW, p_elim1_RW
     RANGE enable_RW, synstate_RW
     : Basic Synapse and legacy
-    GLOBAL mg
+    GLOBAL mg, scale_mg, slope_mg
     RANGE vsyn, NMDA_ratio, synapseID, selected_for_report, verbose
     NONSPECIFIC_CURRENT i
 }
@@ -160,6 +160,8 @@ PARAMETER {
     : Basic Synapse and legacy
     NMDA_ratio      = 0.71      (1)         : In this model gmax_NMDA = gmax_AMPA*ratio_NMDA
     mg              = 1         (mM)        : Extracellular magnesium concentration
+    scale_mg        = 2.5522415 (mM)
+    slope_mg        = 0.0720748 (/mV)
     synapseID       = 0
     verbose         = 0
     selected_for_report = 0
@@ -244,7 +246,7 @@ BREAKPOINT {
         gmax_NMDA = gmax_AMPA*NMDA_ratio
         : Jahr and Stevens (1990) model fitted on cortical data from
         : Vargas-Caballero and Robinson (2003).
-        mggate = 1 / (1 + exp(0.07207477 (/mV) * -(v)) * (mg / 2.5522415 (mM)))
+        mggate = 1 / (1 + exp(slope_mg * -(v)) * (mg / scale_mg))
         g_NMDA = (1e-3)*gmax_NMDA*mggate*(B_NMDA-A_NMDA)
         i_NMDA = g_NMDA*(v-E_NMDA)
         : NMDAR-mediated calcium current
