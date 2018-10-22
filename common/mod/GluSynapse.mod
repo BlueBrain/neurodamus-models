@@ -161,7 +161,7 @@ PARAMETER {
     NMDA_ratio      = 0.71      (1)         : In this model gmax_NMDA = gmax_AMPA*ratio_NMDA
     mg              = 1         (mM)        : Extracellular magnesium concentration
     scale_mg        = 2.5522415 (mM)
-    slope_mg        = 0.0720748 (/mV)
+    slope_mg        = 0.07207477 (/mV)
     synapseID       = 0
     verbose         = 0
     selected_for_report = 0

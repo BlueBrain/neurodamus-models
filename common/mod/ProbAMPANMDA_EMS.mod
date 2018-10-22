@@ -72,7 +72,7 @@ PARAMETER {
         Fac = 10   (ms)  :  relaxation time constant from facilitation
         e = 0     (mV)  : AMPA and NMDA reversal potential
         mg = 1   (mM)  : initial concentration of mg2+
-        slope_mg = 0.0720748 (/mV)
+        slope_mg = 0.07207477 (/mV)
         scale_mg = 2.5522415 (mM)
         gmax = .001 (uS) : weight conversion factor (from nS to uS)
         u0 = 0 :initial value of u, which is the running value of release probability
