@@ -43,8 +43,8 @@ PARAMETER {
 	v               (mV)
 	:vtraub	= -48	(mV)             : From Amarillo et al., 2014 .mod file
 	:vtraub = -63    (mV)		 : EI: original value
-	vtraub = -63                   : EI: avg of -48 and -63 gives still slightly too high thresh (e.g noise)
-	vtraub2 = -59  		 : EI: for K
+	vtraub = -55.5                   : EI: avg of -48 and -63, use for Na
+	vtraub2 = -45.5  		 : EI: for K
 }
 
 STATE {
