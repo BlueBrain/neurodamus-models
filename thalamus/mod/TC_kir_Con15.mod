@@ -32,7 +32,7 @@ PARAMETER {
 	  ek			(mV)
 	  gkbar= 0.0005		(mho/cm2)
   	  tau_m = 1.0
- 	  shift = 15         EI: See Connelly et al., 2015
+ 	  shift = 0         EI: See Connelly et al., 2015
 }
 
 STATE {
