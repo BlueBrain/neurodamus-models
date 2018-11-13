@@ -133,6 +133,7 @@ extern int cvode_active_;
 #include <math.h>
 
 double nrn_random_pick(void* r);
+void* nrn_random_arg(int argpos);
 
 ENDVERBATIM
 : ----------------------------------------------------------------
