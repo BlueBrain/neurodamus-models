@@ -1,0 +1,6 @@
+[submodule "common"]
+	path = common
+	url = ssh://bbpcode.epfl.ch/sim/models/common
+[submodule "deps/neocortex"]
+	path = deps/neocortex
+	url = ssh://bbpcode.epfl.ch/sim/models/neocortex
