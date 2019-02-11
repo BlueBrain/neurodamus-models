@@ -1,0 +1,1 @@
+../common/mod/DetAMPANMDA.mod
