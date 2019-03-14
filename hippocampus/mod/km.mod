@@ -33,7 +33,7 @@ NEURON {
 	SUFFIX km
 	USEION k READ ek WRITE ik
         RANGE  gbar,ik
-      GLOBAL inf, tau
+      RANGE inf, tau
 }
 
 STATE {

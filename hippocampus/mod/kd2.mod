@@ -26,7 +26,7 @@ NEURON {
 	SUFFIX kd2
 	USEION k READ ek WRITE ik
         RANGE gkd,gkdbar, sh
-	GLOBAL ninf,taun
+	RANGE ninf,taun
 }
 
 STATE {
