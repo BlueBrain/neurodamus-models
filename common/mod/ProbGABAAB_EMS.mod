@@ -189,8 +189,10 @@ NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv){
     INITIAL{
     }
 
-    : Do not perform any calculations if the synapse (netcon) is deactivated.  This avoids drawing from the random stream
-    if(  !(weight > 0) ) {
+    : Do not perform any calculations if the synapse (netcon) is deactivated. This avoids drawing from
+    : random number stream. Also, disable in case of t < 0 (in case of ForwardSkip) which causes numerical
+    : instability if synapses are activated.
+    if(  weight <= 0 || t < 0 ) {
 VERBATIM
         return;
 ENDVERBATIM

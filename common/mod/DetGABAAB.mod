@@ -119,6 +119,14 @@ NET_RECEIVE (weight,weight_GABAA, weight_GABAB, R, Pr, u, tsyn (ms)){
             tsyn=t
     }
 
+    : Disable in case of t < 0 (in case of ForwardSkip) which causes numerical
+    : instability if synapses are activated.
+    if(t < 0 ) {
+    VERBATIM
+        return;
+    ENDVERBATIM
+    }
+
     : calc u at event-
     if (Fac > 0) {
         u = u*exp(-(t - tsyn)/Fac) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
