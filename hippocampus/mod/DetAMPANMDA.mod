@@ -41,7 +41,6 @@ PARAMETER {
     Fac = 10           (ms)  : Relaxation time constant from facilitation
     e = 0              (mV)  : AMPA and NMDA reversal potential
     mg = 1             (mM)  : Initial concentration of mg2+
-    mggate
     gmax = .001        (uS)  : Weight conversion factor (from nS to uS)
     u0 = 0                   : Initial value of u, which is the running value of Use
     NMDA_ratio = 0.71  (1)   : The ratio of NMDA to AMPA
@@ -60,6 +59,7 @@ ASSIGNED {
     g (uS)
     factor_AMPA
     factor_NMDA
+    mggate
 }
 
 STATE {
