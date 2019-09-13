@@ -22,13 +22,17 @@ public synapse
  * @param x location of the synapse along the section (0<=x<=1)
  * @param synapseID id assigned to this synapses within the cell's context
  * @param baseSeed for random number generator
+ * @param spopid population id of the source (presyn). Used for seeding rng
+ * @parap tpopid population id of the target (postsyn). Used for seed rng
  */
-proc init() { local tgid, x, synapseID, baseSeed  localobj synParams, rngInfo
+proc init() { local tgid, x, synapseID, baseSeed, seed2, spopid, tpopid  localobj synParams, rngInfo
     tgid = $1
     synParams = $o2
     x = $3
     synapseID = $4
     baseSeed = $5
+    spopid = $6
+    tpopid = $7
     
     synapse = new ProbAMPANMDA_EMS(x)
     synapse.tau_d_AMPA = synParams.DTC
@@ -49,13 +53,14 @@ proc init() { local tgid, x, synapseID, baseSeed  localobj synParams, rngInfo
     rngInfo = new RNGSettings()
 
     if( rngInfo.getRNGMode() == rngInfo.RANDOM123 ) {
-        synapse.setRNG( tgid+250, synapseID+100, rngInfo.getSynapseSeed()+300 )
+        seed2 = spopid*65536 + tpopid + rngInfo.getSynapseSeed() + 300
+        synapse.setRNG( tgid+250, synapseID+100, seed2 )
     } else {
         rng = new Random()
         if( rngInfo.getRNGMode() == rngInfo.COMPATIBILITY ) {
             rng.MCellRan4( synapseID*100000+100, tgid+250+baseSeed )
         } else if( rngInfo.getRNGMode() == rngInfo.UPMCELLRAN4 ) {
-            rng.MCellRan4( synapseID*1000+100, tgid+250+baseSeed+rngInfo.getSynapseSeed() )
+            rng.MCellRan4( synapseID*1000+100, spopid*16777216+tgid+250+baseSeed+rngInfo.getSynapseSeed() )
         }
         rng.uniform(0,1)
         synapse.setRNG( rng )
