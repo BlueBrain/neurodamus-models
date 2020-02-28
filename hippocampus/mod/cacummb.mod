@@ -41,9 +41,11 @@ STATE {
 }
 
 INITIAL {
-	cai = cai0
-	irest = ica
-	cmax=cai
+    cai = cai0
+    : ica and irest is 0 at the begining. Also, as ica changes with multiple
+    : finitialize, to have same state, avoid setting irest to ica
+    : irest = ica
+    cmax=cai
 }
 
 BREAKPOINT {
