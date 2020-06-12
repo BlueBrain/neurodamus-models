@@ -85,6 +85,12 @@ NEURON {
     GLOBAL mg, scale_mg, slope_mg
     RANGE vsyn, NMDA_ratio, synapseID, selected_for_report, verbose
     NONSPECIFIC_CURRENT i
+    RANGE conductance
+    RANGE next_delay
+    BBCOREPOINTER delay_times, delay_weights
+    GLOBAL nc_type_param
+    : For debugging
+    :RANGE sgid, tgid
 }
 
 
@@ -165,6 +171,10 @@ PARAMETER {
     synapseID       = 0
     verbose         = 0
     selected_for_report = 0
+    conductance     = 0.0
+    nc_type_param = 1
+    :sgid = -1
+    :tgid = -1
 }
 
 
@@ -179,6 +189,15 @@ VERBATIM
 #include "nrnran123.h"
 double nrn_random_pick(void* r);
 void* nrn_random_arg(int argpos);
+
+#ifndef CORENEURON_BUILD
+extern int ifarg(int iarg);
+
+extern void* vector_arg(int iarg);
+extern double* vector_vec(void* vv);
+extern int vector_capacity(void* vv);
+#endif
+
 ENDVERBATIM
 
 
@@ -205,6 +224,11 @@ ASSIGNED {
     v               (mV)
     vsyn            (mV)
     i               (nA)
+
+    : stuff for delayed connections
+    delay_times
+    delay_weights
+    next_delay (ms)
 }
 
 
@@ -230,8 +254,28 @@ STATE {
 INITIAL{
     : Initialize model variables
     init_model()
+
+    next_delay = -1
+
     : Initialize watchers and rewiring mechanisms
     net_send(0, 1)
+}
+
+PROCEDURE setup_delay_vecs() {
+VERBATIM
+#ifndef CORENEURON_BUILD
+    void** vv_delay_times = (void**)(&_p_delay_times);
+    void** vv_delay_weights = (void**)(&_p_delay_weights);
+    *vv_delay_times = (void*)NULL;
+    *vv_delay_weights = (void*)NULL;
+    if (ifarg(1)) {
+        *vv_delay_times = vector_arg(1);
+    }
+    if (ifarg(2)) {
+        *vv_delay_weights = vector_arg(2);
+    }
+#endif
+ENDVERBATIM
 }
 
 
@@ -300,21 +344,66 @@ DERIVATIVE state {
 }
 
 
-NET_RECEIVE (weight) {
+NET_RECEIVE (weight, nc_type) {
     LOCAL result, ves, occu, Use_actual, tp, factor, Psurv, rewiring_time, rewiring_prob
+
+    INITIAL {
+        if (nc_type == 0) {
+            : nc_type {
+            :   0 = presynaptic netcon
+            :   1 = spontmini netcon
+            :   2 = replay netcon
+            : }
+    VERBATIM
+            // setup self events for delayed connections to change weights
+            void *vv_delay_times = *((void**)(&_p_delay_times));
+            void *vv_delay_weights = *((void**)(&_p_delay_weights));
+            if (vv_delay_times && vector_capacity(vv_delay_times)>=1) {
+              double* deltm_el = vector_vec(vv_delay_times);
+              int delay_times_idx;
+              next_delay = 0;
+              for(delay_times_idx = 0; delay_times_idx < vector_capacity(vv_delay_times); ++delay_times_idx) {
+                double next_delay_t = deltm_el[delay_times_idx];
+    ENDVERBATIM
+                net_send(next_delay_t, 10)
+    VERBATIM
+              }
+            }
+    ENDVERBATIM
+        }
+    }
+
     if(verbose > 0){
         UNITSOFF
         printf("t = %g, incoming spike at synapse %g\n", t, synapseID)
         UNITSON
     }
     : Switch cases
+    if(flag == 10) {
+        : self event - use flag 10 to avoid interfering with GluSynapse logic
+        : first set next weight at delay
+    VERBATIM
+        // setup self events for delayed connections to change weights
+        void *vv_delay_weights = *((void**)(&_p_delay_weights));
+        if (vv_delay_weights && vector_capacity(vv_delay_weights)>=next_delay) {
+          double* weights_v = vector_vec(vv_delay_weights);
+          double next_delay_weight = weights_v[(int)next_delay];
+    ENDVERBATIM
+          weight = conductance*next_delay_weight
+          next_delay = next_delay + 1
+    VERBATIM
+        }
+        return;
+    ENDVERBATIM
+    }
     if(flag == 1) {
-            : Flag 1, Initialize watchers
-            if(verbose > 0){ printf("Flag 1, Initialize watchers\n") }
-            WATCH (effcai_GB > theta_d_GB) 2
-            WATCH (effcai_GB < theta_d_GB) 3
-            WATCH (effcai_GB > theta_p_GB) 4
-            WATCH (effcai_GB < theta_p_GB) 5
+        : self event
+        : Flag 1, Initialize watchers
+        if(verbose > 0){ printf("Flag 1, Initialize watchers\n") }
+        WATCH (effcai_GB > theta_d_GB) 2
+        WATCH (effcai_GB < theta_d_GB) 3
+        WATCH (effcai_GB > theta_p_GB) 4
+        WATCH (effcai_GB < theta_p_GB) 5
     }
     if(synstate_RW == 1) {
         : Functional synapse
@@ -603,6 +692,9 @@ FUNCTION bbsavestate() {
 
 VERBATIM
 static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset, _threadargsproto_) {
+
+    void *vv_delay_times = *((void**)(&_p_delay_times));
+    void *vv_delay_weights = *((void**)(&_p_delay_weights));
     // make sure offset array non-null
     if (iArray) {
         // get handle to random123 instance
@@ -620,12 +712,46 @@ static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset
     // increment integer offset (2 identifier), no double data
     *ioffset += 5;
     *doffset += 0;
+
+    // serialize connection delay vectors
+    if (vv_delay_times && vv_delay_weights &&
+       (vector_capacity(vv_delay_times) >= 1) && (vector_capacity(vv_delay_weights) >= 1)) {
+        if (iArray) {
+            uint32_t* di = ((uint32_t*)iArray) + *ioffset;
+            // store vector sizes for deserialization
+            di[0] = vector_capacity(vv_delay_times);
+            di[1] = vector_capacity(vv_delay_weights);
+        }
+        if (dArray) {
+            double* delay_times_el = vector_vec(vv_delay_times);
+            double* delay_weights_el = vector_vec(vv_delay_weights);
+            double* x_i = dArray + *doffset;
+            int delay_vecs_idx;
+            int x_idx = 0;
+            for(delay_vecs_idx = 0; delay_vecs_idx < vector_capacity(vv_delay_times); ++delay_vecs_idx) {
+                 x_i[x_idx++] = delay_times_el[delay_vecs_idx];
+                 x_i[x_idx++] = delay_weights_el[delay_vecs_idx];
+            }
+        }
+        // reserve space for connection delay data on serialization buffer
+        *doffset += vector_capacity(vv_delay_times) + vector_capacity(vv_delay_weights);
+    } else {
+        if (iArray) {
+            uint32_t* di = ((uint32_t*)iArray) + *ioffset;
+            di[0] = 0;
+            di[1] = 0;
+        }
+    }
+    // reserve space for delay vectors (may be 0)
+    *ioffset += 2;
 }
 
 
 static void bbcore_read(double* dArray, int* iArray, int* doffset, int* ioffset, _threadargsproto_) {
     // make sure it's not previously set
     assert(!_p_rng_rel);
+    assert(!_p_delay_times && !_p_delay_weights);
+
     uint32_t* ia = ((uint32_t*)iArray) + *ioffset;
     // make sure non-zero identifier seeds
     if (ia[0] != 0 || ia[1] != 0 || ia[2] != 0) {
@@ -637,7 +763,30 @@ static void bbcore_read(double* dArray, int* iArray, int* doffset, int* ioffset,
     }
     // increment intger offset (2 identifiers), no double data
     *ioffset += 5;
-    *doffset += 0;
+
+    int delay_times_sz = iArray[5];
+    int delay_weights_sz = iArray[6];
+    *ioffset += 2;
+
+    if ((delay_times_sz > 0) && (delay_weights_sz > 0)) {
+        double* x_i = dArray + *doffset;
+
+        // allocate vectors
+        _p_delay_times = vector_new1(delay_times_sz);
+        _p_delay_weights = vector_new1(delay_weights_sz);
+
+        double* delay_times_el = vector_vec(_p_delay_times);
+        double* delay_weights_el = vector_vec(_p_delay_weights);
+
+        // copy data
+        int x_idx;
+        int vec_idx = 0;
+        for(x_idx = 0; x_idx < delay_times_sz + delay_weights_sz; x_idx += 2) {
+            delay_times_el[vec_idx] = x_i[x_idx];
+            delay_weights_el[vec_idx++] = x_i[x_idx+1];
+        }
+        *doffset += delay_times_sz + delay_weights_sz;
+    }
 }
 ENDVERBATIM
 

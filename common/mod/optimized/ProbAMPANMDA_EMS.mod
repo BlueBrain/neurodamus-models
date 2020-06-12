@@ -59,7 +59,12 @@ NEURON {
     GLOBAL mg, slope_mg, scale_mg, e
     NONSPECIFIC_CURRENT i
     BBCOREPOINTER rng
-    RANGE synapseID, selected_for_report, verboseLevel
+    RANGE synapseID, selected_for_report, verboseLevel, conductance
+    RANGE next_delay
+    BBCOREPOINTER delay_times, delay_weights
+    GLOBAL nc_type_param
+    : For debugging
+    :RANGE sgid, tgid
 }
 
 PARAMETER {
@@ -81,6 +86,10 @@ PARAMETER {
         verboseLevel = 0
         selected_for_report = 0
         NMDA_ratio = 0.71 (1) : The ratio of NMDA to AMPA
+        conductance = 0.0
+        nc_type_param = 4
+        :sgid = -1
+        :tgid = -1
 }
 
 COMMENT
@@ -94,6 +103,15 @@ VERBATIM
 #include<stdio.h>
 #include<math.h>
 #include "nrnran123.h"
+
+#ifndef CORENEURON_BUILD
+extern int ifarg(int iarg);
+
+extern void* vector_arg(int iarg);
+extern double* vector_vec(void* vv);
+extern int vector_capacity(void* vv);
+#endif
+
 
 double nrn_random_pick(void* r);
 void* nrn_random_arg(int argpos);
@@ -121,6 +139,28 @@ ASSIGNED {
         occupied   (1) : no. of occupied sites following one epoch of recovery
         tsyn (ms) : the time of the last spike
         u (1) : running release probability
+
+    : stuff for delayed connections
+    delay_times
+    delay_weights
+    next_delay (ms)
+}
+
+PROCEDURE setup_delay_vecs() {
+VERBATIM
+#ifndef CORENEURON_BUILD
+    void** vv_delay_times = (void**)(&_p_delay_times);
+    void** vv_delay_weights = (void**)(&_p_delay_weights);
+    *vv_delay_times = (void*)NULL;
+    *vv_delay_weights = (void*)NULL;
+    if (ifarg(1)) {
+        *vv_delay_times = vector_arg(1);
+    }
+    if (ifarg(2)) {
+        *vv_delay_weights = vector_arg(2);
+    }
+#endif
+ENDVERBATIM
 }
 
 
@@ -163,6 +203,9 @@ INITIAL {
             nrnran123_setseq((nrnran123_State*)_p_rng, 0, 0);
         }
         ENDVERBATIM
+
+        next_delay = -1
+
 }
 
 BREAKPOINT {
@@ -186,7 +229,7 @@ DERIVATIVE state{
 }
 
 
-NET_RECEIVE (weight,weight_AMPA, weight_NMDA, Psurv) {
+NET_RECEIVE (weight, weight_AMPA, weight_NMDA, Psurv, nc_type) {
     LOCAL result, ves, occu
     weight_AMPA = weight
     weight_NMDA = weight * NMDA_ratio
@@ -194,7 +237,47 @@ NET_RECEIVE (weight,weight_AMPA, weight_NMDA, Psurv) {
     : Psurv - survival probability of unrecovered state
 
     INITIAL {
+        if (nc_type == 0) {
+            : nc_type {
+            :   0 = presynaptic netcon
+            :   1 = spontmini netcon
+            :   2 = replay netcon
+            : }
+    VERBATIM
+            // setup self events for delayed connections to change weights
+            void *vv_delay_times = *((void**)(&_p_delay_times));
+            void *vv_delay_weights = *((void**)(&_p_delay_weights));
+            if (vv_delay_times && vector_capacity(vv_delay_times)>=1) {
+              double* deltm_el = vector_vec(vv_delay_times);
+              int delay_times_idx;
+              next_delay = 0;
+              for(delay_times_idx = 0; delay_times_idx < vector_capacity(vv_delay_times); ++delay_times_idx) {
+                double next_delay_t = deltm_el[delay_times_idx];
+    ENDVERBATIM
+                net_send(next_delay_t, 1)
+    VERBATIM
+              }
+            }
+    ENDVERBATIM
+        }
     }
+    if (flag == 1) {
+        : self event to set next weight at delay
+    VERBATIM
+        // setup self events for delayed connections to change weights
+        void *vv_delay_weights = *((void**)(&_p_delay_weights));
+        if (vv_delay_weights && vector_capacity(vv_delay_weights)>=next_delay) {
+          double* weights_v = vector_vec(vv_delay_weights);
+          double next_delay_weight = weights_v[(int)next_delay];
+    ENDVERBATIM
+          weight = conductance*next_delay_weight
+          next_delay = next_delay + 1
+    VERBATIM
+        }
+        return;
+    ENDVERBATIM
+    }
+    : flag == 0, i.e. a spike has arrived
 
     : Do not perform any calculations if the synapse (netcon) is deactivated.  This avoids drawing from the random stream
     if(  !(weight > 0) ) {
@@ -375,9 +458,13 @@ FUNCTION toggleVerbose() {
 
 
 VERBATIM
-static void bbcore_write(double* x, int* d, int* xx, int* offset, _threadargsproto_) {
+static void bbcore_write(double* x, int* d, int* x_offset, int* d_offset, _threadargsproto_) {
+
+  void *vv_delay_times = *((void**)(&_p_delay_times));
+  void *vv_delay_weights = *((void**)(&_p_delay_weights));
+
   if (d) {
-    uint32_t* di = ((uint32_t*)d) + *offset;
+    uint32_t* di = ((uint32_t*)d) + *d_offset;
     nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
     nrnran123_getids3(*pv, di, di+1, di+2);
 
@@ -385,13 +472,51 @@ static void bbcore_write(double* x, int* d, int* xx, int* offset, _threadargspro
     nrnran123_getseq(*pv, di+3, &which);
     di[4] = (int)which;
     //printf("ProbAMPANMDA_EMS bbcore_write %d %d %d\n", di[0], di[1], di[2]);
+
+  }
+  // reserve random123 parameters on serialization buffer
+  *d_offset += 5;
+
+  // serialize connection delay vectors
+  if (vv_delay_times && vv_delay_weights &&
+     (vector_capacity(vv_delay_times) >= 1) && (vector_capacity(vv_delay_weights) >= 1)) {
+    if (d) {
+      uint32_t* di = ((uint32_t*)d) + *d_offset;
+      // store vector sizes for deserialization
+      di[0] = vector_capacity(vv_delay_times);
+      di[1] = vector_capacity(vv_delay_weights);
     }
-  *offset += 5;
+    if (x) {
+      double* delay_times_el = vector_vec(vv_delay_times);
+      double* delay_weights_el = vector_vec(vv_delay_weights);
+      double* x_i = x + *x_offset;
+      int delay_vecs_idx;
+      int x_idx = 0;
+      for(delay_vecs_idx = 0; delay_vecs_idx < vector_capacity(vv_delay_times); ++delay_vecs_idx) {
+         x_i[x_idx++] = delay_times_el[delay_vecs_idx];
+         x_i[x_idx++] = delay_weights_el[delay_vecs_idx];
+      }
+    }
+    // reserve space for connection delay data on serialization buffer
+    *x_offset += vector_capacity(vv_delay_times) + vector_capacity(vv_delay_weights);
+  } else {
+    if (d) {
+      uint32_t* di = ((uint32_t*)d) + *d_offset;
+      di[0] = 0;
+      di[1] = 0;
+    }
+
+  }
+  // reserve space for delay vectors (may be 0)
+  *d_offset += 2;
+
 }
 
-static void bbcore_read(double* x, int* d, int* xx, int* offset, _threadargsproto_) {
-  assert(!_p_rng);
-  uint32_t* di = ((uint32_t*)d) + *offset;
+static void bbcore_read(double* x, int* d, int* x_offset, int* d_offset, _threadargsproto_) {
+  assert(!_p_rng && !_p_delay_times && !_p_delay_weights);
+
+  // deserialize random123 data
+  uint32_t* di = ((uint32_t*)d) + *d_offset;
   if (di[0] != 0 || di[1] != 0 || di[2] != 0) {
       nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
       *pv = nrnran123_newstream3(di[0], di[1], di[2]);
@@ -399,7 +524,30 @@ static void bbcore_read(double* x, int* d, int* xx, int* offset, _threadargsprot
       nrnran123_setseq(*pv, di[3], which);
   }
   //printf("ProbAMPANMDA_EMS bbcore_read %d %d %d\n", di[0], di[1], di[2]);
-  *offset += 5;
+
+  int delay_times_sz = di[5];
+  int delay_weights_sz = di[6];
+  *d_offset += 7;
+
+  if ((delay_times_sz > 0) && (delay_weights_sz > 0)) {
+    double* x_i = x + *x_offset;
+
+    // allocate vectors
+    _p_delay_times = vector_new1(delay_times_sz);
+    _p_delay_weights = vector_new1(delay_weights_sz);
+
+    double* delay_times_el = vector_vec(_p_delay_times);
+    double* delay_weights_el = vector_vec(_p_delay_weights);
+
+    // copy data
+    int x_idx;
+    int vec_idx = 0;
+    for(x_idx = 0; x_idx < delay_times_sz + delay_weights_sz; x_idx += 2) {
+      delay_times_el[vec_idx] = x_i[x_idx];
+      delay_weights_el[vec_idx++] = x_i[x_idx+1];
+    }
+    *x_offset += delay_times_sz + delay_weights_sz;
+
+  }
 }
 ENDVERBATIM
-

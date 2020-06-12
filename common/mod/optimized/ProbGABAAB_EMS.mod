@@ -45,25 +45,31 @@ ENDCOMMENT
 
 NEURON {
     THREADSAFE
-	POINT_PROCESS ProbGABAAB_EMS
-	RANGE tau_r_GABAA, tau_d_GABAA, tau_r_GABAB, tau_d_GABAB
-	RANGE Use, u, Dep, Fac, u0, tsyn
+    POINT_PROCESS ProbGABAAB_EMS
+    RANGE tau_r_GABAA, tau_d_GABAA, tau_r_GABAB, tau_d_GABAB
+    RANGE Use, u, Dep, Fac, u0, tsyn
     RANGE unoccupied, occupied, Nrrp
-	RANGE i,i_GABAA, i_GABAB, g_GABAA, g_GABAB, g, e_GABAA, e_GABAB, GABAB_ratio
-	NONSPECIFIC_CURRENT i
+    RANGE i,i_GABAA, i_GABAB, g_GABAA, g_GABAB, g, e_GABAA, e_GABAB, GABAB_ratio
+    NONSPECIFIC_CURRENT i
     BBCOREPOINTER rng
-    RANGE synapseID, selected_for_report, verboseLevel
+    RANGE synapseID, selected_for_report, verboseLevel, conductance
+    RANGE next_delay
+    BBCOREPOINTER delay_times, delay_weights
+    GLOBAL nc_type_param
+    : For debugging
+    :RANGE sgid, tgid
 }
 
+
 PARAMETER {
-	tau_r_GABAA  = 0.2   (ms)  : dual-exponential conductance profile
-	tau_d_GABAA = 8   (ms)  : IMPORTANT: tau_r < tau_d
+    tau_r_GABAA  = 0.2   (ms)  : dual-exponential conductance profile
+    tau_d_GABAA = 8   (ms)  : IMPORTANT: tau_r < tau_d
     tau_r_GABAB  = 3.5   (ms)  : dual-exponential conductance profile :Placeholder value from hippocampal recordings SR
-	tau_d_GABAB = 260.9   (ms)  : IMPORTANT: tau_r < tau_d  :Placeholder value from hippocampal recordings
-	Use        = 1.0   (1)   : Utilization of synaptic efficacy (just initial values! Use, Dep and Fac are overwritten by BlueBuilder assigned values)
-	Dep   = 100   (ms)  : relaxation time constant from depression
-	Fac   = 10   (ms)  :  relaxation time constant from facilitation
-	e_GABAA    = -80     (mV)  : GABAA reversal potential
+    tau_d_GABAB = 260.9   (ms)  : IMPORTANT: tau_r < tau_d  :Placeholder value from hippocampal recordings
+    Use        = 1.0   (1)   : Utilization of synaptic efficacy (just initial values! Use, Dep and Fac are overwritten by BlueBuilder assigned values)
+    Dep   = 100   (ms)  : relaxation time constant from depression
+    Fac   = 10   (ms)  :  relaxation time constant from facilitation
+    e_GABAA    = -80     (mV)  : GABAA reversal potential
     e_GABAB    = -97     (mV)  : GABAB reversal potential
     gmax = .001 (uS) : weight conversion factor (from nS to uS)
     u0 = 0 :initial value of u, which is the running value of release probability
@@ -71,7 +77,11 @@ PARAMETER {
     synapseID = 0
     verboseLevel = 0
     selected_for_report = 0
-	GABAB_ratio = 0 (1) : The ratio of GABAB to GABAA
+    GABAB_ratio = 0 (1) : The ratio of GABAB to GABAA
+    conductance = 0.0
+    nc_type_param = 4
+    :sgid = -1
+    :tgid = -1
 }
 
 COMMENT
@@ -87,27 +97,41 @@ VERBATIM
 
 double nrn_random_pick(void* r);
 void* nrn_random_arg(int argpos);
+
+#ifndef CORENEURON_BUILD
+extern int ifarg(int iarg);
+
+extern void* vector_arg(int iarg);
+extern double* vector_vec(void* vv);
+extern int vector_capacity(void* vv);
+#endif
+
 ENDVERBATIM
 
 
 ASSIGNED {
-	v (mV)
-	i (nA)
+        v (mV)
+        i (nA)
         i_GABAA (nA)
         i_GABAB (nA)
         g_GABAA (uS)
         g_GABAB (uS)
-	g (uS)
-	factor_GABAA
+        g (uS)
+        factor_GABAA
         factor_GABAB
         rng
         usingR123            : TEMPORARY until mcellran4 completely deprecated
 
-    : MVR
-    unoccupied (1) : no. of unoccupied sites following release event
-    occupied   (1) : no. of occupied sites following one epoch of recovery
-    tsyn (ms) : the time of the last spike
-    u (1) : running release probability
+        : MVR
+        unoccupied (1) : no. of unoccupied sites following release event
+        occupied   (1) : no. of occupied sites following one epoch of recovery
+        tsyn (ms) : the time of the last spike
+        u (1) : running release probability
+
+        : stuff for delayed connections
+        delay_times
+        delay_weights
+        next_delay (ms)
 }
 
 STATE {
@@ -146,11 +170,31 @@ INITIAL{
             nrnran123_setseq((nrnran123_State*)_p_rng, 0, 0);
         }
         ENDVERBATIM
+
+        next_delay = -1
+
+}
+
+PROCEDURE setup_delay_vecs() {
+VERBATIM
+#ifndef CORENEURON_BUILD
+    void** vv_delay_times = (void**)(&_p_delay_times);
+    void** vv_delay_weights = (void**)(&_p_delay_weights);
+    *vv_delay_times = (void*)NULL;
+    *vv_delay_weights = (void*)NULL;
+    if (ifarg(1)) {
+        *vv_delay_times = vector_arg(1);
+    }
+    if (ifarg(2)) {
+        *vv_delay_weights = vector_arg(2);
+    }
+#endif
+ENDVERBATIM
 }
 
 BREAKPOINT {
-	SOLVE state METHOD cnexp
-	
+        SOLVE state METHOD cnexp
+
         g_GABAA = gmax*(B_GABAA-A_GABAA) :compute time varying conductance as the difference of state variables B_GABAA and A_GABAA
         g_GABAB = gmax*(B_GABAB-A_GABAB) :compute time varying conductance as the difference of state variables B_GABAB and A_GABAB
         g = g_GABAA + g_GABAB
@@ -167,7 +211,7 @@ DERIVATIVE state{
 }
 
 
-NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv){
+NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv, nc_type){
     LOCAL result, ves, occu
     weight_GABAA = weight
     weight_GABAB = weight*GABAB_ratio
@@ -175,8 +219,52 @@ NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv){
     : Psurv - survival probability of unrecovered state
 
 
-    INITIAL{
+    INITIAL {
+        if (nc_type == 0) {
+            : nc_type {
+            :   0 = presynaptic netcon
+            :   1 = spontmini netcon
+            :   2 = replay netcon
+            : }
+    VERBATIM
+            // setup self events for delayed connections to change weights
+            void *vv_delay_times = *((void**)(&_p_delay_times));
+            void *vv_delay_weights = *((void**)(&_p_delay_weights));
+            if (vv_delay_times && vector_capacity(vv_delay_times)>=1) {
+              double* deltm_el = vector_vec(vv_delay_times);
+              int delay_times_idx;
+              next_delay = 0;
+              for(delay_times_idx = 0; delay_times_idx < vector_capacity(vv_delay_times); ++delay_times_idx) {
+                double next_delay_t = deltm_el[delay_times_idx];
+    ENDVERBATIM
+                net_send(next_delay_t, 1)
+    VERBATIM
+              }
+            }
+    ENDVERBATIM
+        }
     }
+
+    if (flag == 1) {
+        :UNITSOFF
+        :    printf( "gaba: self event at synapse %f time %g\n", synapseID, t)
+        :UNITSON
+        : self event to set next weight at delay
+    VERBATIM
+        // setup self events for delayed connections to change weights
+        void *vv_delay_weights = *((void**)(&_p_delay_weights));
+        if (vv_delay_weights && vector_capacity(vv_delay_weights)>=next_delay) {
+          double* weights_v = vector_vec(vv_delay_weights);
+          double next_delay_weight = weights_v[(int)next_delay];
+    ENDVERBATIM
+          weight = conductance*next_delay_weight
+          next_delay = next_delay + 1
+    VERBATIM
+        }
+        return;
+    ENDVERBATIM
+    }
+    : flag == 0, i.e. a spike has arrived
 
     : Do not perform any calculations if the synapse (netcon) is deactivated.  This avoids drawing from the random stream
     if(  !(weight > 0) ) {
@@ -359,10 +447,13 @@ FUNCTION toggleVerbose() {
 
 
 VERBATIM
-static void bbcore_write(double* x, int* d, int* xx, int* offset, _threadargsproto_) {
-   if (d) {
-    // write stream ids
-    uint32_t* di = ((uint32_t*)d) + *offset;
+static void bbcore_write(double* x, int* d, int* x_offset, int* d_offset, _threadargsproto_) {
+
+  void *vv_delay_times = *((void**)(&_p_delay_times));
+  void *vv_delay_weights = *((void**)(&_p_delay_weights));
+
+  if (d) {
+    uint32_t* di = ((uint32_t*)d) + *d_offset;
     nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
     nrnran123_getids3(*pv, di, di+1, di+2);
 
@@ -371,13 +462,50 @@ static void bbcore_write(double* x, int* d, int* xx, int* offset, _threadargspro
     nrnran123_getseq(*pv, di+3, &which);
     di[4] = (int)which;
     //printf("ProbGABAAB_EMS bbcore_write %d %d %d\n", di[0], di[1], di[2]);
-   }
-  *offset += 5;
+
+  }
+  // reserve random123 parameters on serialization buffer
+  *d_offset += 5;
+
+  // serialize connection delay vectors
+  if (vv_delay_times && vv_delay_weights &&
+     (vector_capacity(vv_delay_times) >= 1) && (vector_capacity(vv_delay_weights) >= 1)) {
+    if (d) {
+      uint32_t* di = ((uint32_t*)d) + *d_offset;
+      // store vector sizes for deserialization
+      di[0] = vector_capacity(vv_delay_times);
+      di[1] = vector_capacity(vv_delay_weights);
+    }
+    if (x) {
+      double* delay_times_el = vector_vec(vv_delay_times);
+      double* delay_weights_el = vector_vec(vv_delay_weights);
+      double* x_i = x + *x_offset;
+      int delay_vecs_idx;
+      int x_idx = 0;
+      for(delay_vecs_idx = 0; delay_vecs_idx < vector_capacity(vv_delay_times); ++delay_vecs_idx) {
+         x_i[x_idx++] = delay_times_el[delay_vecs_idx];
+         x_i[x_idx++] = delay_weights_el[delay_vecs_idx];
+      }
+    }
+    // reserve space for connection delay data on serialization buffer
+    *x_offset += vector_capacity(vv_delay_times) + vector_capacity(vv_delay_weights);
+  } else {
+    if (d) {
+      uint32_t* di = ((uint32_t*)d) + *d_offset;
+      di[0] = 0;
+      di[1] = 0;
+    }
+  }
+  // reserve space for delay vectors (may be 0)
+  *d_offset += 2;
+
 }
 
-static void bbcore_read(double* x, int* d, int* xx, int* offset, _threadargsproto_) {
-  assert(!_p_rng);
-  uint32_t* di = ((uint32_t*)d) + *offset;
+static void bbcore_read(double* x, int* d, int* x_offset, int* d_offset, _threadargsproto_) {
+  assert(!_p_rng && !_p_delay_times && !_p_delay_weights);
+
+  // deserialize random123 data
+  uint32_t* di = ((uint32_t*)d) + *d_offset;
   if (di[0] != 0 || di[1] != 0 || di[2] != 0) {
       nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
       *pv = nrnran123_newstream3(di[0], di[1], di[2]);
@@ -386,8 +514,30 @@ static void bbcore_read(double* x, int* d, int* xx, int* offset, _threadargsprot
       char which = (char)di[4];
       nrnran123_setseq(*pv, di[3], which);
   }
-  //printf("ProbGABAAB_EMS bbcore_read %d %d %d\n", di[0], di[1], di[2]);
-  *offset += 5;
+  //printf("ProbAMPANMDA_EMS bbcore_read %d %d %d\n", di[0], di[1], di[2]);
+
+  int delay_times_sz = di[5];
+  int delay_weights_sz = di[6];
+  *d_offset += 7;
+
+  if ((delay_times_sz > 0) && (delay_weights_sz > 0)) {
+    double* x_i = x + *x_offset;
+
+    // allocate vectors
+    _p_delay_times = vector_new1(delay_times_sz);
+    _p_delay_weights = vector_new1(delay_weights_sz);
+
+    double* delay_times_el = vector_vec(_p_delay_times);
+    double* delay_weights_el = vector_vec(_p_delay_weights);
+
+    // copy data
+    int x_idx;
+    int vec_idx = 0;
+    for(x_idx = 0; x_idx < delay_times_sz + delay_weights_sz; x_idx += 2) {
+      delay_times_el[vec_idx] = x_i[x_idx];
+      delay_weights_el[vec_idx++] = x_i[x_idx+1];
+    }
+    *x_offset += delay_times_sz + delay_weights_sz;
+  }
 }
 ENDVERBATIM
-
