@@ -46,11 +46,12 @@ NEURON {
     THREADSAFE
     POINT_PROCESS ProbGABAAB_EMS
 
-    RANGE tau_r_GABAA, tau_d_GABAA, tau_r_GABAB, tau_d_GABAB
+    RANGE tau_r_GABAA, tau_d_GABAA
+    GLOBAL tau_r_GABAB, tau_d_GABAB
     RANGE Use, u, Dep, Fac, u0, tsyn
     RANGE unoccupied, occupied, Nrrp
 
-    RANGE i,i_GABAA, i_GABAB, g_GABAA, g_GABAB, g, e_GABAA, e_GABAB, GABAB_ratio
+    RANGE i, i_GABAA, i_GABAB, g_GABAA, g_GABAB, g, e_GABAA, e_GABAB, GABAB_ratio
     RANGE A_GABAA_step, B_GABAA_step, A_GABAB_step, B_GABAB_step
 
     NONSPECIFIC_CURRENT i

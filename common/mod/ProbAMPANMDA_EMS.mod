@@ -46,12 +46,11 @@ NEURON {
     POINT_PROCESS ProbAMPANMDA_EMS
 
     GLOBAL tau_r_AMPA, tau_r_NMDA, tau_d_NMDA
-    RANGE tau_d_AMPA, g_AMPA, i_AMPA, g_NMDA, i_NMDA
-
+    RANGE tau_d_AMPA
     RANGE Use, u, Dep, Fac, u0, mg, tsyn
     RANGE unoccupied, occupied, Nrrp
 
-    RANGE g, NMDA_ratio
+    RANGE i_AMPA, i_NMDA, g_AMPA, g_NMDA, g, NMDA_ratio
     RANGE A_AMPA_step, B_AMPA_step, A_NMDA_step, B_NMDA_step
     GLOBAL slope_mg, scale_mg, e
 
