@@ -38,7 +38,6 @@ a Poisson process with rate 1/Dep.
 
 This model satisys all of (1)-(4).
 
-
 ENDCOMMENT
 
 
@@ -46,11 +45,8 @@ NEURON {
     THREADSAFE
     POINT_PROCESS ProbAMPANMDA_EMS
 
-    GLOBAL tau_r_AMPA
-    RANGE tau_d_AMPA, g_AMPA, i_AMPA
-
-    GLOBAL tau_r_NMDA, tau_d_NMDA
-    RANGE g_NMDA, i_NMDA
+    GLOBAL tau_r_AMPA, tau_r_NMDA, tau_d_NMDA
+    RANGE tau_d_AMPA, g_AMPA, i_AMPA, g_NMDA, i_NMDA
 
     RANGE Use, u, Dep, Fac, u0, mg, tsyn
     RANGE unoccupied, occupied, Nrrp
@@ -66,34 +62,33 @@ NEURON {
     BBCOREPOINTER delay_times, delay_weights
     GLOBAL nc_type_param
     GLOBAL minis_single_vesicle
-    : For debugging
-    :RANGE sgid, tgid
+
+    :RANGE sgid, tgid  : For debugging
 }
 
 PARAMETER {
-    tau_r_AMPA = 0.2   (ms)  : dual-exponential conductance profile
+    tau_r_AMPA = 0.2    (ms)  : dual-exponential conductance profile
     tau_d_AMPA = 1.7    (ms)  : IMPORTANT: tau_r < tau_d
-    tau_r_NMDA = 0.29   (ms) : dual-exponential conductance profile
-    tau_d_NMDA = 43     (ms) : IMPORTANT: tau_r < tau_d
-    Use = 1.0   (1)   : Utilization of synaptic efficacy (just initial values! Use, Dep and Fac are overwritten by BlueBuilder assigned values)
-    Dep = 100   (ms)  : relaxation time constant from depression
-    Fac = 10   (ms)  :  relaxation time constant from facilitation
-    e = 0     (mV)  : AMPA and NMDA reversal potential
-    mg = 1   (mM)  : initial concentration of mg2+
-    slope_mg = 0.062 (/mV) : default variables from Jahr & Stevens 1990
-    scale_mg = 3.57 (mM)
-    gmax = .001 (uS) : weight conversion factor (from nS to uS)
-    u0 = 0 :initial value of u, which is the running value of release probability
-    Nrrp = 1 (1)  : Number of total release sites for given contact
+    tau_r_NMDA = 0.29   (ms)  : dual-exponential conductance profile
+    tau_d_NMDA = 43     (ms)  : IMPORTANT: tau_r < tau_d
+    Use = 1.0           (1)   : Utilization of synaptic efficacy (just initial values! Use, Dep and Fac are overwritten by BlueBuilder assigned values)
+    Dep = 100           (ms)  : relaxation time constant from depression
+    Fac = 10            (ms)  : relaxation time constant from facilitation
+    e   = 0             (mV)  : AMPA and NMDA reversal potential
+    mg  = 1             (mM)  : initial concentration of mg2+
+    slope_mg = 0.062    (/mV) : default variables from Jahr & Stevens 1990
+    scale_mg = 3.57     (mM)
+    gmax = .001         (uS)  : weight conversion factor (from nS to uS)
+    u0   = 0                  : initial value of u, which is the running value of release probability
+    Nrrp = 1            (1)   : Number of total release sites for given contact
+
     synapseID = 0
     verboseLevel = 0
     selected_for_report = 0
-    NMDA_ratio = 0.71 (1) : The ratio of NMDA to AMPA
+    NMDA_ratio = 0.71   (1)   : The ratio of NMDA to AMPA
     conductance = 0.0
     nc_type_param = 4
     minis_single_vesicle = 0   :// 0 - no limit (old behavior)
-    :sgid = -1
-    :tgid = -1
 }
 
 COMMENT
@@ -116,7 +111,6 @@ extern double* vector_vec(void* vv);
 extern int vector_capacity(void* vv);
 #endif
 
-
 double nrn_random_pick(void* r);
 void* nrn_random_arg(int argpos);
 
@@ -124,7 +118,6 @@ ENDVERBATIM
 
 
 ASSIGNED {
-
         v (mV)
         i (nA)
         i_AMPA (nA)
@@ -138,6 +131,7 @@ ASSIGNED {
         B_AMPA_step
         A_NMDA_step
         B_NMDA_step
+
         rng
         mggate
         usingR123            : TEMPORARY until mcellran4 completely deprecated
@@ -148,29 +142,11 @@ ASSIGNED {
         tsyn (ms) : the time of the last spike
         u (1) : running release probability
 
-    : stuff for delayed connections
-    delay_times
-    delay_weights
-    next_delay (ms)
+        : stuff for delayed connections
+        delay_times
+        delay_weights
+        next_delay (ms)
 }
-
-PROCEDURE setup_delay_vecs() {
-VERBATIM
-#ifndef CORENEURON_BUILD
-    void** vv_delay_times = (void**)(&_p_delay_times);
-    void** vv_delay_weights = (void**)(&_p_delay_weights);
-    *vv_delay_times = (void*)NULL;
-    *vv_delay_weights = (void*)NULL;
-    if (ifarg(1)) {
-        *vv_delay_times = vector_arg(1);
-    }
-    if (ifarg(2)) {
-        *vv_delay_weights = vector_arg(2);
-    }
-#endif
-ENDVERBATIM
-}
-
 
 STATE {
 
@@ -211,19 +187,37 @@ INITIAL {
         A_NMDA_step = exp(dt*(( - 1.0 ) / tau_r_NMDA))
         B_NMDA_step = exp(dt*(( - 1.0 ) / tau_d_NMDA))
 
-        VERBATIM
+    VERBATIM
         if( usingR123 ) {
             nrnran123_setseq((nrnran123_State*)_p_rng, 0, 0);
         }
-        ENDVERBATIM
+    ENDVERBATIM
 
         next_delay = -1
 
 }
 
-BREAKPOINT {
+PROCEDURE setup_delay_vecs() {
+VERBATIM
+#ifndef CORENEURON_BUILD
+    void** vv_delay_times = (void**)(&_p_delay_times);
+    void** vv_delay_weights = (void**)(&_p_delay_weights);
+    *vv_delay_times = (void*)NULL;
+    *vv_delay_weights = (void*)NULL;
+    if (ifarg(1)) {
+        *vv_delay_times = vector_arg(1);
+    }
+    if (ifarg(2)) {
+        *vv_delay_weights = vector_arg(2);
+    }
+#endif
+ENDVERBATIM
+}
 
+
+BREAKPOINT {
         SOLVE state
+
         mggate = 1 / (1 + exp(slope_mg * -(v)) * (mg / scale_mg)) :mggate kinetics
         g_AMPA = gmax*(B_AMPA-A_AMPA) :compute time varying conductance as the difference of state variables B_AMPA and A_AMPA
         g_NMDA = gmax*(B_NMDA-A_NMDA) * mggate :compute time varying conductance as the difference of state variables B_NMDA and A_NMDA and mggate kinetics
@@ -242,59 +236,61 @@ PROCEDURE state() {
 
 
 NET_RECEIVE (weight, weight_AMPA, weight_NMDA, Psurv, nc_type) {
+    : Psurv - survival probability of unrecovered state
+    : nc_type:
+    :   0 = presynaptic netcon
+    :   1 = spontmini netcon
+    :   2 = replay netcon
+
     LOCAL result, ves, occu
     weight_AMPA = weight
     weight_NMDA = weight * NMDA_ratio
-    : Locals:
-    : Psurv - survival probability of unrecovered state
 
     INITIAL {
-        if (nc_type == 0) {
-            : nc_type {
-            :   0 = presynaptic netcon
-            :   1 = spontmini netcon
-            :   2 = replay netcon
-            : }
+        if (nc_type == 0) {  :// presynaptic netcon
     VERBATIM
             // setup self events for delayed connections to change weights
             void *vv_delay_times = *((void**)(&_p_delay_times));
             void *vv_delay_weights = *((void**)(&_p_delay_weights));
             if (vv_delay_times && vector_capacity(vv_delay_times)>=1) {
-              double* deltm_el = vector_vec(vv_delay_times);
-              int delay_times_idx;
-              next_delay = 0;
-              for(delay_times_idx = 0; delay_times_idx < vector_capacity(vv_delay_times); ++delay_times_idx) {
-                double next_delay_t = deltm_el[delay_times_idx];
+                double* deltm_el = vector_vec(vv_delay_times);
+                int delay_times_idx;
+                next_delay = 0;
+                for (delay_times_idx = 0; delay_times_idx < vector_capacity(vv_delay_times); ++delay_times_idx) {
+                    double next_delay_t = deltm_el[delay_times_idx];
     ENDVERBATIM
-                net_send(next_delay_t, 1)
+                    net_send(next_delay_t, 1)
     VERBATIM
-              }
+                }
             }
     ENDVERBATIM
         }
     }
-    if (flag == 1) {
-        : self event to set next weight at delay
+
+    if (flag == 1) {  :// self event to set next weight at
     VERBATIM
-        // setup self events for delayed connections to change weights
         void *vv_delay_weights = *((void**)(&_p_delay_weights));
         if (vv_delay_weights && vector_capacity(vv_delay_weights)>=next_delay) {
-          double* weights_v = vector_vec(vv_delay_weights);
-          double next_delay_weight = weights_v[(int)next_delay];
+            double* weights_v = vector_vec(vv_delay_weights);
+            double next_delay_weight = weights_v[(int)next_delay];
     ENDVERBATIM
-          weight = conductance*next_delay_weight
-          next_delay = next_delay + 1
+            weight = conductance * next_delay_weight
+            next_delay = next_delay + 1
     VERBATIM
         }
         return;
     ENDVERBATIM
     }
-    : flag == 0, i.e. a spike has arrived
+
+    : [flag == 0] Handle a spike which arrived
+    :UNITSOFF
+    :printf( "synapse %f (%f, %f) with weight %g at time %g\n", synapseID, sgid, tgid, weight, t)
+    :UNITSON
 
     : Do not perform any calculations if the synapse (netcon) is deactivated. This avoids drawing from
     : random number stream. Also, disable in case of t < 0 (in case of ForwardSkip) which causes numerical
     : instability if synapses are activated.
-    if(  weight <= 0 || t < 0 ) {
+    if ( weight <= 0 || t < 0 ) {
     VERBATIM
         return;
     ENDVERBATIM
@@ -302,12 +298,12 @@ NET_RECEIVE (weight, weight_AMPA, weight_NMDA, Psurv, nc_type) {
 
     : calc u at event-
     if (Fac > 0) {
-        u = u*exp(-(t - tsyn)/Fac) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
+        u = u * exp(-(t - tsyn)/Fac)  :// update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
     } else {
         u = Use
     }
     if(Fac > 0){
-        u = u + Use*(1-u) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
+        u = u + Use*(1-u)  :// update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
     }
 
     : recovery
@@ -316,8 +312,8 @@ NET_RECEIVE (weight, weight_AMPA, weight_NMDA, Psurv, nc_type) {
         Psurv = exp(-(t-tsyn)/Dep)
         result = urand()
         if (result>Psurv) {
-            occupied = occupied + 1     : recover a previously unoccupied site
-            if( verboseLevel > 0 ) {
+            occupied = occupied + 1     :// recover a previously unoccupied site
+            if ( verboseLevel > 0 ) {
                 UNITSOFF
                 printf( "Recovered! %f at time %g: Psurv = %g, urand=%g\n", synapseID, t, Psurv, result )
                 UNITSON
@@ -325,18 +321,18 @@ NET_RECEIVE (weight, weight_AMPA, weight_NMDA, Psurv, nc_type) {
         }
     }
 
-    ves = 0                  : // Initialize the number of released vesicles to 0
-    occu = occupied          : // Make a copy, so we can update occupied in the loop
+    ves = 0                  :// Initialize the number of released vesicles to 0
+    occu = occupied          :// Make a copy, so we can update occupied in the loop
     if (occu > 1 && minis_single_vesicle && nc_type == 1) {    : // if nc_type is spont_mini consider single vesicle
         occu = 1
     }
     FROM counter = 0 TO (occu - 1) {
         : iterate over all occupied sites and compute how many release
         result = urand()
-        if (result<u) {
+        if (result < u) {
             : release a single site!
-            occupied = occupied - 1  : decrease the number of occupied sites by 1
-            ves = ves + 1            : increase number of relesed vesicles by 1
+            occupied = occupied - 1  :// decrease the number of occupied sites by 1
+            ves = ves + 1            :// increase number of relesed vesicles by 1
         }
     }
 
@@ -357,7 +353,7 @@ NET_RECEIVE (weight, weight_AMPA, weight_NMDA, Psurv, nc_type) {
 
         if ( verboseLevel > 0 ) {
             UNITSOFF
-            printf( "Release! %f at time %g: vals %g %g %g %g\n", synapseID, t, A_AMPA, weight_AMPA, factor_AMPA, weight )
+            printf( "[Syn %f] Release! t = %g: vals %g %g %g %g\n", synapseID, t, A_AMPA, weight_AMPA, factor_AMPA, weight )
             UNITSON
         }
 
@@ -365,7 +361,7 @@ NET_RECEIVE (weight, weight_AMPA, weight_NMDA, Psurv, nc_type) {
         : total release failure
         if ( verboseLevel > 0 ) {
             UNITSOFF
-            printf( " || SYN_ID: %f, release failure || ", synapseID )
+            printf("[Syn %f] Failure! t = %g: urand = %g\n", synapseID, t, result)
             UNITSON
         }
     }
@@ -469,7 +465,7 @@ ENDVERBATIM
 }
 
 FUNCTION toggleVerbose() {
-    verboseLevel = 1-verboseLevel
+    verboseLevel = 1 - verboseLevel
 }
 
 
@@ -487,7 +483,7 @@ static void bbcore_write(double* x, int* d, int* x_offset, int* d_offset, _threa
     unsigned char which;
     nrnran123_getseq(*pv, di+3, &which);
     di[4] = (int)which;
-    //printf("ProbAMPANMDA_EMS bbcore_write %d %d %d\n", di[0], di[1], di[2]);
+    //printf("SYN bbcore_write %d %d %d\n", di[0], di[1], di[2]);
 
   }
   // reserve random123 parameters on serialization buffer

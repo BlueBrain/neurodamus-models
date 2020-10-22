@@ -43,6 +43,7 @@ Model implementation, optimization and simulation curated by James King (Blue
 Brain Project, 2019).
 ENDCOMMENT
 
+
 TITLE Glutamatergic synapse
 
 NEURON {
@@ -58,7 +59,7 @@ NEURON {
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
     RANGE Use0_TM, Dep_TM, Fac_TM, Nrrp_TM
     RANGE Use_d_TM, Use_p_TM
-    BBCOREPOINTER rng_TM
+    BBCOREPOINTER rng_rel
     : NMDAR-mediated calcium current
     RANGE ica_NMDA
     : Spine
@@ -169,6 +170,7 @@ PARAMETER {
     :tgid = -1
 }
 
+
 VERBATIM
 /**
  * This Verbatim block is needed to generate random numbers from a uniform
@@ -191,19 +193,16 @@ extern int vector_capacity(void* vv);
 
 ENDVERBATIM
 
+
 ASSIGNED {
-    : AMPA Receptor
-    g_AMPA          (uS)
-    : NMDA Receptor
-    gmax_NMDA       (nS)
+    g_AMPA          (uS)    : AMPA Receptor
+    gmax_NMDA       (nS)    : NMDA Receptor
     g_NMDA          (uS)
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
-    rng_TM                  : Random Number Generator
+    rng_rel                 : Random Number Generator
     usingR123               : TEMPORARY until mcellran4 completely deprecated
-    : NMDAR-mediated calcium current
-    ica_NMDA        (nA)
-    : VDCC (R-type)
-    ica_VDCC        (nA)
+    ica_NMDA        (nA)    : NMDAR-mediated calcium current
+    ica_VDCC        (nA)    : VDCC (R-type)
     : Long-term synaptic plasticity
     dep_pre_GB      (1)
     pot_pre_GB      (1)
@@ -311,6 +310,7 @@ BREAKPOINT {
     i = i_AMPA + i_NMDA + ica_VDCC
 }
 
+
 DERIVATIVE state {
     LOCAL minf_VDCC, hinf_VDCC
     : AMPA Receptor
@@ -340,6 +340,7 @@ DERIVATIVE state {
                      - dep_post_GB*gamma_d_post_GB*rho_post_GB ) / ((1e3)*tau_ind_GB)
 }
 
+
 NET_RECEIVE (weight, u, tsyn (ms), recovered, unrecovered, nc_type) {
     : nc_type: 0=presynaptic netcon, 1=spontmini, 2=replay
     LOCAL p_rec, released, tp, factor
@@ -356,19 +357,21 @@ NET_RECEIVE (weight, u, tsyn (ms), recovered, unrecovered, nc_type) {
             void *vv_delay_times = *((void**)(&_p_delay_times));
             void *vv_delay_weights = *((void**)(&_p_delay_weights));
             if (vv_delay_times && vector_capacity(vv_delay_times)>=1) {
-              double* deltm_el = vector_vec(vv_delay_times);
-              int delay_times_idx;
-              next_delay = 0;
-              for(delay_times_idx = 0; delay_times_idx < vector_capacity(vv_delay_times); ++delay_times_idx) {
-                double next_delay_t = deltm_el[delay_times_idx];
+                double* deltm_el = vector_vec(vv_delay_times);
+                int delay_times_idx;
+                next_delay = 0;
+                for(delay_times_idx = 0; delay_times_idx < vector_capacity(vv_delay_times); ++delay_times_idx) {
+                    double next_delay_t = deltm_el[delay_times_idx];
     ENDVERBATIM
-                net_send(next_delay_t, 10)
+                    net_send(next_delay_t, 10)  : use flag 10 to avoid interfering with GluSynapse logic
     VERBATIM
-              }
+                }
             }
     ENDVERBATIM
         }
     }
+
+
     if(verbose > 0){ UNITSOFF printf("Time = %g ms, incoming spike at synapse %g\n", t, synapseID) UNITSON }
     if(flag == 0) {
         if(weight <= 0){
@@ -458,17 +461,15 @@ NET_RECEIVE (weight, u, tsyn (ms), recovered, unrecovered, nc_type) {
         if(verbose > 0){ printf("Flag 9, Deactivate presynaptic potentiation mechanisms\n") }
         pot_post_GB = 0
     } else if(flag == 10) {
-        : self event - use flag 10 to avoid interfering with GluSynapse logic
-        : first set next weight at delay
+        : Flag 10, Handle delayed connection weight changes
     VERBATIM
-        // setup self events for delayed connections to change weights
         void *vv_delay_weights = *((void**)(&_p_delay_weights));
         if (vv_delay_weights && vector_capacity(vv_delay_weights)>=next_delay) {
-          double* weights_v = vector_vec(vv_delay_weights);
-          double next_delay_weight = weights_v[(int)next_delay];
+            double* weights_v = vector_vec(vv_delay_weights);
+            double next_delay_weight = weights_v[(int)next_delay];
     ENDVERBATIM
-          weight = conductance*next_delay_weight
-          next_delay = next_delay + 1
+            weight = conductance * next_delay_weight
+            next_delay = next_delay + 1
     VERBATIM
         }
     ENDVERBATIM
@@ -488,7 +489,7 @@ PROCEDURE setRNG() {
     // Object => MCellRan4, seeds (double) => Random123
     usingR123 = 0;
     if( ifarg(1) && hoc_is_double_arg(1) ) {
-        nrnran123_State** pv = (nrnran123_State**)(&_p_rng_TM);
+        nrnran123_State** pv = (nrnran123_State**)(&_p_rng_rel);
         uint32_t a2 = 0;
         uint32_t a3 = 0;
         if (*pv) {
@@ -504,24 +505,25 @@ PROCEDURE setRNG() {
         *pv = nrnran123_newstream3((uint32_t)*getarg(1), a2, a3);
         usingR123 = 1;
     } else if( ifarg(1) ) {   // not a double, so assume hoc object type
-        void** pv = (void**)(&_p_rng_TM);
+        void** pv = (void**)(&_p_rng_rel);
         *pv = nrn_random_arg(1);
     } else {  // no arg, so clear pointer
-        void** pv = (void**)(&_p_rng_TM);
+        void** pv = (void**)(&_p_rng_rel);
         *pv = (void*)0;
     }
     #endif
     ENDVERBATIM
 }
 
+
 FUNCTION urand() {
     VERBATIM
     double value;
     if ( usingR123 ) {
-        value = nrnran123_dblpick((nrnran123_State*)_p_rng_TM);
-    } else if (_p_rng_TM) {
+        value = nrnran123_dblpick((nrnran123_State*)_p_rng_rel);
+    } else if (_p_rng_rel) {
         #ifndef CORENEURON_BUILD
-        value = nrn_random_pick(_p_rng_TM);
+        value = nrn_random_pick(_p_rng_rel);
         #endif
     } else {
         value = 0.0;
@@ -542,6 +544,7 @@ FUNCTION brand(n, p) {
     brand = success
 }
 
+
 FUNCTION bbsavestate() {
     bbsavestate = 0
     VERBATIM
@@ -553,7 +556,7 @@ FUNCTION bbsavestate() {
         void nrn_set_random_sequence(void* r, int val);
         xdir = hoc_pgetarg(1);
         xval = hoc_pgetarg(2);
-        if (_p_rng_TM) {
+        if (_p_rng_rel) {
             // tell how many items need saving
             if (*xdir == -1) {  // count items
                 if( usingR123 ) {
@@ -566,23 +569,24 @@ FUNCTION bbsavestate() {
                 if( usingR123 ) {
                     uint32_t seq;
                     unsigned char which;
-                    nrnran123_getseq( (nrnran123_State*)_p_rng_TM, &seq, &which );
+                    nrnran123_getseq( (nrnran123_State*)_p_rng_rel, &seq, &which );
                     xval[0] = (double) seq;
                     xval[1] = (double) which;
                 } else {
-                    xval[0] = (double)nrn_get_random_sequence(_p_rng_TM);
+                    xval[0] = (double)nrn_get_random_sequence(_p_rng_rel);
                 }
             } else {  // restore
                 if( usingR123 ) {
-                    nrnran123_setseq( (nrnran123_State*)_p_rng_TM, (uint32_t)xval[0], (char)xval[1] );
+                    nrnran123_setseq( (nrnran123_State*)_p_rng_rel, (uint32_t)xval[0], (char)xval[1] );
                 } else {
-                    nrn_set_random_sequence(_p_rng_TM, (long)(xval[0]));
+                    nrn_set_random_sequence(_p_rng_rel, (long)(xval[0]));
                 }
             }
         }
     #endif
     ENDVERBATIM
 }
+
 
 VERBATIM
 static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset, _threadargsproto_) {
@@ -592,7 +596,7 @@ static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset
     // make sure offset array non-null
     if (iArray) {
         // get handle to random123 instance
-        nrnran123_State** pv = (nrnran123_State**)(&_p_rng_TM);
+        nrnran123_State** pv = (nrnran123_State**)(&_p_rng_rel);
         // get location for storing ids
         uint32_t* ia = ((uint32_t*)iArray) + *ioffset;
         // retrieve/store identifier seeds
@@ -643,13 +647,13 @@ static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset
 
 static void bbcore_read(double* dArray, int* iArray, int* doffset, int* ioffset, _threadargsproto_) {
     // make sure it's not previously set
-    assert(!_p_rng_TM);
+    assert(!_p_rng_rel);
     assert(!_p_delay_times && !_p_delay_weights);
 
     uint32_t* ia = ((uint32_t*)iArray) + *ioffset;
     // make sure non-zero identifier seeds
     if (ia[0] != 0 || ia[1] != 0 || ia[2] != 0) {
-        nrnran123_State** pv = (nrnran123_State**)(&_p_rng_TM);
+        nrnran123_State** pv = (nrnran123_State**)(&_p_rng_rel);
         // get new stream
         *pv = nrnran123_newstream3(ia[0], ia[1], ia[2]);
         // restore sequence

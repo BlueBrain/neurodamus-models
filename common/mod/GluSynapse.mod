@@ -48,7 +48,6 @@ ENDCOMMENT
 
 TITLE Glutamatergic synapse
 
-
 NEURON {
     THREADSAFE
     POINT_PROCESS GluSynapse
@@ -204,10 +203,8 @@ ENDVERBATIM
 
 
 ASSIGNED {
-    : AMPA Receptor
-    g_AMPA          (uS)
-    : NMDA Receptor
-    g_NMDA          (uS)
+    g_AMPA          (uS)    : AMPA Receptor
+    g_NMDA          (uS)    : NMDA Receptor
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
     u               (1)     : Running release probability
     tsyn            (ms)    : Time of the last presynaptic spike
@@ -233,7 +230,6 @@ ASSIGNED {
     next_delay (ms)
 }
 
-
 STATE {
     : AMPA Receptor
     A_AMPA      (1)                 : Decays with conductance tau_r_AMPA
@@ -251,7 +247,6 @@ STATE {
     Use_GB      (1)
     effcai_GB   (us/liter)  <1e-3>
 }
-
 
 INITIAL{
     : Initialize model variables
@@ -357,43 +352,37 @@ NET_RECEIVE (weight, nc_type) {
             void *vv_delay_times = *((void**)(&_p_delay_times));
             void *vv_delay_weights = *((void**)(&_p_delay_weights));
             if (vv_delay_times && vector_capacity(vv_delay_times)>=1) {
-              double* deltm_el = vector_vec(vv_delay_times);
-              int delay_times_idx;
-              next_delay = 0;
-              for(delay_times_idx = 0; delay_times_idx < vector_capacity(vv_delay_times); ++delay_times_idx) {
-                double next_delay_t = deltm_el[delay_times_idx];
+                double* deltm_el = vector_vec(vv_delay_times);
+                int delay_times_idx;
+                next_delay = 0;
+                for(delay_times_idx = 0; delay_times_idx < vector_capacity(vv_delay_times); ++delay_times_idx) {
+                    double next_delay_t = deltm_el[delay_times_idx];
     ENDVERBATIM
-                net_send(next_delay_t, 10)
+                    net_send(next_delay_t, 10)  : use flag 10 to avoid interfering with GluSynapse logic
     VERBATIM
-              }
+                }
             }
     ENDVERBATIM
         }
     }
 
-    if(verbose > 0){
-        UNITSOFF
-        printf("t = %g, incoming spike at synapse %g\n", t, synapseID)
-        UNITSON
-    }
-    : Switch cases
-    if(flag == 10) {
-        : self event - use flag 10 to avoid interfering with GluSynapse logic
-        : first set next weight at delay
+    if(flag == 10) {  :// Handle delayed connection weight changes
     VERBATIM
-        // setup self events for delayed connections to change weights
         void *vv_delay_weights = *((void**)(&_p_delay_weights));
         if (vv_delay_weights && vector_capacity(vv_delay_weights)>=next_delay) {
-          double* weights_v = vector_vec(vv_delay_weights);
-          double next_delay_weight = weights_v[(int)next_delay];
+            double* weights_v = vector_vec(vv_delay_weights);
+            double next_delay_weight = weights_v[(int)next_delay];
     ENDVERBATIM
-          weight = conductance*next_delay_weight
-          next_delay = next_delay + 1
+            weight = conductance * next_delay_weight
+            next_delay = next_delay + 1
     VERBATIM
         }
         return;
     ENDVERBATIM
     }
+
+    if(verbose > 0){ UNITSOFF printf("Time = %g ms, incoming spike at synapse %g\n", t, synapseID) UNITSON }
+
     if(flag == 1) {
         : self event
         : Flag 1, Initialize watchers
