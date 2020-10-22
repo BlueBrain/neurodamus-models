@@ -89,6 +89,7 @@ NEURON {
     RANGE next_delay
     BBCOREPOINTER delay_times, delay_weights
     GLOBAL nc_type_param
+    GLOBAL minis_single_vesicle
     : For debugging
     :RANGE sgid, tgid
 }
@@ -173,6 +174,7 @@ PARAMETER {
     selected_for_report = 0
     conductance     = 0.0
     nc_type_param = 1
+    minis_single_vesicle = 0   :// 0 -> no limit (old behavior)
     :sgid = -1
     :tgid = -1
 }
@@ -345,15 +347,11 @@ DERIVATIVE state {
 
 
 NET_RECEIVE (weight, nc_type) {
+    : nc_type: 0=presynaptic netcon, 1=spontmini, 2=replay
     LOCAL result, ves, occu, Use_actual, tp, factor, Psurv, rewiring_time, rewiring_prob
 
     INITIAL {
-        if (nc_type == 0) {
-            : nc_type {
-            :   0 = presynaptic netcon
-            :   1 = spontmini netcon
-            :   2 = replay netcon
-            : }
+        if (nc_type == 0) {   : pre-synaptic netcon
     VERBATIM
             // setup self events for delayed connections to change weights
             void *vv_delay_times = *((void**)(&_p_delay_times));
@@ -416,12 +414,14 @@ NET_RECEIVE (weight, nc_type) {
                 return;
                 ENDVERBATIM
             }
+
             : Select Use_GB, if long-term plasticity is enabled
             if(enable_GB == 1) {
                 Use_actual = Use_GB
             } else {
                 Use_actual = Use
             }
+
             : Calculate u at event
             if(Fac > 0) {
                 : Update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
@@ -430,6 +430,7 @@ NET_RECEIVE (weight, nc_type) {
             } else {
                 u = Use_actual
             }
+
             : Recovery
             FROM counter = 0 TO (unoccupied - 1) {
                 : Iterate over all unoccupied sites and compute how many recover
@@ -444,9 +445,13 @@ NET_RECEIVE (weight, nc_type) {
                     }
                 }
             }
-            ves = 0              : Initialize the number of released vesicles to 0
-            occu = occupied - 1  : Store the number of occupied sites in a local var
-            FROM counter = 0 TO occu {
+
+            ves = 0                  : // Initialize the number of released vesicles to 0
+            occu = occupied          : // Make a copy, so we can update occupied in the loop
+            if (occu > 1 && minis_single_vesicle && nc_type == 1) {    : // if nc_type is spont_mini consider single vesicle
+                occu = 1
+            }
+            FROM counter = 0 TO (occu - 1) {
                 : iterate over all occupied sites and compute how many release
                 result = urand()
                 if(result<u) {
@@ -455,6 +460,7 @@ NET_RECEIVE (weight, nc_type) {
                     ves = ves + 1            : Increase number of released vesicles
                 }
             }
+
             : Update number of unoccupied sites
             unoccupied = Nrrp - occupied
             : Update AMPA variables

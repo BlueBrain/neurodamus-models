@@ -58,39 +58,42 @@ NEURON {
     RANGE g, NMDA_ratio
     RANGE A_AMPA_step, B_AMPA_step, A_NMDA_step, B_NMDA_step
     GLOBAL slope_mg, scale_mg, e
+
     NONSPECIFIC_CURRENT i
     BBCOREPOINTER rng
     RANGE synapseID, selected_for_report, verboseLevel, conductance
     RANGE next_delay
     BBCOREPOINTER delay_times, delay_weights
     GLOBAL nc_type_param
+    GLOBAL minis_single_vesicle
     : For debugging
     :RANGE sgid, tgid
 }
 
 PARAMETER {
-        tau_r_AMPA = 0.2   (ms)  : dual-exponential conductance profile
-        tau_d_AMPA = 1.7    (ms)  : IMPORTANT: tau_r < tau_d
-        tau_r_NMDA = 0.29   (ms) : dual-exponential conductance profile
-        tau_d_NMDA = 43     (ms) : IMPORTANT: tau_r < tau_d
-        Use = 1.0   (1)   : Utilization of synaptic efficacy (just initial values! Use, Dep and Fac are overwritten by BlueBuilder assigned values)
-        Dep = 100   (ms)  : relaxation time constant from depression
-        Fac = 10   (ms)  :  relaxation time constant from facilitation
-        e = 0     (mV)  : AMPA and NMDA reversal potential
-        mg = 1   (mM)  : initial concentration of mg2+
-        slope_mg = 0.062 (/mV) : default variables from Jahr & Stevens 1990
-        scale_mg = 3.57 (mM)
-        gmax = .001 (uS) : weight conversion factor (from nS to uS)
-        u0 = 0 :initial value of u, which is the running value of release probability
-        Nrrp = 1 (1)  : Number of total release sites for given contact
-        synapseID = 0
-        verboseLevel = 0
-        selected_for_report = 0
-        NMDA_ratio = 0.71 (1) : The ratio of NMDA to AMPA
-        conductance = 0.0
-        nc_type_param = 4
-        :sgid = -1
-        :tgid = -1
+    tau_r_AMPA = 0.2   (ms)  : dual-exponential conductance profile
+    tau_d_AMPA = 1.7    (ms)  : IMPORTANT: tau_r < tau_d
+    tau_r_NMDA = 0.29   (ms) : dual-exponential conductance profile
+    tau_d_NMDA = 43     (ms) : IMPORTANT: tau_r < tau_d
+    Use = 1.0   (1)   : Utilization of synaptic efficacy (just initial values! Use, Dep and Fac are overwritten by BlueBuilder assigned values)
+    Dep = 100   (ms)  : relaxation time constant from depression
+    Fac = 10   (ms)  :  relaxation time constant from facilitation
+    e = 0     (mV)  : AMPA and NMDA reversal potential
+    mg = 1   (mM)  : initial concentration of mg2+
+    slope_mg = 0.062 (/mV) : default variables from Jahr & Stevens 1990
+    scale_mg = 3.57 (mM)
+    gmax = .001 (uS) : weight conversion factor (from nS to uS)
+    u0 = 0 :initial value of u, which is the running value of release probability
+    Nrrp = 1 (1)  : Number of total release sites for given contact
+    synapseID = 0
+    verboseLevel = 0
+    selected_for_report = 0
+    NMDA_ratio = 0.71 (1) : The ratio of NMDA to AMPA
+    conductance = 0.0
+    nc_type_param = 4
+    minis_single_vesicle = 0   :// 0 - no limit (old behavior)
+    :sgid = -1
+    :tgid = -1
 }
 
 COMMENT
@@ -322,10 +325,12 @@ NET_RECEIVE (weight, weight_AMPA, weight_NMDA, Psurv, nc_type) {
         }
     }
 
-    ves = 0                  : Initialize the number of released vesicles to 0
-    occu = occupied - 1  : Store the number of occupied sites in a local variable
-
-    FROM counter = 0 TO occu {
+    ves = 0                  : // Initialize the number of released vesicles to 0
+    occu = occupied          : // Make a copy, so we can update occupied in the loop
+    if (occu > 1 && minis_single_vesicle && nc_type == 1) {    : // if nc_type is spont_mini consider single vesicle
+        occu = 1
+    }
+    FROM counter = 0 TO (occu - 1) {
         : iterate over all occupied sites and compute how many release
         result = urand()
         if (result<u) {

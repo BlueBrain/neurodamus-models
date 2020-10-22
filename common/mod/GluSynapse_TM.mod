@@ -81,6 +81,7 @@ NEURON {
     RANGE next_delay
     BBCOREPOINTER delay_times, delay_weights
     GLOBAL nc_type_param
+    GLOBAL minis_single_vesicle
     : For debugging
     :RANGE sgid, tgid
 }
@@ -163,6 +164,7 @@ PARAMETER {
     selected_for_report = 0
     conductance     = 0.0
     nc_type_param = 5
+    minis_single_vesicle = 0   :// 0 -> no limit (old behavior)
     :sgid = -1
     :tgid = -1
 }
@@ -339,6 +341,7 @@ DERIVATIVE state {
 }
 
 NET_RECEIVE (weight, u, tsyn (ms), recovered, unrecovered, nc_type) {
+    : nc_type: 0=presynaptic netcon, 1=spontmini, 2=replay
     LOCAL p_rec, released, tp, factor
     INITIAL {
         weight = 1
@@ -346,12 +349,8 @@ NET_RECEIVE (weight, u, tsyn (ms), recovered, unrecovered, nc_type) {
         tsyn = 0 (ms)
         recovered = Nrrp_TM
         unrecovered = 0
-        if (nc_type == 0) {
-            : nc_type {
-            :   0 = presynaptic netcon
-            :   1 = spontmini netcon
-            :   2 = replay netcon
-            : }
+
+        if (nc_type == 0) {   : pre-synaptic netcon
     VERBATIM
             // setup self events for delayed connections to change weights
             void *vv_delay_times = *((void**)(&_p_delay_times));
@@ -386,9 +385,15 @@ NET_RECEIVE (weight, u, tsyn (ms), recovered, unrecovered, nc_type) {
             : Recovery
             p_rec = 1 - exp(-(t - tsyn)/Dep_TM)
             recovered = recovered + brand(unrecovered, p_rec)
-            : Release
-            released = brand(recovered, u)
+
+            : Release. Cap released to 1 when using minis?
+            if (recovered > 1 && minis_single_vesicle && nc_type == 1) {
+                released = brand(1, u)
+            } else {
+                released = brand(recovered, u)
+            }
             if ( verbose > 0 ) { printf("\tReleased %g vesicles out of %g\n", released, Nrrp_TM) }
+
             : Update AMPA variables
             tp = (tau_r_AMPA*tau_d_AMPA)/(tau_d_AMPA-tau_r_AMPA)*log(tau_d_AMPA/tau_r_AMPA)  : Time to peak
             factor = 1 / (-exp(-tp/tau_r_AMPA)+exp(-tp/tau_d_AMPA))  : Normalization factor
@@ -399,6 +404,7 @@ NET_RECEIVE (weight, u, tsyn (ms), recovered, unrecovered, nc_type) {
             factor = 1 / (-exp(-tp/tau_r_NMDA)+exp(-tp/tau_d_NMDA))  : Normalization factor
             A_NMDA = A_NMDA + released/Nrrp_TM*factor
             B_NMDA = B_NMDA + released/Nrrp_TM*factor
+
             : Update vesicle pool
             recovered = recovered - released
             unrecovered = Nrrp_TM - recovered

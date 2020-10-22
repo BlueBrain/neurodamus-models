@@ -46,17 +46,21 @@ ENDCOMMENT
 NEURON {
     THREADSAFE
     POINT_PROCESS ProbGABAAB_EMS
+
     RANGE tau_r_GABAA, tau_d_GABAA, tau_r_GABAB, tau_d_GABAB
     RANGE Use, u, Dep, Fac, u0, tsyn
     RANGE unoccupied, occupied, Nrrp
+
     RANGE i,i_GABAA, i_GABAB, g_GABAA, g_GABAB, g, e_GABAA, e_GABAB, GABAB_ratio
     RANGE A_GABAA_step, B_GABAA_step, A_GABAB_step, B_GABAB_step
+
     NONSPECIFIC_CURRENT i
     BBCOREPOINTER rng
     RANGE synapseID, selected_for_report, verboseLevel, conductance
     RANGE next_delay
     BBCOREPOINTER delay_times, delay_weights
     GLOBAL nc_type_param
+    GLOBAL minis_single_vesicle
     : For debugging
     :RANGE sgid, tgid
 }
@@ -81,6 +85,7 @@ PARAMETER {
     GABAB_ratio = 0 (1) : The ratio of GABAB to GABAA
     conductance = 0.0
     nc_type_param = 4
+    minis_single_vesicle = 0   :// 0 - no limit (old behavior)
     :sgid = -1
     :tgid = -1
 }
@@ -314,10 +319,12 @@ ENDVERBATIM
         }
     }
 
-    ves = 0                  : Initialize the number of released vesicles to 0
-    occu = occupied - 1  : Store the number of occupied sites in a local variable
-
-    FROM counter = 0 TO occu {
+    ves = 0                  : // Initialize the number of released vesicles to 0
+    occu = occupied          : // Make a copy, so we can update occupied in the loop
+    if (occu > 1 && minis_single_vesicle && nc_type == 1) {    : // if nc_type is spont_mini consider single vesicle
+        occu = 1
+    }
+    FROM counter = 0 TO (occu - 1) {
         : iterate over all occupied sites and compute how many release
         result = urand()
         if (result<u) {
