@@ -33,7 +33,7 @@ proc init() { local tgid, x, synapseID, baseSeed, seed2, spopid, tpopid  localob
     baseSeed = $5
     spopid = $6
     tpopid = $7
-    
+
     synapse = new ProbAMPANMDA_EMS(x)
     synapse.tau_d_AMPA = synParams.DTC
     synapse.Use = abs( synParams.U )
@@ -43,13 +43,13 @@ proc init() { local tgid, x, synapseID, baseSeed, seed2, spopid, tpopid  localob
     if( synParams.nrrp >= 0 ) {
         synapse.Nrrp = synParams.nrrp
     }
-    
+
     // verify that only mask value if 1 (functional) or -1 (unset)
     if( !( synParams.maskValue == -1 || synParams.maskValue == 1 )) {
         print "Error synapse configuration. AMPA NMDA synapse should not have mask value: ", synParams.maskValue
         quit()
     }
-    
+
     rngInfo = new RNGSettings()
 
     if( rngInfo.getRNGMode() == rngInfo.RANDOM123 ) {

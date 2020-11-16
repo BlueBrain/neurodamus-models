@@ -27,13 +27,13 @@ proc init() { local tgid, x, synapseID, baseSeed  localobj synParams
     x = $3
     synapseID = $4
     baseSeed = $5
-    
+
     synapse = new DetAMPANMDA(x)
     synapse.tau_d_AMPA = synParams.DTC
     synapse.Use = abs( synParams.U )
     synapse.Dep = abs( synParams.D )
     synapse.Fac = abs( synParams.F )
-    
+
     synapse.synapseID = synapseID
 }
 
