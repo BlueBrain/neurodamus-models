@@ -45,7 +45,7 @@ NEURON {
     THREADSAFE
     POINT_PROCESS ProbAMPANMDA_EMS
 
-    GLOBAL tau_r_AMPA, tau_r_NMDA, tau_d_NMDA
+    RANGE tau_r_AMPA, tau_r_NMDA, tau_d_NMDA
     RANGE tau_d_AMPA
     RANGE Use, u, Dep, Fac, u0, mg, tsyn
     RANGE unoccupied, occupied, Nrrp
