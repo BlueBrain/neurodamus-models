@@ -36,8 +36,13 @@ proc init() { local tgid, x, synapseID, baseSeed, seed2, spopid, tpopid  localob
     x = $3
     synapseID = $4
     baseSeed = $5
-    spopid = $6
-    tpopid = $7
+    if (numarg()>=7) {
+        spopid = $6
+        tpopid = $7
+    } else {
+        spopid = 0
+        tpopid = 1
+    }
 
     synapse = new ProbGABAAB_EMS(x)
 

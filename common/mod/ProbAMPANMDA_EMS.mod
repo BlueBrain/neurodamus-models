@@ -61,6 +61,7 @@ NEURON {
     BBCOREPOINTER delay_times, delay_weights
     GLOBAL nc_type_param
     GLOBAL minis_single_vesicle
+    GLOBAL init_depleted
 
     :RANGE sgid, tgid  : For debugging
 }
@@ -88,6 +89,7 @@ PARAMETER {
     conductance = 0.0
     nc_type_param = 4
     minis_single_vesicle = 0   :// 0 - no limit (old behavior)
+    init_depleted = 0          :// 0 - init full (old behavior)
 }
 
 COMMENT
@@ -163,8 +165,13 @@ INITIAL {
         u=u0
 
         : MVR
-        unoccupied = 0
-        occupied = Nrrp
+        if ( init_depleted ) {
+            unoccupied = Nrrp
+            occupied = 0
+         } else {
+            unoccupied = 0
+            occupied = Nrrp
+        }
 
         A_AMPA = 0
         B_AMPA = 0

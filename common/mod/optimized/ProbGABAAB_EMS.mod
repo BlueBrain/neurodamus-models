@@ -56,6 +56,7 @@ NEURON {
     RANGE next_delay
     BBCOREPOINTER delay_times, delay_weights
     GLOBAL nc_type_param
+    GLOBAL init_depleted
     : For debugging
     :RANGE sgid, tgid
 }
@@ -80,6 +81,7 @@ PARAMETER {
     GABAB_ratio = 0 (1) : The ratio of GABAB to GABAA
     conductance = 0.0
     nc_type_param = 4
+    init_depleted = 0   :// 0 - init full (old behavior)
     :sgid = -1
     :tgid = -1
 }
@@ -148,8 +150,13 @@ INITIAL{
         u=u0
 
         : MVR
-        unoccupied = 0
-        occupied = Nrrp
+        if ( init_depleted ) {
+            unoccupied = Nrrp
+            occupied = 0
+        } else {
+            unoccupied = 0
+            occupied = Nrrp
+        }
 
         A_GABAA = 0
         B_GABAA = 0

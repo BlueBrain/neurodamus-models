@@ -89,6 +89,7 @@ NEURON {
     BBCOREPOINTER delay_times, delay_weights
     GLOBAL nc_type_param
     GLOBAL minis_single_vesicle
+    GLOBAL init_depleted
     : For debugging
     :RANGE sgid, tgid
 }
@@ -174,6 +175,7 @@ PARAMETER {
     conductance     = 0.0
     nc_type_param = 1
     minis_single_vesicle = 0   :// 0 -> no limit (old behavior)
+    init_depleted = 0          :// 0 -> init full (old behavior)
     :sgid = -1
     :tgid = -1
 }
@@ -553,8 +555,13 @@ PROCEDURE init_model() {
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
     tsyn            = 0
     u               = 0
-    unoccupied      = 0
-    occupied        = Nrrp
+    if ( init_depleted ) {
+        unoccupied      = Nrrp
+        occupied        = 0
+     } else {
+        unoccupied      = 0
+        occupied        = Nrrp
+    }
     : Postsynaptic Ca2+ dynamics
     cai_CR          = min_ca_CR
     : Long-term synaptic plasticity

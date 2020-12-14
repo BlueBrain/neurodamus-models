@@ -63,6 +63,7 @@ NEURON {
     RANGE next_delay
     BBCOREPOINTER delay_times, delay_weights
     GLOBAL nc_type_param
+    GLOBAL init_depleted
     : For debugging
     :RANGE sgid, tgid
 }
@@ -88,6 +89,7 @@ PARAMETER {
         NMDA_ratio = 0.71 (1) : The ratio of NMDA to AMPA
         conductance = 0.0
         nc_type_param = 4
+        init_depleted = 0     :// 0 - init full (old behavior)
         :sgid = -1
         :tgid = -1
 }
@@ -180,8 +182,13 @@ INITIAL {
         u=u0
 
         : MVR
-        unoccupied = 0
-        occupied = Nrrp
+        if ( init_depleted ) {
+            unoccupied = Nrrp
+            occupied = 0
+         } else {
+            unoccupied = 0
+            occupied = Nrrp
+        }
 
         A_AMPA = 0
         B_AMPA = 0

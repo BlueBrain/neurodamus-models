@@ -29,7 +29,7 @@ external synapseReaderGluSynapseHelper
  * @param baseSeed for random number generator
  * @param parseConnection Map of field/value pairs of Connection block taken from ConfigParser
  */
-proc init() { local tgid, x, synapseID, baseSeed, res  localobj synParams, parseConnection, fname, rngInfo
+proc init() { local tgid, x, synapseID, baseSeed, res, spopid, tpopid  localobj synParams, parseConnection, fname, rngInfo
     strdef datasetName
 
     tgid = $1
@@ -37,7 +37,15 @@ proc init() { local tgid, x, synapseID, baseSeed, res  localobj synParams, parse
     x = $3
     synapseID = $4
     baseSeed = $5
-    parseConnection = $o6
+    if (numarg()>=8) {
+        spopid = $6 // placeholder
+        tpopid = $7 // placeholder
+        parseConnection = $o8
+    } else {
+        parseConnection = $o6
+        spopid = 0 // placeholder
+        tpopid = 1 // placeholder
+    }
 
     rngInfo = new RNGSettings()
     synapse = new GluSynapse(x)
