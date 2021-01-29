@@ -359,7 +359,9 @@ NET_RECEIVE (weight, weight_AMPA, weight_NMDA, Psurv, nc_type) {
 
         if ( verboseLevel > 0 ) {
             UNITSOFF
-            printf( "[Syn %f] Release! t = %g: vals %g %g %g %g\n", synapseID, t, A_AMPA, weight_AMPA, factor_AMPA, weight )
+            printf( "[Syn %f] Release! t = %g: A_AMPA=%g weight_AMPA=%g factor_AMPA=%g", synapseID, t, A_AMPA, weight_AMPA, factor_AMPA)
+            printf( " | tau_r_AMPA=%g tau_d_AMPA=%g tau_r_NMDA=%g tau_d_NMDA=%g", tau_r_AMPA, tau_d_AMPA, tau_r_NMDA, tau_d_NMDA)
+            printf( " | weight=%g Use=%g Dep=%g Fac=%g\n", weight, Use, Dep, Fac)
             UNITSON
         }
 
@@ -367,7 +369,7 @@ NET_RECEIVE (weight, weight_AMPA, weight_NMDA, Psurv, nc_type) {
         : total release failure
         if ( verboseLevel > 0 ) {
             UNITSOFF
-            printf("[Syn %f] Failure! t = %g: urand = %g\n", synapseID, t, result)
+            printf("[Syn %f] Failure! t = %g: urand=%g Use=%g\n", synapseID, t, result, Use)
             UNITSON
         }
     }
