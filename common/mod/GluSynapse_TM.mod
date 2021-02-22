@@ -59,24 +59,22 @@ NEURON {
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
     RANGE Use0_TM, Dep_TM, Fac_TM, Nrrp_TM
     RANGE Use_d_TM, Use_p_TM
-    BBCOREPOINTER rng_rel
+    BBCOREPOINTER rng_TM
     : NMDAR-mediated calcium current
     RANGE ica_NMDA
     : Spine
     RANGE volume_CR
     : VDCC (R-type)
-    GLOBAL ljp_VDCC, vhm_VDCC, km_VDCC, mtau_VDCC, vhh_VDCC, kh_VDCC, htau_VDCC
-    RANGE gca_bar_VDCC, ica_VDCC
+    GLOBAL ljp_VDCC, vhm_VDCC, km_VDCC, mtau_VDCC, vhh_VDCC, kh_VDCC, htau_VDCC, gca_bar_VDCC
+    RANGE ica_VDCC
     : Postsynaptic Ca2+ dynamics
     GLOBAL gamma_ca_CR, tau_ca_CR, min_ca_CR, cao_CR
     : Long-term synaptic plasticity
     GLOBAL rho_star_GB, tau_ind_GB, tau_exp_GB, tau_effca_GB
-    GLOBAL gamma_d_pre_GB, gamma_p_pre_GB
-    RANGE theta_d_pre_GB, theta_p_pre_GB, rho0_pre_GB, dep_pre_GB, pot_pre_GB
-    GLOBAL gamma_d_post_GB, gamma_p_post_GB
-    RANGE theta_d_post_GB, theta_p_post_GB, rho0_post_GB, dep_post_GB, pot_post_GB
+    GLOBAL gamma_d_GB, gamma_p_GB
+    RANGE theta_d_GB, theta_p_GB, rho0_GB, dep_GB, pot_GB
     : Misc
-    RANGE vsyn, NMDA_ratio, synapseID, selected_for_report, verbose
+    RANGE vsyn, synapseID, selected_for_report, verbose
     NONSPECIFIC_CURRENT i
     RANGE conductance
     RANGE next_delay
@@ -118,8 +116,9 @@ PARAMETER {
     scale_NMDA      = 2.552     (mM)        : Scale of the mg block (Vargas-Caballero and Robinson 2003)
     slope_NMDA      = 0.072     (/mV)       : Slope of the ma block (Vargas-Caballero and Robinson 2003)
     tau_r_NMDA      = 0.29      (ms)        : Tau rise, dual-exponential conductance profile
-    tau_d_NMDA      = 43        (ms)        : Tau decay, IMPORTANT: tau_r < tau_d
+    tau_d_NMDA      = 70        (ms)        : Tau decay, IMPORTANT: tau_r < tau_d
     E_NMDA          = -3        (mV)        : Reversal potential (Vargas-Caballero and Robinson 2003)
+    gmax_NMDA       = 0.55      (nS)        : Peak conductance
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
     Use0_TM         = 0.5       (1)         : Initial utilization of synaptic efficacy
     Dep_TM          = 100       (ms)        : Relaxation time constant from depression
@@ -148,18 +147,12 @@ PARAMETER {
     tau_ind_GB      = 70        (s)
     tau_exp_GB      = 100       (s)
     tau_effca_GB    = 200       (ms)
-    gamma_d_pre_GB  = 100       (1)
-    gamma_p_pre_GB  = 450       (1)
-    theta_d_pre_GB  = 0.006     (us/liter)
-    theta_p_pre_GB  = 0.001     (us/liter)
-    rho0_pre_GB     = 0         (1)
-    gamma_d_post_GB = 100       (1)
-    gamma_p_post_GB = 450       (1)
-    theta_d_post_GB = 0.006     (us/liter)
-    theta_p_post_GB = 0.001     (us/liter)
-    rho0_post_GB    = 0         (1)
+    gamma_d_GB      = 100       (1)
+    gamma_p_GB      = 450       (1)
+    theta_d_GB      = 0.006     (us/liter)
+    theta_p_GB      = 0.001     (us/liter)
+    rho0_GB         = 0         (1)
     : Misc
-    NMDA_ratio      = 0.55      (1)         : In this model gmax_NMDA = gmax_AMPA*ratio_NMDA
     synapseID       = 0
     verbose         = 0
     selected_for_report = 0
@@ -196,18 +189,15 @@ ENDVERBATIM
 
 ASSIGNED {
     g_AMPA          (uS)    : AMPA Receptor
-    gmax_NMDA       (nS)    : NMDA Receptor
-    g_NMDA          (uS)
+    g_NMDA          (uS)    : NMDA Receptor
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
-    rng_rel                 : Random Number Generator
+    rng_TM                  : Random Number Generator
     usingR123               : TEMPORARY until mcellran4 completely deprecated
     ica_NMDA        (nA)    : NMDAR-mediated calcium current
     ica_VDCC        (nA)    : VDCC (R-type)
     : Long-term synaptic plasticity
-    dep_pre_GB      (1)
-    pot_pre_GB      (1)
-    dep_post_GB     (1)
-    pot_post_GB     (1)
+    dep_GB          (1)
+    pot_GB          (1)
     : Misc
     v               (mV)
     vsyn            (mV)
@@ -235,8 +225,7 @@ STATE {
     : Postsynaptic Ca2+ dynamics
     cai_CR      (mM)        <1e-6>
     : Long-term synaptic plasticity
-    rho_pre_GB  (1)
-    rho_post_GB (1)
+    rho_GB      (1)
     effcai_GB   (us/liter)  <1e-3>
 }
 
@@ -248,20 +237,16 @@ INITIAL{
     : NMDA Receptor
     A_NMDA      = 0
     B_NMDA      = 0
-    gmax_NMDA   = gmax0_AMPA*NMDA_ratio
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
     Use_TM      = Use0_TM
     : Postsynaptic Ca2+ dynamics
     cai_CR      = min_ca_CR
     : Long-term synaptic plasticity
-    rho_pre_GB  = rho0_pre_GB
-    rho_post_GB = rho0_post_GB
+    rho_GB      = rho0_GB
     effcai_GB   = 0
-    dep_pre_GB  = 0
-    pot_pre_GB  = 0
-    dep_post_GB = 0
-    pot_post_GB = 0
-
+    dep_GB      = 0
+    pot_GB      = 0
+    : Delayed connection
     next_delay = -1
 
     : Initialize watchers
@@ -316,12 +301,12 @@ DERIVATIVE state {
     : AMPA Receptor
     A_AMPA'      = - A_AMPA/tau_r_AMPA
     B_AMPA'      = - B_AMPA/tau_d_AMPA
-    gmax_AMPA'   = (gmax_d_AMPA + rho_post_GB*(gmax_p_AMPA - gmax_d_AMPA) - gmax_AMPA) / ((1e3)*tau_exp_GB)
+    gmax_AMPA'   = (gmax_d_AMPA + rho_GB*(gmax_p_AMPA - gmax_d_AMPA) - gmax_AMPA) / ((1e3)*tau_exp_GB)
     : NMDA Receptor
     A_NMDA'      = - A_NMDA/tau_r_NMDA
     B_NMDA'      = - B_NMDA/tau_d_NMDA
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
-    Use_TM'      = (Use_d_TM + rho_pre_GB*(Use_p_TM - Use_d_TM) - Use_TM) / ((1e3)*tau_exp_GB)
+    Use_TM'      = (Use_d_TM + rho_GB*(Use_p_TM - Use_d_TM) - Use_TM) / ((1e3)*tau_exp_GB)
     : VDCC (R-type)
     minf_VDCC    = 1 / (1 + exp(((vhm_VDCC - ljp_VDCC) - v) / km_VDCC))
     hinf_VDCC    = 1 / (1 + exp(((vhh_VDCC - ljp_VDCC) - v) / kh_VDCC))
@@ -332,12 +317,9 @@ DERIVATIVE state {
                    - (cai_CR - min_ca_CR)/tau_ca_CR
     : Long-term synaptic plasticity
     effcai_GB'   = - effcai_GB/tau_effca_GB + (cai_CR - min_ca_CR)
-    rho_pre_GB'  = ( - rho_pre_GB*(1 - rho_pre_GB)*(rho_star_GB - rho_pre_GB)
-                     + pot_pre_GB*gamma_p_pre_GB*(1 - rho_pre_GB)
-                     - dep_pre_GB*gamma_d_pre_GB*rho_pre_GB ) / ((1e3)*tau_ind_GB)
-    rho_post_GB' = ( - rho_post_GB*(1 - rho_post_GB)*(rho_star_GB - rho_post_GB)
-                     + pot_post_GB*gamma_p_post_GB*(1 - rho_post_GB)
-                     - dep_post_GB*gamma_d_post_GB*rho_post_GB ) / ((1e3)*tau_ind_GB)
+    rho_GB'      = ( - rho_GB*(1 - rho_GB)*(rho_star_GB - rho_GB)
+                     + pot_GB*gamma_p_GB*(1 - rho_GB)
+                     - dep_GB*gamma_d_GB*rho_GB ) / ((1e3)*tau_ind_GB)
 }
 
 
@@ -385,18 +367,16 @@ NET_RECEIVE (weight, u, tsyn (ms), recovered, unrecovered, nc_type) {
             if(verbose > 0){ printf("Flag 0, Regular spike\n") }
             : Update facilitation variable as Eq. 2 in Fuhrmann et al. 2002
             u = Use_TM + u*(1 - Use_TM)*exp(-(t - tsyn)/Fac_TM)
+            if ( verbose > 0 ) { printf("\tVesicle release probability = %g\n", u) }
             : Recovery
             p_rec = 1 - exp(-(t - tsyn)/Dep_TM)
+            if ( verbose > 0 ) { printf("\tVesicle recovery probability = %g\n", p_rec) }
+            if ( verbose > 0 ) { printf("\tVesicle available before recovery = %g\n", recovered) }
             recovered = recovered + brand(unrecovered, p_rec)
-
-            : Release. Cap released to 1 when using minis?
-            if (recovered > 1 && minis_single_vesicle && nc_type == 1) {
-                released = brand(1, u)
-            } else {
-                released = brand(recovered, u)
-            }
-            if ( verbose > 0 ) { printf("\tReleased %g vesicles out of %g\n", released, Nrrp_TM) }
-
+            if ( verbose > 0 ) { printf("\tVesicles available after recovery = %g\n", recovered) }
+            : Release
+            released = brand(recovered, u)
+            if ( verbose > 0 ) { printf("\tReleased %g vesicles out of %g\n", released, recovered) }
             : Update AMPA variables
             tp = (tau_r_AMPA*tau_d_AMPA)/(tau_d_AMPA-tau_r_AMPA)*log(tau_d_AMPA/tau_r_AMPA)  : Time to peak
             factor = 1 / (-exp(-tp/tau_r_AMPA)+exp(-tp/tau_d_AMPA))  : Normalization factor
@@ -411,6 +391,7 @@ NET_RECEIVE (weight, u, tsyn (ms), recovered, unrecovered, nc_type) {
             : Update vesicle pool
             recovered = recovered - released
             unrecovered = Nrrp_TM - recovered
+            if ( verbose > 0 ) { printf("\tFinal vesicle count, Recovered = %g, Unrecovered = %g, Nrrp = %g\n", recovered, unrecovered, Nrrp_TM) }
             : Update tsyn
             : tsyn knows about all spikes, not only those that released
             : i.e. each spike can increase the u, regardless of recovered state
@@ -420,46 +401,26 @@ NET_RECEIVE (weight, u, tsyn (ms), recovered, unrecovered, nc_type) {
     } else if(flag == 1) {
         : Flag 1, Initialize watchers
         if(verbose > 0){ printf("Flag 1, Initialize watchers\n") }
-        WATCH (effcai_GB > theta_d_pre_GB) 2
-        WATCH (effcai_GB < theta_d_pre_GB) 3
-        WATCH (effcai_GB > theta_p_pre_GB) 4
-        WATCH (effcai_GB < theta_p_pre_GB) 5
-        WATCH (effcai_GB > theta_d_post_GB) 6
-        WATCH (effcai_GB < theta_d_post_GB) 7
-        WATCH (effcai_GB > theta_p_post_GB) 8
-        WATCH (effcai_GB < theta_p_post_GB) 9
+        WATCH (effcai_GB > theta_d_GB) 2
+        WATCH (effcai_GB < theta_d_GB) 3
+        WATCH (effcai_GB > theta_p_GB) 4
+        WATCH (effcai_GB < theta_p_GB) 5
     } else if(flag == 2) {
-        : Flag 2, Activate presynaptic depression mechanisms
-        if(verbose > 0){ printf("Flag 2, Activate presynaptic depression mechanisms\n") }
-        dep_pre_GB = 1
+        : Flag 2, Activate depression mechanisms
+        if(verbose > 0){ printf("Flag 2, Activate depression mechanisms\n") }
+        dep_GB = 1
     } else if(flag == 3) {
-        : Flag 3, Deactivate presynaptic depression mechanisms
-        if(verbose > 0){ printf("Flag 3, Deactivate presynaptic depression mechanisms\n") }
-        dep_pre_GB = 0
+        : Flag 3, Deactivate depression mechanisms
+        if(verbose > 0){ printf("Flag 3, Deactivate depression mechanisms\n") }
+        dep_GB = 0
     } else if(flag == 4) {
-        : Flag 4, Activate presynaptic potentiation mechanisms
-        if(verbose > 0){ printf("Flag 4, Activate presynaptic potentiation mechanisms\n") }
-        pot_pre_GB = 1
+        : Flag 4, Activate potentiation mechanisms
+        if(verbose > 0){ printf("Flag 4, Activate potentiation mechanisms\n") }
+        pot_GB = 1
     } else if(flag == 5) {
-        : Flag 5, Deactivate presynaptic potentiation mechanisms
-        if(verbose > 0){ printf("Flag 5, Deactivate presynaptic potentiation mechanisms\n") }
-        pot_pre_GB = 0
-    } else if(flag == 6) {
-        : Flag 6, Activate postsynaptic depression mechanisms
-        if(verbose > 0){ printf("Flag 6, Activate postsynaptic depression mechanisms\n") }
-        dep_post_GB = 1
-    } else if(flag == 7) {
-        : Flag 7, Deactivate postsynaptic depression mechanisms
-        if(verbose > 0){ printf("Flag 7, Deactivate postsynaptic depression mechanisms\n") }
-        dep_post_GB = 0
-    } else if(flag == 8) {
-        : Flag 8, Activate postsynaptic potentiation mechanisms
-        if(verbose > 0){ printf("Flag 8, Activate presynaptic potentiation mechanisms\n") }
-        pot_post_GB = 1
-    } else if(flag == 9) {
-        : Flag 9, Deactivate presynaptic potentiation mechanisms
-        if(verbose > 0){ printf("Flag 9, Deactivate presynaptic potentiation mechanisms\n") }
-        pot_post_GB = 0
+        : Flag 5, Deactivate potentiation mechanisms
+        if(verbose > 0){ printf("Flag 5, Deactivate potentiation mechanisms\n") }
+        pot_GB = 0
     } else if(flag == 10) {
         : Flag 10, Handle delayed connection weight changes
     VERBATIM
@@ -489,7 +450,7 @@ PROCEDURE setRNG() {
     // Object => MCellRan4, seeds (double) => Random123
     usingR123 = 0;
     if( ifarg(1) && hoc_is_double_arg(1) ) {
-        nrnran123_State** pv = (nrnran123_State**)(&_p_rng_rel);
+        nrnran123_State** pv = (nrnran123_State**)(&_p_rng_TM);
         uint32_t a2 = 0;
         uint32_t a3 = 0;
         if (*pv) {
@@ -505,10 +466,10 @@ PROCEDURE setRNG() {
         *pv = nrnran123_newstream3((uint32_t)*getarg(1), a2, a3);
         usingR123 = 1;
     } else if( ifarg(1) ) {   // not a double, so assume hoc object type
-        void** pv = (void**)(&_p_rng_rel);
+        void** pv = (void**)(&_p_rng_TM);
         *pv = nrn_random_arg(1);
     } else {  // no arg, so clear pointer
-        void** pv = (void**)(&_p_rng_rel);
+        void** pv = (void**)(&_p_rng_TM);
         *pv = (void*)0;
     }
     #endif
@@ -520,10 +481,10 @@ FUNCTION urand() {
     VERBATIM
     double value;
     if ( usingR123 ) {
-        value = nrnran123_dblpick((nrnran123_State*)_p_rng_rel);
-    } else if (_p_rng_rel) {
+        value = nrnran123_dblpick((nrnran123_State*)_p_rng_TM);
+    } else if (_p_rng_TM) {
         #ifndef CORENEURON_BUILD
-        value = nrn_random_pick(_p_rng_rel);
+        value = nrn_random_pick(_p_rng_TM);
         #endif
     } else {
         value = 0.0;
@@ -556,7 +517,7 @@ FUNCTION bbsavestate() {
         void nrn_set_random_sequence(void* r, int val);
         xdir = hoc_pgetarg(1);
         xval = hoc_pgetarg(2);
-        if (_p_rng_rel) {
+        if (_p_rng_TM) {
             // tell how many items need saving
             if (*xdir == -1) {  // count items
                 if( usingR123 ) {
@@ -569,17 +530,17 @@ FUNCTION bbsavestate() {
                 if( usingR123 ) {
                     uint32_t seq;
                     char which;
-                    nrnran123_getseq( (nrnran123_State*)_p_rng_rel, &seq, &which );
+                    nrnran123_getseq( (nrnran123_State*)_p_rng_TM, &seq, &which );
                     xval[0] = (double) seq;
                     xval[1] = (double) which;
                 } else {
-                    xval[0] = (double)nrn_get_random_sequence(_p_rng_rel);
+                    xval[0] = (double)nrn_get_random_sequence(_p_rng_TM);
                 }
             } else {  // restore
                 if( usingR123 ) {
-                    nrnran123_setseq( (nrnran123_State*)_p_rng_rel, (uint32_t)xval[0], (char)xval[1] );
+                    nrnran123_setseq( (nrnran123_State*)_p_rng_TM, (uint32_t)xval[0], (char)xval[1] );
                 } else {
-                    nrn_set_random_sequence(_p_rng_rel, (long)(xval[0]));
+                    nrn_set_random_sequence(_p_rng_TM, (long)(xval[0]));
                 }
             }
         }
@@ -590,13 +551,13 @@ FUNCTION bbsavestate() {
 
 VERBATIM
 static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset, _threadargsproto_) {
-
     void *vv_delay_times = *((void**)(&_p_delay_times));
     void *vv_delay_weights = *((void**)(&_p_delay_weights));
+
     // make sure offset array non-null
     if (iArray) {
         // get handle to random123 instance
-        nrnran123_State** pv = (nrnran123_State**)(&_p_rng_rel);
+        nrnran123_State** pv = (nrnran123_State**)(&_p_rng_TM);
         // get location for storing ids
         uint32_t* ia = ((uint32_t*)iArray) + *ioffset;
         // retrieve/store identifier seeds
@@ -644,16 +605,15 @@ static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset
     *ioffset += 2;
 }
 
-
 static void bbcore_read(double* dArray, int* iArray, int* doffset, int* ioffset, _threadargsproto_) {
     // make sure it's not previously set
-    assert(!_p_rng_rel);
+    assert(!_p_rng_TM);
     assert(!_p_delay_times && !_p_delay_weights);
 
     uint32_t* ia = ((uint32_t*)iArray) + *ioffset;
     // make sure non-zero identifier seeds
     if (ia[0] != 0 || ia[1] != 0 || ia[2] != 0) {
-        nrnran123_State** pv = (nrnran123_State**)(&_p_rng_rel);
+        nrnran123_State** pv = (nrnran123_State**)(&_p_rng_TM);
         // get new stream
         *pv = nrnran123_newstream3(ia[0], ia[1], ia[2]);
         // restore sequence

@@ -32,8 +32,6 @@ def get_ballstick():
 
 class TestLTPLTD(object):
     def setUp(self):
-        # neuron.h.cvode.active(1)
-        # neuron.h.cvode.atol(0.0001)
         # Create model
         seed = 1234
         self.soma, self.dend = get_ballstick()
@@ -46,7 +44,7 @@ class TestLTPLTD(object):
         neuron.h.celsius = 34.0
         neuron.h.stdinit()
 
-    def steady_state_rho(self, rho0, gamma_d, theta_x, locus):
+    def steady_state_rho(self, rho0, gamma_d, theta_x):
         # Fixed parameters
         gamma_p = 100.0
         # Target rho and tau
@@ -65,16 +63,16 @@ class TestLTPLTD(object):
         else:
             raise NotImplementedError()
         # All other parameters
-        setattr(self.syn, "theta_d_%s_GB" % locus, theta_x)
-        setattr(self.syn, "theta_p_%s_GB" % locus, theta_x)
-        setattr(self.syn, "rho0_%s_GB" % locus, rho0)
+        self.syn.theta_d_GB = theta_x
+        self.syn.theta_p_GB = theta_x
+        self.syn.rho0_GB = rho0
         neuron.h.tau_ind_GB_GluSynapse_TM = tau
-        setattr(neuron.h, "gamma_d_%s_GB_GluSynapse_TM" % locus, gamma_d)
-        setattr(neuron.h, "gamma_p_%s_GB_GluSynapse_TM" % locus, gamma_p)
+        neuron.h.gamma_d_GB_GluSynapse_TM = gamma_d
+        neuron.h.gamma_p_GB_GluSynapse_TM = gamma_p
         # Recordings
         rho = neuron.h.Vector()
         t = neuron.h.Vector()
-        rho.record(getattr(self.syn, "_ref_rho_%s_GB" % locus))
+        rho.record(self.syn._ref_rho_GB)
         t.record(neuron.h._ref_t)
         self.finalizemodel()
         # Run
@@ -95,20 +93,19 @@ class TestLTPLTD(object):
         gamma_d_vec = [15, 100, 150]
         Use_vec = [0.1, 0.5, 0.9]
         theta_vec = [0, np.inf]
-        locus_vec = ["pre", "post"]
 
-        for Use, gamma_d, theta, locus in product(
-            Use_vec, gamma_d_vec, theta_vec, locus_vec
+        for Use, gamma_d, theta in product(
+            Use_vec, gamma_d_vec, theta_vec
         ):
-            yield self.steady_state_rho, Use, gamma_d, theta, locus
+            yield self.steady_state_rho, Use, gamma_d, theta
 
-    def test_use_convergence(self):
+    def use_convergence(self, rho_GB, Use0_TM):
         # Parameters
-        self.syn.theta_d_pre_GB = np.inf
-        self.syn.theta_p_pre_GB = np.inf
+        self.syn.theta_d_GB = np.inf
+        self.syn.theta_p_GB = np.inf
         self.syn.Use_d_TM = 0.1
         self.syn.Use_p_TM = 0.9
-        self.syn.Use0_TM = 0.1
+        self.syn.Use0_TM = Use0_TM
         neuron.h.tau_exp_GB_GluSynapse_TM = 0.1
         # Recordings
         use = neuron.h.Vector()
@@ -117,24 +114,26 @@ class TestLTPLTD(object):
         t.record(neuron.h._ref_t)
         self.finalizemodel()
         # Simulate rho change
-        self.syn.rho_pre_GB = 1.0
+        self.syn.rho_GB = rho_GB
         # Run
         neuron.run(2000.0)
         if DEBUG:
             plt.figure()
             plt.plot(t, use)
+            plt.title(f"rho_GR {rho_GB}")
             plt.show()
         # Test
         usenp = use.as_numpy()
-        npt.assert_almost_equal(usenp[-1], 0.9, decimal=5)
+        use_target = self.syn.Use_d_TM + rho_GB * (self.syn.Use_p_TM - self.syn.Use_d_TM)
+        npt.assert_almost_equal(usenp[-1], use_target, decimal=2)
 
-    def test_gmax_convergence(self):
+    def gmax_convergence(self, rho_GB, gmax0_AMPA):
         # Parameters
-        self.syn.theta_d_post_GB = np.inf
-        self.syn.theta_p_post_GB = np.inf
+        self.syn.theta_d_GB = np.inf
+        self.syn.theta_p_GB = np.inf
         self.syn.gmax_d_AMPA = 1.0
         self.syn.gmax_p_AMPA = 3.0
-        self.syn.gmax0_AMPA = 0.1
+        self.syn.gmax0_AMPA = gmax0_AMPA
         neuron.h.tau_exp_GB_GluSynapse_TM = 0.1
         # Recordings
         g = neuron.h.Vector()
@@ -143,13 +142,30 @@ class TestLTPLTD(object):
         t.record(neuron.h._ref_t)
         self.finalizemodel()
         # Simulate rho change
-        self.syn.rho_post_GB = 1.0
+        self.syn.rho_GB = rho_GB
         # Run
         neuron.run(2000.0)
         if DEBUG:
             plt.figure()
             plt.plot(t, g)
+            plt.title(f"rho_GR {rho_GB}")
             plt.show()
         # Test
         gnp = g.as_numpy()
-        npt.assert_almost_equal(gnp[-1], 3, decimal=5)
+        gmax_target = self.syn.gmax_d_AMPA + rho_GB * (self.syn.gmax_p_AMPA - self.syn.gmax_d_AMPA)
+        npt.assert_almost_equal(gnp[-1], gmax_target, decimal=2)
+
+    def test_convergence(self):
+        rho_GB_vec = [0.0, 0.15, 0.50, 0.85, 1.00]
+        Use0_TM_vec = [0.0, 0.05, 0.1, 0.15, 0.5, 0.85, 0.95, 1.00]
+        gmax0_AMPA_vec = [0.0, 0.25, 1.00, 1.25, 2.0, 2.75, 3.00, 3.75, 4.00]
+
+        for rho_GB, Use0_TM in product(
+            rho_GB_vec, Use0_TM_vec
+        ):
+            yield self.use_convergence, rho_GB, Use0_TM
+
+        for rho_GB, gmax0_AMPA in product(
+            rho_GB_vec, gmax0_AMPA_vec
+        ):
+            yield self.gmax_convergence, rho_GB, gmax0_AMPA
