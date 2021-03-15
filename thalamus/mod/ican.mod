@@ -52,7 +52,7 @@ PARAMETER {
 	cai 	= 2.4e-4 (mM)		: initial [Ca]i
 	gbar	= 0.00025 (mho/cm2)
 	beta	= 0.002	(1/ms)		: backward rate constant
-	cac	= 0.01	(mM)		: middle point of activation fct
+	cac	= 1.1e-4	(mM)		: middle point of activation fct. EI: original 0.01, modified to 1e-4 as in Zhu et al., 1999 and Halnes et al., 2011
 	taumin	= 0.1	(ms)		: minimal value of time constant
 }
 
@@ -94,7 +94,7 @@ INITIAL {
 
 PROCEDURE evaluate_fct(v(mV),cai(mM)) {  LOCAL alpha2
 
-	alpha2 = beta * (cai/cac)^2
+	alpha2 = beta * (cai/cac)^2 : EI: other models, es. Halnes 2011 used exponent 8
 
 	tau_m = 1 / (alpha2 + beta) / tadj
 	m_inf = alpha2 / (alpha2 + beta)

@@ -4,7 +4,7 @@ TITLE Leak potassium current
 NEURON {
 	SUFFIX TC_Kleak
 	USEION  k READ ek WRITE ik
-	RANGE g, i_rec
+	RANGE gmax, i_rec
 }
 
 UNITS {
@@ -14,7 +14,7 @@ UNITS {
 }
 
 PARAMETER {
-	g = 1.0e-5	(S/cm2)
+	gmax = 1.0e-5	(S/cm2)
 }
 
 ASSIGNED {
@@ -26,7 +26,7 @@ ASSIGNED {
 
 
 BREAKPOINT {
-	ik = g*(v - ek)
+	ik = gmax*(v - ek)
 	i_rec = ik
 }
 
