@@ -475,7 +475,7 @@ static void bbcore_write(double* x, int* d, int* x_offset, int* d_offset, _threa
     nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
     nrnran123_getids3(*pv, di, di+1, di+2);
 
-    unsigned char which;
+    char which;
     nrnran123_getseq(*pv, di+3, &which);
     di[4] = (int)which;
     //printf("ProbAMPANMDA_EMS bbcore_write %d %d %d\n", di[0], di[1], di[2]);
