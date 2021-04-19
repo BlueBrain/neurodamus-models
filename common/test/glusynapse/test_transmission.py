@@ -294,3 +294,67 @@ class TestTransmission(object):
         # Restore tau_d_NMDA ad cao_CR
         neuron.h.tau_d_NMDA_GluSynapse_TM = tau_d_NMDA
         neuron.h.cao_CR_GluSynapse_TM = cao_CR
+
+    def test_nmdar_magnesium_block(self):
+        """Test fraction of unblocked NMDAR conductance.
+        The model must reproduce the results in Fig. 1B of Vargas-Caballero and
+        Robinson 2003.
+        """
+        # Store current value of tau_d_NMDA and set new value to (almost) infinity
+        tau_d_NMDA = neuron.h.tau_d_NMDA_GluSynapse_TM
+        neuron.h.tau_d_NMDA_GluSynapse_TM = 1e12
+        # Activate synapse after 100 ms
+        tspike = 100.0
+        vecStim = neuron.h.VecStim()
+        vec = neuron.h.Vector([tspike])
+        vecStim.play(vec)
+        netCon = neuron.h.NetCon(vecStim, self.syn)
+        netCon.weight[0] = 1
+        netCon.delay = 2  # ms
+        self.syn.Use0_TM = 1
+        # Disable AMPAR and Use plasticity
+        self.syn.theta_d_GB = np.inf
+        self.syn.theta_p_GB = np.inf
+        # Voltage steps to test
+        vvec = np.linspace(-70, 40, 15)
+        scond = []
+        for vstep in vvec:
+            # Add voltage clamp
+            vclamp = neuron.h.SEClamp(0.5, sec=self.soma)
+            vclamp.amp1 = -70.0
+            vclamp.amp2 = vstep
+            vclamp.amp3 = -70.0
+            vclamp.dur1 = 200
+            vclamp.dur2 = 600
+            vclamp.dur3 = 200
+            # Set recordings
+            t = neuron.h.Vector()
+            v = neuron.h.Vector()
+            g_NMDA = neuron.h.Vector()
+            t.record(neuron.h._ref_t)
+            v.record(self.soma(0.5)._ref_v)
+            g_NMDA.record(self.syn._ref_g_NMDA)
+            # Run sim
+            self.finalizemodel()
+            neuron.run(1000.0)
+            # Get stationary conductance
+            tidx = np.searchsorted(t, 750.0)
+            scond.append(
+                float(g_NMDA[tidx]) / (1e-3 * self.syn.gmax_NMDA)
+            )  # Gmax NMDA needs to be manually computed
+        scond = np.array(scond)
+        # Compute target
+        T_body = 309.15
+        target_scond = binf_VCR(vvec, T_body)
+        if DEBUG:
+            import matplotlib.pyplot as plt
+
+            fig, ax = plt.subplots()
+            ax.plot(vvec, scond, label="NMODL")
+            ax.plot(vvec, target_scond, label="Boltzmann distribution")
+            ax.legend(loc=0)
+            plt.show()
+        # Test deviation from target
+        npt.assert_array_almost_equal(scond, target_scond, decimal=3)
+        # Restore tau_d_NMDA ad cao_CR
+        neuron.h.tau_d_NMDA_GluSynapse_TM = tau_d_NMDA
