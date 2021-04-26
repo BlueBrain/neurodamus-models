@@ -43,7 +43,7 @@ class TestTransmission(object):
         self.soma.Ra = 200.0
         self.soma.g_pas = 1e-5
         self.soma.cm = 1
-        self.syn = neuron.h.GluSynapse_TM(0.5, sec=self.soma)
+        self.syn = neuron.h.GluSynapse(0.5, sec=self.soma)
         self.syn.setRNG(self.seed, self.seed)
         self.syn.verbose = DEBUG
 
@@ -65,7 +65,7 @@ class TestTransmission(object):
         netCon = neuron.h.NetCon(vecStim, self.syn)
         netCon.weight[0] = 1
         netCon.delay = 2  # ms
-        self.syn.Use0_TM = 1
+        self.syn.Use = 1
         # Disable AMPAR plasticity
         self.syn.theta_d_GB = np.inf
         self.syn.theta_p_GB = np.inf
@@ -84,7 +84,6 @@ class TestTransmission(object):
             neuron.run(200.0)
             if DEBUG:
                 import matplotlib.pyplot as plt
-
                 fig, ax = plt.subplots()
                 ax.plot(t, g)
                 plt.show()
@@ -94,9 +93,9 @@ class TestTransmission(object):
             tpeak = t[np.argmax(g)]
             tpeak_expected = (
                 tspike
-                + (neuron.h.tau_r_AMPA_GluSynapse_TM * self.syn.tau_d_AMPA)
-                / (self.syn.tau_d_AMPA - neuron.h.tau_r_AMPA_GluSynapse_TM)
-                * np.log(self.syn.tau_d_AMPA / neuron.h.tau_r_AMPA_GluSynapse_TM)
+                + (neuron.h.tau_r_AMPA_GluSynapse * self.syn.tau_d_AMPA)
+                / (self.syn.tau_d_AMPA - neuron.h.tau_r_AMPA_GluSynapse)
+                * np.log(self.syn.tau_d_AMPA / neuron.h.tau_r_AMPA_GluSynapse)
                 + netCon.delay
             )
             npt.assert_almost_equal(tpeak, tpeak_expected, decimal=1)
@@ -113,9 +112,9 @@ class TestTransmission(object):
         netCon = neuron.h.NetCon(vecStim, self.syn)
         netCon.weight[0] = 1
         netCon.delay = 2  # ms
-        self.syn.Use0_TM = 1
+        self.syn.Use = 1
         # Magnesium free condition
-        neuron.h.mgo_NMDA_GluSynapse_TM = 0
+        self.syn.mg = 0
         # Test 1 nS and 15 nS
         for gmax in (1.0, 15.0):
             self.syn.gmax_NMDA = gmax
@@ -141,9 +140,9 @@ class TestTransmission(object):
             tpeak = t[np.argmax(g)]
             tpeak_expected = (
                 tspike
-                + (neuron.h.tau_r_NMDA_GluSynapse_TM * neuron.h.tau_d_NMDA_GluSynapse_TM)
-                / (neuron.h.tau_d_NMDA_GluSynapse_TM - neuron.h.tau_r_NMDA_GluSynapse_TM)
-                * np.log(neuron.h.tau_d_NMDA_GluSynapse_TM / neuron.h.tau_r_NMDA_GluSynapse_TM)
+                + (neuron.h.tau_r_NMDA_GluSynapse * neuron.h.tau_d_NMDA_GluSynapse)
+                / (neuron.h.tau_d_NMDA_GluSynapse - neuron.h.tau_r_NMDA_GluSynapse)
+                * np.log(neuron.h.tau_d_NMDA_GluSynapse / neuron.h.tau_r_NMDA_GluSynapse)
                 + netCon.delay
             )
             npt.assert_almost_equal(tpeak, tpeak_expected, decimal=1)
@@ -158,11 +157,11 @@ class TestTransmission(object):
         netCon.weight[0] = 1
         netCon.delay = 2  # ms
         # Disable AMPAR and Use plasticity
-        self.syn.theta_d_GB = np.inf
-        self.syn.theta_p_GB = np.inf
+        self.syn.theta_d_GB = -1
+        self.syn.theta_p_GB = -1
         # Set release probability
-        self.syn.Use0_TM = u
-        self.syn.Nrrp_TM = Nrrp
+        self.syn.Use = u
+        self.syn.Nrrp = Nrrp
         # Test many trials
         n_trials = 10000
         rel_events = np.zeros(Nrrp + 1)
@@ -219,10 +218,10 @@ class TestTransmission(object):
         through the NMDAR follows quite closely the GHK flux equation.
         """
         # Store current value of tau_d_NMDA and set new value to (almost) infinity
-        tau_d_NMDA = neuron.h.tau_d_NMDA_GluSynapse_TM
-        neuron.h.tau_d_NMDA_GluSynapse_TM = 1e12
+        tau_d_NMDA = neuron.h.tau_d_NMDA_GluSynapse
+        neuron.h.tau_d_NMDA_GluSynapse = 1e12
         # Store current value of cao_CR, updated during the test
-        cao_CR = neuron.h.cao_CR_GluSynapse_TM
+        cao_CR = neuron.h.cao_CR_GluSynapse
         # Activate synapse after 100 ms
         tspike = 100.0
         vecStim = neuron.h.VecStim()
@@ -231,10 +230,10 @@ class TestTransmission(object):
         netCon = neuron.h.NetCon(vecStim, self.syn)
         netCon.weight[0] = 1
         netCon.delay = 2  # ms
-        self.syn.Use0_TM = 1
+        self.syn.Use = 1
         # Disable AMPAR and Use plasticity
-        self.syn.theta_d_GB = np.inf
-        self.syn.theta_p_GB = np.inf
+        self.syn.theta_d_GB = -1
+        self.syn.theta_p_GB = -1
         # Extracellular calcium and voltage levels to test
         caovec = [1.2, 1.6, 2.0]
         vstepvec = np.linspace(-85.0, 35.0, 9)
@@ -254,7 +253,7 @@ class TestTransmission(object):
                 vclamp.dur2 = 600
                 vclamp.dur3 = 200
                 # Set calcium level
-                neuron.h.cao_CR_GluSynapse_TM = cao
+                neuron.h.cao_CR_GluSynapse = cao
                 # Set recordings
                 t = neuron.h.Vector()
                 v = neuron.h.Vector()
@@ -268,7 +267,7 @@ class TestTransmission(object):
                 self.finalizemodel()
                 neuron.run(1000.0)
                 # Compute ica/i ratio
-                i_NMDA = np.array(g_NMDA) * (np.array(v) - neuron.h.E_NMDA_GluSynapse_TM)
+                i_NMDA = np.array(g_NMDA) * (np.array(v) - neuron.h.E_NMDA_GluSynapse)
                 tidx = np.searchsorted(t, 750.0)
                 iratio = ica_NMDA[tidx] / i_NMDA[tidx]
                 # GHK ica/i ratio
@@ -292,8 +291,8 @@ class TestTransmission(object):
             if DEBUG:
                 plt.show()
         # Restore tau_d_NMDA ad cao_CR
-        neuron.h.tau_d_NMDA_GluSynapse_TM = tau_d_NMDA
-        neuron.h.cao_CR_GluSynapse_TM = cao_CR
+        neuron.h.tau_d_NMDA_GluSynapse = tau_d_NMDA
+        neuron.h.cao_CR_GluSynapse = cao_CR
 
     def test_nmdar_magnesium_block(self):
         """Test fraction of unblocked NMDAR conductance.
@@ -301,8 +300,8 @@ class TestTransmission(object):
         Robinson 2003.
         """
         # Store current value of tau_d_NMDA and set new value to (almost) infinity
-        tau_d_NMDA = neuron.h.tau_d_NMDA_GluSynapse_TM
-        neuron.h.tau_d_NMDA_GluSynapse_TM = 1e12
+        tau_d_NMDA = neuron.h.tau_d_NMDA_GluSynapse
+        neuron.h.tau_d_NMDA_GluSynapse = 1e12
         # Activate synapse after 100 ms
         tspike = 100.0
         vecStim = neuron.h.VecStim()
@@ -311,10 +310,10 @@ class TestTransmission(object):
         netCon = neuron.h.NetCon(vecStim, self.syn)
         netCon.weight[0] = 1
         netCon.delay = 2  # ms
-        self.syn.Use0_TM = 1
+        self.syn.Use = 1
         # Disable AMPAR and Use plasticity
-        self.syn.theta_d_GB = np.inf
-        self.syn.theta_p_GB = np.inf
+        self.syn.theta_d_GB = -1
+        self.syn.theta_p_GB = -1
         # Voltage steps to test
         vvec = np.linspace(-70, 40, 15)
         scond = []
@@ -357,4 +356,4 @@ class TestTransmission(object):
         # Test deviation from target
         npt.assert_array_almost_equal(scond, target_scond, decimal=3)
         # Restore tau_d_NMDA ad cao_CR
-        neuron.h.tau_d_NMDA_GluSynapse_TM = tau_d_NMDA
+        neuron.h.tau_d_NMDA_GluSynapse = tau_d_NMDA

@@ -35,7 +35,7 @@ class TestLTPLTD(object):
         # Create model
         seed = 1234
         self.soma, self.dend = get_ballstick()
-        self.syn = neuron.h.GluSynapse_TM(0.5, sec=self.dend)
+        self.syn = neuron.h.GluSynapse(0.5, sec=self.dend)
         self.syn.setRNG(seed, seed + 1, seed + 2)
 
     def finalizemodel(self):
@@ -51,13 +51,13 @@ class TestLTPLTD(object):
         if theta_x == 0:
             target_rho = gamma_p / (gamma_p + gamma_d)
             tau = 10.0
-        elif theta_x == np.inf and rho0 < neuron.h.rho_star_GB_GluSynapse_TM:
+        elif theta_x == np.inf and rho0 < neuron.h.rho_star_GB_GluSynapse:
             target_rho = 0
             tau = 0.05
-        elif theta_x == np.inf and rho0 == neuron.h.rho_star_GB_GluSynapse_TM:
-            target_rho = neuron.h.rho_star_GB_GluSynapse_TM
+        elif theta_x == np.inf and rho0 == neuron.h.rho_star_GB_GluSynapse:
+            target_rho = neuron.h.rho_star_GB_GluSynapse
             tau = 0.05
-        elif theta_x == np.inf and rho0 > neuron.h.rho_star_GB_GluSynapse_TM:
+        elif theta_x == np.inf and rho0 > neuron.h.rho_star_GB_GluSynapse:
             target_rho = 1
             tau = 0.05
         else:
@@ -66,9 +66,9 @@ class TestLTPLTD(object):
         self.syn.theta_d_GB = theta_x
         self.syn.theta_p_GB = theta_x
         self.syn.rho0_GB = rho0
-        neuron.h.tau_ind_GB_GluSynapse_TM = tau
-        neuron.h.gamma_d_GB_GluSynapse_TM = gamma_d
-        neuron.h.gamma_p_GB_GluSynapse_TM = gamma_p
+        neuron.h.tau_ind_GB_GluSynapse = tau
+        neuron.h.gamma_d_GB_GluSynapse = gamma_d
+        neuron.h.gamma_p_GB_GluSynapse = gamma_p
         # Recordings
         rho = neuron.h.Vector()
         t = neuron.h.Vector()
@@ -99,18 +99,18 @@ class TestLTPLTD(object):
         ):
             yield self.steady_state_rho, Use, gamma_d, theta
 
-    def use_convergence(self, rho_GB, Use0_TM):
+    def use_convergence(self, rho_GB, Use):
         # Parameters
-        self.syn.theta_d_GB = np.inf
-        self.syn.theta_p_GB = np.inf
-        self.syn.Use_d_TM = 0.1
-        self.syn.Use_p_TM = 0.9
-        self.syn.Use0_TM = Use0_TM
-        neuron.h.tau_exp_GB_GluSynapse_TM = 0.1
+        self.syn.theta_d_GB = -1
+        self.syn.theta_p_GB = -1
+        self.syn.Use_d = 0.1
+        self.syn.Use_p = 0.9
+        self.syn.Use = Use
+        neuron.h.tau_exp_GB_GluSynapse = 0.1
         # Recordings
         use = neuron.h.Vector()
         t = neuron.h.Vector()
-        use.record(self.syn._ref_Use_TM)
+        use.record(self.syn._ref_Use_GB)
         t.record(neuron.h._ref_t)
         self.finalizemodel()
         # Simulate rho change
@@ -124,17 +124,17 @@ class TestLTPLTD(object):
             plt.show()
         # Test
         usenp = use.as_numpy()
-        use_target = self.syn.Use_d_TM + rho_GB * (self.syn.Use_p_TM - self.syn.Use_d_TM)
+        use_target = self.syn.Use_d + rho_GB * (self.syn.Use_p - self.syn.Use_d)
         npt.assert_almost_equal(usenp[-1], use_target, decimal=2)
 
     def gmax_convergence(self, rho_GB, gmax0_AMPA):
         # Parameters
-        self.syn.theta_d_GB = np.inf
-        self.syn.theta_p_GB = np.inf
+        self.syn.theta_d_GB = -1
+        self.syn.theta_p_GB = -1
         self.syn.gmax_d_AMPA = 1.0
         self.syn.gmax_p_AMPA = 3.0
         self.syn.gmax0_AMPA = gmax0_AMPA
-        neuron.h.tau_exp_GB_GluSynapse_TM = 0.1
+        neuron.h.tau_exp_GB_GluSynapse = 0.1
         # Recordings
         g = neuron.h.Vector()
         t = neuron.h.Vector()
@@ -157,13 +157,13 @@ class TestLTPLTD(object):
 
     def test_convergence(self):
         rho_GB_vec = [0.0, 0.15, 0.50, 0.85, 1.00]
-        Use0_TM_vec = [0.0, 0.05, 0.1, 0.15, 0.5, 0.85, 0.95, 1.00]
+        Use_vec = [0.0, 0.05, 0.1, 0.15, 0.5, 0.85, 0.95, 1.00]
         gmax0_AMPA_vec = [0.0, 0.25, 1.00, 1.25, 2.0, 2.75, 3.00, 3.75, 4.00]
 
-        for rho_GB, Use0_TM in product(
-            rho_GB_vec, Use0_TM_vec
+        for rho_GB, Use in product(
+            rho_GB_vec, Use_vec
         ):
-            yield self.use_convergence, rho_GB, Use0_TM
+            yield self.use_convergence, rho_GB, Use
 
         for rho_GB, gmax0_AMPA in product(
             rho_GB_vec, gmax0_AMPA_vec
