@@ -290,7 +290,7 @@ NET_RECEIVE (weight, weight_AMPA, weight_NMDA, Psurv, nc_type) {
 
     : [flag == 0] Handle a spike which arrived
     :UNITSOFF
-    :printf( "synapse %f (%f, %f) with weight %g at time %g\n", synapseID, sgid, tgid, weight, t)
+    :printf("[Syn %.0f] Received! (%f -> %f) with weight %g at time %g\n", synapseID, sgid, tgid, weight, t)
     :UNITSON
 
     : Do not perform any calculations if the synapse (netcon) is deactivated. This avoids drawing from
@@ -321,7 +321,7 @@ NET_RECEIVE (weight, weight_AMPA, weight_NMDA, Psurv, nc_type) {
             occupied = occupied + 1     :// recover a previously unoccupied site
             if ( verboseLevel > 0 ) {
                 UNITSOFF
-                printf( "Recovered! %f at time %g: Psurv = %g, urand=%g\n", synapseID, t, Psurv, result )
+                printf("[Syn %.0f] Recovered! t = %g, Psurv = %g, urand = %g\n", synapseID, t, Psurv, result)
                 UNITSON
             }
         }
@@ -359,7 +359,8 @@ NET_RECEIVE (weight, weight_AMPA, weight_NMDA, Psurv, nc_type) {
 
         if ( verboseLevel > 0 ) {
             UNITSOFF
-            printf( "[Syn %f] Release! t = %g: vals %g %g %g %g\n", synapseID, t, A_AMPA, weight_AMPA, factor_AMPA, weight )
+            printf("[Syn %.0f] Release! t = %g, vals: %g %g %g %g\n",
+                   synapseID, t, A_AMPA, weight_AMPA, factor_AMPA, weight)
             UNITSON
         }
 
@@ -367,7 +368,7 @@ NET_RECEIVE (weight, weight_AMPA, weight_NMDA, Psurv, nc_type) {
         : total release failure
         if ( verboseLevel > 0 ) {
             UNITSOFF
-            printf("[Syn %f] Failure! t = %g: urand = %g\n", synapseID, t, result)
+            printf("[Syn %.0f] Failure! t = %g, urand = %g\n", synapseID, t, result)
             UNITSON
         }
     }
