@@ -39,7 +39,6 @@ a Poisson process with rate 1/Dep.
 
 This model satisys all of (1)-(4).
 
-
 ENDCOMMENT
 
 
@@ -56,34 +55,34 @@ NEURON {
     RANGE next_delay
     BBCOREPOINTER delay_times, delay_weights
     GLOBAL nc_type_param
+    GLOBAL minis_single_vesicle
     GLOBAL init_depleted
-    : For debugging
-    :RANGE sgid, tgid
+
+    :RANGE sgid, tgid  : For debugging
 }
 
-
 PARAMETER {
-    tau_r_GABAA  = 0.2   (ms)  : dual-exponential conductance profile
-    tau_d_GABAA = 8   (ms)  : IMPORTANT: tau_r < tau_d
-    tau_r_GABAB  = 3.5   (ms)  : dual-exponential conductance profile :Placeholder value from hippocampal recordings SR
-    tau_d_GABAB = 260.9   (ms)  : IMPORTANT: tau_r < tau_d  :Placeholder value from hippocampal recordings
-    Use        = 1.0   (1)   : Utilization of synaptic efficacy (just initial values! Use, Dep and Fac are overwritten by BlueBuilder assigned values)
-    Dep   = 100   (ms)  : relaxation time constant from depression
-    Fac   = 10   (ms)  :  relaxation time constant from facilitation
-    e_GABAA    = -80     (mV)  : GABAA reversal potential
-    e_GABAB    = -97     (mV)  : GABAB reversal potential
-    gmax = .001 (uS) : weight conversion factor (from nS to uS)
-    u0 = 0 :initial value of u, which is the running value of release probability
-    Nrrp = 1 (1)  : Number of total release sites for given contact
+    tau_r_GABAA = 0.2   (ms)  : dual-exponential conductance profile
+    tau_d_GABAA = 8     (ms)  : IMPORTANT: tau_r < tau_d
+    tau_r_GABAB = 3.5   (ms)  : dual-exponential conductance profile :Placeholder value from hippocampal recordings SR
+    tau_d_GABAB = 260.9 (ms)  : IMPORTANT: tau_r < tau_d  :Placeholder value from hippocampal recordings
+    Use = 1.0           (1)   : Utilization of synaptic efficacy (just initial values! Use, Dep and Fac are overwritten by BlueBuilder assigned values)
+    Dep = 100           (ms)  : relaxation time constant from depression
+    Fac = 10            (ms)  : relaxation time constant from facilitation
+    e_GABAA = -80       (mV)  : GABAA reversal potential
+    e_GABAB = -97       (mV)  : GABAB reversal potential
+    gmax = .001         (uS)  : weight conversion factor (from nS to uS)
+    u0   = 0                  : initial value of u, which is the running value of release probability
+    Nrrp = 1            (1)   : Number of total release sites for given contact
+
     synapseID = 0
     verboseLevel = 0
     selected_for_report = 0
-    GABAB_ratio = 0 (1) : The ratio of GABAB to GABAA
+    GABAB_ratio = 0     (1)   : The ratio of GABAB to GABAA
     conductance = 0.0
     nc_type_param = 4
-    init_depleted = 0   :// 0 - init full (old behavior)
-    :sgid = -1
-    :tgid = -1
+    minis_single_vesicle = 0   :// 0 - no limit (old behavior)
+    init_depleted = 0          :// 0 - init full (old behavior)
 }
 
 COMMENT
@@ -92,13 +91,11 @@ for comparison with Pr to decide whether to activate the synapse or not
 ENDCOMMENT
 
 VERBATIM
+
 #include<stdlib.h>
 #include<stdio.h>
 #include<math.h>
 #include "nrnran123.h"
-
-double nrn_random_pick(void* r);
-void* nrn_random_arg(int argpos);
 
 #ifndef CORENEURON_BUILD
 extern int ifarg(int iarg);
@@ -107,6 +104,9 @@ extern void* vector_arg(int iarg);
 extern double* vector_vec(void* vv);
 extern int vector_capacity(void* vv);
 #endif
+
+double nrn_random_pick(void* r);
+void* nrn_random_arg(int argpos);
 
 ENDVERBATIM
 
@@ -143,7 +143,8 @@ STATE {
         B_GABAB       : GABAB state variable to construct the dual-exponential profile - decays with conductance tau_d_GABAB
 }
 
-INITIAL{
+
+INITIAL {
         LOCAL tp_GABAA, tp_GABAB
 
         tsyn = 0
@@ -218,21 +219,19 @@ DERIVATIVE state{
 }
 
 
-NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv, nc_type){
+
+NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv, nc_type) {
+    : Psurv - survival probability of unrecovered state
+    : nc_type:
+    :   0 = presynaptic netcon
+    :   1 = spontmini netcon
+    :   2 = replay netcon
     LOCAL result, ves, occu
     weight_GABAA = weight
-    weight_GABAB = weight*GABAB_ratio
-    : Locals:
-    : Psurv - survival probability of unrecovered state
-
+    weight_GABAB = weight * GABAB_ratio
 
     INITIAL {
-        if (nc_type == 0) {
-            : nc_type {
-            :   0 = presynaptic netcon
-            :   1 = spontmini netcon
-            :   2 = replay netcon
-            : }
+        if (nc_type == 0) {  :// presynaptic netcon
     VERBATIM
             // setup self events for delayed connections to change weights
             void *vv_delay_times = *((void**)(&_p_delay_times));
@@ -241,7 +240,7 @@ NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv, nc_type){
               double* deltm_el = vector_vec(vv_delay_times);
               int delay_times_idx;
               next_delay = 0;
-              for(delay_times_idx = 0; delay_times_idx < vector_capacity(vv_delay_times); ++delay_times_idx) {
+              for (delay_times_idx = 0; delay_times_idx < vector_capacity(vv_delay_times); ++delay_times_idx) {
                 double next_delay_t = deltm_el[delay_times_idx];
     ENDVERBATIM
                 net_send(next_delay_t, 1)
@@ -252,11 +251,10 @@ NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv, nc_type){
         }
     }
 
-    if (flag == 1) {
+    if (flag == 1) {  :// self event to set next weight at
         :UNITSOFF
         :    printf( "gaba: self event at synapse %f time %g\n", synapseID, t)
         :UNITSON
-        : self event to set next weight at delay
     VERBATIM
         // setup self events for delayed connections to change weights
         void *vv_delay_weights = *((void**)(&_p_delay_weights));
@@ -264,17 +262,23 @@ NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv, nc_type){
           double* weights_v = vector_vec(vv_delay_weights);
           double next_delay_weight = weights_v[(int)next_delay];
     ENDVERBATIM
-          weight = conductance*next_delay_weight
+          weight = conductance * next_delay_weight
           next_delay = next_delay + 1
     VERBATIM
         }
         return;
     ENDVERBATIM
     }
-    : flag == 0, i.e. a spike has arrived
 
-    : Do not perform any calculations if the synapse (netcon) is deactivated.  This avoids drawing from the random stream
-    if(  !(weight > 0) ) {
+    : [flag == 0] Handle a spike which arrived
+    :UNITSOFF
+    :printf("[Syn %.0f] Received! (%f -> %f) with weight %g at time %g\n", synapseID, sgid, tgid, weight, t)
+    :UNITSON
+
+    : Do not perform any calculations if the synapse (netcon) is deactivated. This avoids drawing from
+    : random number stream. Also, disable in case of t < 0 (in case of ForwardSkip) which causes numerical
+    : instability if synapses are activated.
+    if ( weight <= 0 || t < 0 ) {
 VERBATIM
         return;
 ENDVERBATIM
@@ -282,12 +286,12 @@ ENDVERBATIM
 
     : calc u at event-
     if (Fac > 0) {
-            u = u*exp(-(t - tsyn)/Fac) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
+            u = u * exp(-(t - tsyn)/Fac)  :// update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
        } else {
               u = Use
        }
        if(Fac > 0){
-              u = u + Use*(1-u) :update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
+              u = u + Use*(1-u)  :// update facilitation variable if Fac>0 Eq. 2 in Fuhrmann et al.
        }
 
     : recovery
@@ -296,25 +300,27 @@ ENDVERBATIM
         Psurv = exp(-(t-tsyn)/Dep)
         result = urand()
         if (result>Psurv) {
-            occupied = occupied + 1     : recover a previously unoccupied site
-            if( verboseLevel > 0 ) {
+            occupied = occupied + 1     :// recover a previously unoccupied site
+            if ( verboseLevel > 0 ) {
                 UNITSOFF
-                printf( "Recovered! %f at time %g: Psurv = %g, urand=%g\n", synapseID, t, Psurv, result )
+                printf("[Syn %.0f] Recovered! t = %g, Psurv = %g, urand = %g\n", synapseID, t, Psurv, result)
                 UNITSON
             }
         }
     }
 
-    ves = 0                  : Initialize the number of released vesicles to 0
-    occu = occupied - 1  : Store the number of occupied sites in a local variable
-
-    FROM counter = 0 TO occu {
+    ves = 0                  :// Initialize the number of released vesicles to 0
+    occu = occupied          :// Make a copy, so we can update occupied in the loop
+    if (occu > 1 && minis_single_vesicle && nc_type == 1) {    : // if nc_type is spont_mini consider single vesicle
+        occu = 1
+    }
+    FROM counter = 0 TO (occu - 1) {
         : iterate over all occupied sites and compute how many release
         result = urand()
-        if (result<u) {
+        if (result < u) {
             : release a single site!
-            occupied = occupied - 1  : decrease the number of occupied sites by 1
-            ves = ves + 1            : increase number of relesed vesicles by 1
+            occupied = occupied - 1  :// decrease the number of occupied sites by 1
+            ves = ves + 1            :// increase number of relesed vesicles by 1
         }
     }
 
@@ -333,9 +339,10 @@ ENDVERBATIM
         A_GABAB = A_GABAB + ves/Nrrp*weight_GABAB*factor_GABAB
         B_GABAB = B_GABAB + ves/Nrrp*weight_GABAB*factor_GABAB
 
-        if( verboseLevel > 0 ) {
+        if ( verboseLevel > 0 ) {
             UNITSOFF
-            printf( "Release! %f at time %g: vals %g %g %g \n", synapseID, t, A_GABAA, weight_GABAA, factor_GABAA )
+            printf("[Syn %.0f] Release! t = %g, vals: %g %g %g %g\n",
+                   synapseID, t, A_GABAA, weight_GABAA, factor_GABAA, weight)
             UNITSON
         }
 
@@ -343,11 +350,10 @@ ENDVERBATIM
         : total release failure
         if ( verboseLevel > 0 ) {
             UNITSOFF
-            printf("Failure! %f at time %g: urand = %g\n", synapseID, t, result)
+            printf("[Syn %.0f] Failure! t = %g: urand = %g\n", synapseID, t, result)
             UNITSON
         }
     }
-
 }
 
 
@@ -447,7 +453,6 @@ VERBATIM
 ENDVERBATIM
 }
 
-
 FUNCTION toggleVerbose() {
     verboseLevel = 1 - verboseLevel
 }
@@ -502,6 +507,7 @@ static void bbcore_write(double* x, int* d, int* x_offset, int* d_offset, _threa
       di[0] = 0;
       di[1] = 0;
     }
+
   }
   // reserve space for delay vectors (may be 0)
   *d_offset += 2;
@@ -509,14 +515,16 @@ static void bbcore_write(double* x, int* d, int* x_offset, int* d_offset, _threa
 }
 
 static void bbcore_read(double* x, int* d, int* x_offset, int* d_offset, _threadargsproto_) {
-  assert(!_p_rng && !_p_delay_times && !_p_delay_weights);
-
   // deserialize random123 data
   uint32_t* di = ((uint32_t*)d) + *d_offset;
   if (di[0] != 0 || di[1] != 0 || di[2] != 0) {
       nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
+#if !NRNBBCORE
+      if(*pv) {
+          nrnran123_deletestream(*pv);
+      }
+#endif
       *pv = nrnran123_newstream3(di[0], di[1], di[2]);
-
       // restore stream sequence
       char which = (char)di[4];
       nrnran123_setseq(*pv, di[3], which);
@@ -531,8 +539,14 @@ static void bbcore_read(double* x, int* d, int* x_offset, int* d_offset, _thread
     double* x_i = x + *x_offset;
 
     // allocate vectors
-    _p_delay_times = vector_new1(delay_times_sz);
-    _p_delay_weights = vector_new1(delay_weights_sz);
+    if (!_p_delay_times) {
+      _p_delay_times = vector_new1(delay_times_sz);
+    }
+    assert(delay_times_sz == vector_capacity(_p_delay_times));
+    if (!_p_delay_weights) {
+      _p_delay_weights = vector_new1(delay_weights_sz);
+    }
+    assert(delay_weights_sz == vector_capacity(_p_delay_weights));
 
     double* delay_times_el = vector_vec(_p_delay_times);
     double* delay_weights_el = vector_vec(_p_delay_weights);
@@ -545,6 +559,7 @@ static void bbcore_read(double* x, int* d, int* x_offset, int* d_offset, _thread
       delay_weights_el[vec_idx++] = x_i[x_idx+1];
     }
     *x_offset += delay_times_sz + delay_weights_sz;
+
   }
 }
 ENDVERBATIM

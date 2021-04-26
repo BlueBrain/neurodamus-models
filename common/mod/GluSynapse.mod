@@ -55,7 +55,8 @@ NEURON {
     : NMDA Receptor
     GLOBAL scale_NMDA, slope_NMDA
     GLOBAL tau_r_NMDA, tau_d_NMDA, E_NMDA
-    RANGE mg, gmax_NMDA, g_NMDA
+    RANGE gmax_NMDA, g_NMDA
+    GLOBAL mg
     : Stochastic Tsodyks-Markram Multi-Vesicular Release
     RANGE Use, Dep, Fac, Nrrp
     RANGE Use_d, Use_p

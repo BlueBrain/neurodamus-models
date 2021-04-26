@@ -114,7 +114,7 @@ class TestTransmission(object):
         netCon.delay = 2  # ms
         self.syn.Use = 1
         # Magnesium free condition
-        self.syn.mg = 0
+        neuron.h.mg_GluSynapse = 0
         # Test 1 nS and 15 nS
         for gmax in (1.0, 15.0):
             self.syn.gmax_NMDA = gmax

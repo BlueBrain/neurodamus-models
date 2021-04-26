@@ -10,6 +10,12 @@
 // Note that a name should be chosen that should not be used for any other global. Otherwise may cause strange behavior
 objref synapseReaderGluSynapseHelper
 
+strdef GluSynapseHelper_NeededAttributes
+GluSynapseHelper_NeededAttributes = "volume_CR;rho0_GB;Use_d_TM;Use_p_TM;gmax_d_AMPA;gmax_p_AMPA;theta_d;theta_p"
+
+strdef GluSynapseHelper_UHillScaleVariables
+GluSynapseHelper_UHillScaleVariables = "Use_d_TM;Use_p_TM"
+
 /**
  * This helper object will encapsulate the hoc actions needed to create our plastic excitatory synapse
  */
@@ -55,54 +61,44 @@ proc init() { local tgid, x, synapseID, baseSeed, res, spopid, tpopid  localobj 
         synapse.synstate_RW = 0
     }
 
-    if( parseConnection.exists( "OtherSynPath" ) ) {
-        if( object_id( synapseReaderGluSynapseHelper, 1 ) == -1 ) {
-            // This field can be named whatever the user wants.  Needs to just use 'get' method
-            fname = parseConnection.get( "OtherSynPath" )
-            // print "access more info at ", fname.s
-    
-            // This requires there be a single HDF5 file.  If multiple files are to be supported, we need to change code structure
-            synapseReaderGluSynapseHelper = new HDF5Reader( fname.s )
-        }
-    
-        // Note that HDF5readers remember the last data set loaded.  As long as the same gid is requested, it will not go back to the disk
-        {sprint( datasetName, "a%d", tgid )}
-        res = synapseReaderGluSynapseHelper.loadData( datasetName )
-        if( res < 0 ) {
-            print "Error loading data for gid ", datasetName
-            return
-        }
-        
-        // Use parameters
-        synapse.Use_d_GB = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 3 )
-        synapse.Use_p_GB = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 4 )
-        tau_Use_GB_GluSynapse = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 5 )
-    
-        // Rho parameters
-        tau_GB_GluSynapse = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 8 )
-        synapse.theta_d_GB = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 9 )
-        synapse.theta_p_GB = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 10 )
-        gamma_d_GB_GluSynapse = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 11 )
-        gamma_p_GB_GluSynapse = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 12 )
-        synapse.rho0_GB = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 13 )
-    
-        // Spine parameters
-        synapse.volume_CR = synapseReaderGluSynapseHelper.getData( datasetName, synapseID, 16 )
-    
-        // Release parameters
-        synapse.tau_d_AMPA = synParams.DTC
-        if (synapse.rho0_GB > rho_star_GB_GluSynapse) {
-            // Instantiate a potentiated synapse
-            synapse.Use = synapse.Use_p_GB
-        } else {
-            // Instantiate a depressed synapse
-            synapse.Use = synapse.Use_d_GB
-        }
-        synapse.Dep = abs( synParams.D )
-        synapse.Fac = abs( synParams.F )
-        synapse.Nrrp = 2
+    // Use parameters
+    synapse.Use_d = synParams.Use_d_TM
+    synapse.Use_p = synParams.Use_p_TM
+
+    // Rho parameters
+    synapse.theta_d_GB = synParams.theta_d
+    synapse.theta_p_GB = synParams.theta_p
+    synapse.rho0_GB = synParams.rho0_GB
+
+    // Spine parameters
+    synapse.volume_CR = synParams.volume_CR
+
+    synapse.gmax_d_AMPA = synParams.gmax_d_AMPA
+    synapse.gmax_p_AMPA = synParams.gmax_p_AMPA
+    if (synapse.rho0_GB > rho_star_GB_GluSynapse) {
+        // Instantiate peak conductance as in the potentitated state
+        synapse.gmax0_AMPA = synapse.gmax_p_AMPA
+    } else {
+        // Instantiate peak conductance as in the depressed state
+        synapse.gmax0_AMPA = synapse.gmax_d_AMPA
     }
-    
+
+    // Release parameters
+    synapse.tau_d_AMPA = synParams.DTC
+    if (synapse.rho0_GB > rho_star_GB_GluSynapse) {
+        // Instantiate a potentiated synapse
+        synapse.Use = synapse.Use_p
+    } else {
+        // Instantiate a depressed synapse
+        synapse.Use = synapse.Use_d
+    }
+    synapse.Dep = abs( synParams.D )
+    synapse.Fac = abs( synParams.F )
+
+    if( synParams.nrrp >= 0 ) {
+        synapse.Nrrp = synParams.nrrp
+    }
+
     // for now, use two seeds based on gid and snyapseID.  In the future we will have an optional synapseSeed
     // also note that somewhere we must have set the random123 global seed (BlueConfig BaseSeed)
     synapse.setRNG( tgid, 100000 + synapseID, rngInfo.getSynapseSeed() + 200)

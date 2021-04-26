@@ -270,7 +270,11 @@ NET_RECEIVE (weight, weight_GABAA, weight_GABAB, Psurv, nc_type) {
     }
 
     if (flag == 1) {  :// self event to set next weight at
+        :UNITSOFF
+        :    printf( "gaba: self event at synapse %f time %g\n", synapseID, t)
+        :UNITSON
     VERBATIM
+        // setup self events for delayed connections to change weights
         void *vv_delay_weights = *((void**)(&_p_delay_weights));
         if (vv_delay_weights && vector_capacity(vv_delay_weights)>=next_delay) {
             double* weights_v = vector_vec(vv_delay_weights);
@@ -483,10 +487,11 @@ static void bbcore_write(double* x, int* d, int* x_offset, int* d_offset, _threa
     nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
     nrnran123_getids3(*pv, di, di+1, di+2);
 
+    // write strem sequence
     char which;
     nrnran123_getseq(*pv, di+3, &which);
     di[4] = (int)which;
-    //printf("SYN bbcore_write %d %d %d\n", di[0], di[1], di[2]);
+    //printf("ProbGABAAB_EMS bbcore_write %d %d %d\n", di[0], di[1], di[2]);
 
   }
   // reserve random123 parameters on serialization buffer
@@ -538,6 +543,7 @@ static void bbcore_read(double* x, int* d, int* x_offset, int* d_offset, _thread
       }
 #endif
       *pv = nrnran123_newstream3(di[0], di[1], di[2]);
+      // restore stream sequence
       char which = (char)di[4];
       nrnran123_setseq(*pv, di[3], which);
   }

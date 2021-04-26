@@ -81,7 +81,6 @@ PARAMETER {
     gmax = .001         (uS)  : weight conversion factor (from nS to uS)
     u0   = 0                  : initial value of u, which is the running value of release probability
     Nrrp = 1            (1)   : Number of total release sites for given contact
-
     synapseID = 0
     verboseLevel = 0
     selected_for_report = 0
@@ -149,6 +148,24 @@ ASSIGNED {
         next_delay (ms)
 }
 
+PROCEDURE setup_delay_vecs() {
+VERBATIM
+#ifndef CORENEURON_BUILD
+    void** vv_delay_times = (void**)(&_p_delay_times);
+    void** vv_delay_weights = (void**)(&_p_delay_weights);
+    *vv_delay_times = (void*)NULL;
+    *vv_delay_weights = (void*)NULL;
+    if (ifarg(1)) {
+        *vv_delay_times = vector_arg(1);
+    }
+    if (ifarg(2)) {
+        *vv_delay_weights = vector_arg(2);
+    }
+#endif
+ENDVERBATIM
+}
+
+
 STATE {
 
         A_AMPA       : AMPA state variable to construct the dual-exponential profile - decays with conductance tau_r_AMPA
@@ -203,24 +220,6 @@ INITIAL {
 
 }
 
-PROCEDURE setup_delay_vecs() {
-VERBATIM
-#ifndef CORENEURON_BUILD
-    void** vv_delay_times = (void**)(&_p_delay_times);
-    void** vv_delay_weights = (void**)(&_p_delay_weights);
-    *vv_delay_times = (void*)NULL;
-    *vv_delay_weights = (void*)NULL;
-    if (ifarg(1)) {
-        *vv_delay_times = vector_arg(1);
-    }
-    if (ifarg(2)) {
-        *vv_delay_weights = vector_arg(2);
-    }
-#endif
-ENDVERBATIM
-}
-
-
 BREAKPOINT {
         SOLVE state
 
@@ -272,9 +271,9 @@ NET_RECEIVE (weight, weight_AMPA, weight_NMDA, Psurv, nc_type) {
     ENDVERBATIM
         }
     }
-
     if (flag == 1) {  :// self event to set next weight at
     VERBATIM
+        // setup self events for delayed connections to change weights
         void *vv_delay_weights = *((void**)(&_p_delay_weights));
         if (vv_delay_weights && vector_capacity(vv_delay_weights)>=next_delay) {
             double* weights_v = vector_vec(vv_delay_weights);
@@ -490,7 +489,7 @@ static void bbcore_write(double* x, int* d, int* x_offset, int* d_offset, _threa
     char which;
     nrnran123_getseq(*pv, di+3, &which);
     di[4] = (int)which;
-    //printf("SYN bbcore_write %d %d %d\n", di[0], di[1], di[2]);
+    //printf("ProbAMPANMDA_EMS bbcore_write %d %d %d\n", di[0], di[1], di[2]);
 
   }
   // reserve random123 parameters on serialization buffer
