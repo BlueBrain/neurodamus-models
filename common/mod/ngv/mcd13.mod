@@ -198,7 +198,10 @@ ASSIGNED {
     diam      (um)
     diam1 (um)
     L (um)
-
+    perimeter (um)
+    cross_sectional_area (um2)
+    er_area (um2)
+    er_volume (um3)
     ica       (mA/cm2)
     ica_pmp   (mA/cm2)
     ica_pmp_last   (mA/cm2)
