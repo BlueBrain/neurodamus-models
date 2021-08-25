@@ -528,12 +528,15 @@ static void bbcore_write(double* x, int* d, int* x_offset, int* d_offset, _threa
 }
 
 static void bbcore_read(double* x, int* d, int* x_offset, int* d_offset, _threadargsproto_) {
-  assert(!_p_rng && !_p_delay_times && !_p_delay_weights);
-
   // deserialize random123 data
   uint32_t* di = ((uint32_t*)d) + *d_offset;
   if (di[0] != 0 || di[1] != 0 || di[2] != 0) {
       nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
+#if !NRNBBCORE
+      if(*pv) {
+          nrnran123_deletestream(*pv);
+      }
+#endif
       *pv = nrnran123_newstream3(di[0], di[1], di[2]);
       char which = (char)di[4];
       nrnran123_setseq(*pv, di[3], which);
@@ -548,8 +551,14 @@ static void bbcore_read(double* x, int* d, int* x_offset, int* d_offset, _thread
     double* x_i = x + *x_offset;
 
     // allocate vectors
-    _p_delay_times = vector_new1(delay_times_sz);
-    _p_delay_weights = vector_new1(delay_weights_sz);
+    if (!_p_delay_times) {
+      _p_delay_times = vector_new1(delay_times_sz);
+    }
+    assert(delay_times_sz == vector_capacity(_p_delay_times));
+    if (!_p_delay_weights) {
+      _p_delay_weights = vector_new1(delay_weights_sz);
+    }
+    assert(delay_weights_sz == vector_capacity(_p_delay_weights));
 
     double* delay_times_el = vector_vec(_p_delay_times);
     double* delay_weights_el = vector_vec(_p_delay_weights);

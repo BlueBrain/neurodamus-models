@@ -495,15 +495,16 @@ static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset
 }
 
 static void bbcore_read(double* dArray, int* iArray, int* doffset, int* ioffset, _threadargsproto_) {
-        assert(!_p_exp_rng);
-        assert(!_p_uniform_rng);
-        assert(!_p_vecRate);
-        assert(!_p_vecTbins);
         uint32_t* ia = ((uint32_t*)iArray) + *ioffset;
         nrnran123_State** pv;
         if (ia[0] != 0 || ia[1] != 0)
         {
           pv = (nrnran123_State**)(&_p_exp_rng);
+#if !NRNBBCORE
+          if(*pv) {
+              nrnran123_deletestream(*pv);
+          }
+#endif
           *pv = nrnran123_newstream3(ia[0], ia[1], ia[2] );
           nrnran123_setseq(*pv, ia[3], (char)ia[4]);
         }
@@ -512,6 +513,11 @@ static void bbcore_read(double* dArray, int* iArray, int* doffset, int* ioffset,
         if (ia[0] != 0 || ia[1] != 0)
         {
           pv = (nrnran123_State**)(&_p_uniform_rng);
+#if !NRNBBCORE
+          if(*pv) {
+            nrnran123_deletestream(*pv);
+          }
+#endif
           *pv = nrnran123_newstream3(ia[0], ia[1], ia[2] );
           nrnran123_setseq(*pv, ia[2], (char)ia[3]);
         }
@@ -521,7 +527,10 @@ static void bbcore_read(double* dArray, int* iArray, int* doffset, int* ioffset,
         *ioffset += 11;
 
         double *da = dArray + *doffset;
-        _p_vecRate = vector_new1(dsize);  /* works for dsize=0 */
+        if(!_p_vecRate) {
+          _p_vecRate = vector_new1(dsize);  /* works for dsize=0 */
+        }
+        assert(dsize == vector_capacity(_p_vecRate));
         double *dv = vector_vec(_p_vecRate);
         int iInt;
         for (iInt = 0; iInt < dsize; ++iInt)
@@ -531,7 +540,10 @@ static void bbcore_read(double* dArray, int* iArray, int* doffset, int* ioffset,
         *doffset += dsize;
 
         da = dArray + *doffset;
-        _p_vecTbins = vector_new1(dsize);
+        if(!_p_vecTbins) {
+          _p_vecTbins = vector_new1(dsize);
+        }
+        assert(dsize == vector_capacity(_p_vecTbins));
         dv = vector_vec(_p_vecTbins);
         for (iInt = 0; iInt < dsize; ++iInt)
         {
