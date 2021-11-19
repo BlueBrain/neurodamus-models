@@ -11,3 +11,11 @@ executable.
 
 Model developers can either use this new structure or the individual model repos.
 
+
+## Bring models up to date
+
+Models in this aggregate repo are to be stable as a group, and therefore each model 
+common should be replaced with the local common.
+
+To avoid doing repetitive work, a script was prepared: update_models.sh
+The script takes care of updating submodules and replace common.
