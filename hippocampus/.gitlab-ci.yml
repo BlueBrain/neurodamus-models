@@ -1,0 +1,8 @@
+variables:
+  MODEL_NAME: hippocampus
+  MOD_DIR: mod
+
+include:
+  - project: hpc/sim/neurodamus-models
+    ref: $ND_MODELS_BRANCH
+    file: _ci/test_models.yml
