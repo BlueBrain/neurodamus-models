@@ -1,0 +1,52 @@
+
+stages:
+  - build
+  - test
+  - deploy
+
+variables:
+  bb5_build_dir: "pipeline"  # Notice: this keeps build dir among jobs! no artifacts needed
+  bb5_account: proj12
+  bb5_partition: prod_small
+  bb5_cpus_per_task: 2
+
+.test:
+  stage: test
+  tags:
+    - bb5_map
+  before_script:
+    - export TMPDIR="$TMPDIR/$CI_PIPELINE_ID"
+
+build_neurodamus:
+  extends: .test
+  variables:
+    bb5_cpus_per_task: 16  # for parallel make
+    bb5_constraint: cpu
+  script:
+    - mkdir -p $HOME
+    - ln -s ~bbpcihpcproj12/.ssh $HOME/
+    - echo "Well... We still have to develop the spack package et all..."
+  rules:
+    - if: '$CI_PIPELINE_SOURCE != "pipeline"'
+
+
+# bump_model_branch
+# ~~~~~~~~~~~~~~~~~
+# This job is purely for CI automation and runs only from upstream CI's (of the submodules)
+# It will update the submodules to given branches or main, create a commit and a PR
+# Consequently it will trigger the job above, which should be a global test
+
+bump_model_branch:
+  # Expect caller pipeline to define MODEL_NAME and BUMP_MODEL_BRANCH
+  stage: deploy
+  image: bbpgitlab.epfl.ch:5050/hpc/spatialindex/ubuntu_20.04_devel
+  script:
+    - echo Setting ${MODEL_NAME^^}_BRANCH=$BUMP_MODEL_BRANCH
+    - export ${MODEL_NAME^^}_BRANCH=$BUMP_MODEL_BRANCH
+    - git checkout -B autobump/$MODEL_NAME/$BUMP_MODEL_BRANCH
+    - git config user.name "GitLab Automation + $GITLAB_USER_LOGIN"
+    - git config user.email "$GITLAB_USER_EMAIL"
+    - bash update_models.sh
+    - git push -f https://root:$CI_WRITE_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git HEAD --set-upstream --push-option merge_request.create --push-option merge_request.title="Auto bumping $MODEL_NAME (branch $BUMP_MODEL_BRANCH)"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "pipeline"'

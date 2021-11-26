@@ -1,0 +1,80 @@
+# test_models.yml
+# ~~~~~~~~~~~~~~~
+#
+# A set of default jobs for the individual models CI's
+# Namely it triggers this projects CI as a downstream, bumping submodules and creating a MR
+# -
+
+stages:
+  - test
+  - deploy
+
+variables:
+  MOD_DIR: mod
+  GIT_SUBMODULE_STRATEGY: recursive
+
+.test_defaults:
+  stage: test
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+.bb5_test:
+  extends: .test_defaults
+  tags:
+    - bb5_map
+  variables:
+    bb5_build_dir: "pipeline"  # Notice: this keeps build dir among jobs! no artifacts needed
+    bb5_account: proj12
+    bb5_partition: prod_small
+    RUN_PY_TESTS: "yes"
+    SPACK_BRANCH: "ci/change_gitlab"
+    TEST_VERSIONS: "neocortex"
+
+
+bare_build:
+  # pipeline template to ensure mods can be compiled
+  extends: .test_defaults
+  image: bbpgitlab.epfl.ch:5050/hpc/spatialindex/ubuntu_20.04_devel
+  script:
+    - python3 -m venv venv
+    - . venv/bin/activate
+    - pip install -U setuptools pip wheel
+    - pip install NEURON
+    - nrnivmodl $MOD_DIR
+    - if [ ! -f x86_64/special ]; then
+    -     echo "Error running nrnivmodl"
+    -     exit 1
+    - fi
+    - x86_64/special -c 'print "Looking good!"'
+
+
+build_neurodamus:
+  # pipeline template to ensure neurodamus mods can be compiled together
+  extends: .bb5_test
+  script:
+    - module load unstable neurodamus-neocortex hpe-mpi intel
+    - MOD_TMP=_mods.tmp
+    - mkdir -p $MOD_TMP
+    - cp $NEURODAMUS_NEOCORTEX_ROOT/share/mod_neurodamus/*.mod $MOD_TMP/
+    - cp $NEURODAMUS_NEOCORTEX_ROOT/share/mod_full/neuron_only_mods.txt $MOD_TMP/
+    - cp -f $MOD_DIR/*.mod $MOD_TMP/
+    - build_neurodamus.sh $MOD_TMP
+    - if [ ! -f x86_64/special ]; then
+    -     echo "Error running nrnivmodl"
+    -     exit 1
+    - fi
+    - x86_64/special -c 'print "Looking good!"'
+
+
+bump_models:
+  stage: deploy
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+    BUMP_MODEL_BRANCH: $CI_COMMIT_BRANCH
+  trigger:
+    project: hpc/sim/neurodamus-models
+    branch: ci/bump_models  # TODO: delete me
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "schedule"'
+    - when: manual
+      allow_failure: true
