@@ -10,23 +10,27 @@ MODEL_BRANCH["thalamus"]=${THALAMUS_BRANCH:-main}
 MODEL_BRANCH["mousify"]=${MOUSIFY_BRANCH:-main}
 
 
+if [ -n "$(git ls-files -m)" ]; then
+    echo "Error: Repo is not clean. Please commit or discard ongoing changes"
+    echo " hint: You may need to 'git submodule update' to discard changing submodule commits"
+    exit 1
+fi
+
 echo "==> Fetching latest models..."
 updated_modules=""
 update_details=""
 nl="
 "
 
-echo " -> Sync (Submodule update)"
-git submodule update
-
 for d in */; do
     model_name="${d%/}"
     if [ ${d::1} == "_" ]; then continue
     fi
-    echo " -> Handling repo: $model_name"
+    echo "Repo: $model_name"
     pushd $d > /dev/null
+    printf " -> Fetching tip of branch ${MODEL_BRANCH[$model_name]}..."
     fetch_log=$(git fetch origin ${MODEL_BRANCH[$model_name]} 2>&1) || {
-        echo "Error fetching. Log: $nl$fetch_log"
+        echo "[Error] Log: $nl$fetch_log"
         exit 1
     }
     if [ $(git rev-list HEAD..FETCH_HEAD --count) -gt 0 ]; then
@@ -34,9 +38,9 @@ for d in */; do
         updated_modules="$updated_modules $model_name"
         update_details="$update_details $nl - $commit_info"
         git reset --hard FETCH_HEAD
+    else
+        echo " [ok] Already up to date."
     fi
-    rm -rf common
-    ln -s ../common ./
     popd > /dev/null
 done
 
@@ -54,5 +58,5 @@ if [ "$updated_modules" ]; then
         echo " -> Already up to date. Done"
     fi
 else
-    echo " -> Modules are already up to date."
+    echo " -> All modules are up to date."
 fi

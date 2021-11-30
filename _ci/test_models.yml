@@ -15,8 +15,12 @@ variables:
 
 .test_defaults:
   stage: test
+  before_script:
+    - '[[ $MODEL_NAME != common ]] && ./fetch_common.bash'
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - when: manual
+
 
 .bb5_test:
   extends: .test_defaults
@@ -28,13 +32,16 @@ variables:
     bb5_partition: prod_small
     RUN_PY_TESTS: "yes"
     SPACK_BRANCH: "ci/change_gitlab"
-    TEST_VERSIONS: "neocortex"
 
 
 bare_build:
   # pipeline template to ensure mods can be compiled
   extends: .test_defaults
   image: bbpgitlab.epfl.ch:5050/hpc/spatialindex/ubuntu_20.04_devel
+  before_script:
+    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@bbpgitlab.epfl.ch/".insteadOf 'git@bbpgitlab.epfl.ch:'
+    - 'apt-get install -y ssh-client'
+    - '[[ $MODEL_NAME != common ]] && ./fetch_common.bash'
   script:
     - python3 -m venv venv
     - . venv/bin/activate
