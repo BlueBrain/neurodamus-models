@@ -41,6 +41,7 @@ for d in */; do
     else
         echo " [ok] Already up to date."
     fi
+    git checkout -B ${MODEL_BRANCH[$model_name]} >& /dev/null  # Move to a branch of that name
     popd > /dev/null
 done
 

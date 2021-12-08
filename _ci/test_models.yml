@@ -5,6 +5,13 @@
 # Namely it triggers this projects CI as a downstream, bumping submodules and creating a MR
 # -
 
+workflow:
+  rules:
+    # Rules taken from official docs to avoid duplicated pipelines
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never
+    - when: always
+
 stages:
   - test
   - deploy
@@ -13,13 +20,11 @@ variables:
   MOD_DIR: mod
   GIT_SUBMODULE_STRATEGY: recursive
 
+
 .test_defaults:
   stage: test
   before_script:
     - '[[ $MODEL_NAME != common ]] && ./fetch_common.bash'
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - when: manual
 
 
 .bb5_test:
@@ -28,14 +33,18 @@ variables:
     - bb5_map
   variables:
     bb5_build_dir: "pipeline"  # Notice: this keeps build dir among jobs! no artifacts needed
-    bb5_account: proj12
     bb5_partition: prod_small
     RUN_PY_TESTS: "yes"
     SPACK_BRANCH: "ci/change_gitlab"
 
 
+# Basic tests
+# ~~~~~~~~~~~
+#
+# The following two tests ensure that the mod files can be compiled, both by nrniv directly
+# as well as with build_neurodamus together with neurodamus-core mods (Core modesNeuron + CoreNeuron)
+#
 bare_build:
-  # pipeline template to ensure mods can be compiled
   extends: .test_defaults
   image: bbpgitlab.epfl.ch:5050/hpc/spatialindex/ubuntu_20.04_devel
   before_script:
@@ -73,6 +82,31 @@ build_neurodamus:
     - x86_64/special -c 'print "Looking good!"'
 
 
+# BlueConfigs tests
+# ~~~~~~~~~~~~~~~~~
+#
+# The heavy-duty tests, where mods are compiled with Spack and run against the
+# blueconfigs test suite. Only related models tests are run (set TEST_VERSIONS)
+#
+blueconfig_tests:
+  variables:
+    TEST_VERSIONS: $MODEL_NAME
+  trigger:
+    project: hpc/sim/blueconfigs
+    branch: $BLUECONFIGS_BRANCH
+    strategy: depend
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - when: manual
+      allow_failure: true
+
+
+# CD :: neurodamus-models bump
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+# When a model is merged to its main branch we trigger neurodamus-models CI, whose
+# `bump_model_branch` plan bumps the submodule, creating a new commit and opening a MR.
+#
 bump_models:
   stage: deploy
   variables:

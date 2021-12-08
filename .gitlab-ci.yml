@@ -1,3 +1,9 @@
+workflow:
+  rules:
+    # Rules taken from official docs to avoid duplicated pipelines
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never
+    - when: always
 
 stages:
   - build
@@ -28,6 +34,19 @@ build_neurodamus:
     - echo "Well... We still have to develop the spack package et all..."
   rules:
     - if: '$CI_PIPELINE_SOURCE != "pipeline"'
+
+
+# Testing our shared models CI
+# Uncomment when GitLab fixes bug with variables being used in trigger:ref
+# shared_model_ci_test:
+#   stage: test
+#   variables:
+#     ND_MODELS_BRANCH: $CI_COMMIT_SHA
+#   trigger: hpc/sim/models/neocortex
+#   rules:
+#     - if: '$CI_PIPELINE_SOURCE == "push"'
+#       changes:
+#         - _ci/test_models.yml
 
 
 # bump_model_branch
