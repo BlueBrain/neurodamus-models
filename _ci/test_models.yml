@@ -49,6 +49,7 @@ bare_build:
   image: bbpgitlab.epfl.ch:5050/hpc/spatialindex/ubuntu_20.04_devel
   before_script:
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@bbpgitlab.epfl.ch/".insteadOf 'git@bbpgitlab.epfl.ch:'
+    - 'apt-get update -y'
     - 'apt-get install -y ssh-client'
     - '[[ $MODEL_NAME != common ]] && ./fetch_common.bash'
   script:
@@ -68,7 +69,7 @@ build_neurodamus:
   # pipeline template to ensure neurodamus mods can be compiled together
   extends: .bb5_test
   script:
-    - module load unstable neurodamus-neocortex hpe-mpi intel
+    - module load unstable neurodamus-neocortex hpe-mpi intel-oneapi-compilers
     - MOD_TMP=_mods.tmp
     - mkdir -p $MOD_TMP
     - cp $NEURODAMUS_NEOCORTEX_ROOT/share/mod_neurodamus/*.mod $MOD_TMP/
