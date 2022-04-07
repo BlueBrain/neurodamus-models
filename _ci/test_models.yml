@@ -19,6 +19,7 @@ stages:
 variables:
   MOD_DIR: mod
   GIT_SUBMODULE_STRATEGY: recursive
+  BLUECONFIGS_BRANCH: main
 
 
 .test_defaults:
