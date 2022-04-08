@@ -91,13 +91,17 @@ build_neurodamus:
 # blueconfigs test suite. Only related models tests are run (set TEST_VERSIONS)
 #
 blueconfig_tests:
-  variables:
-    TEST_VERSIONS: $MODEL_NAME
+  if: $MODEL_NAME != "common"
+    variables:
+      TEST_VERSIONS: $MODEL_NAME
   trigger:
     project: hpc/sim/blueconfigs
     branch: $BLUECONFIGS_BRANCH
     strategy: depend
   rules:
+    - if: $MODEL_NAME != "common"  # If we're updating "common" test all the neurodamus models
+      variables:
+        TEST_VERSIONS: $MODEL_NAME
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - when: manual
       allow_failure: true
