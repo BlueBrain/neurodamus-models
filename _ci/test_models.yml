@@ -91,9 +91,6 @@ build_neurodamus:
 # blueconfigs test suite. Only related models tests are run (set TEST_VERSIONS)
 #
 blueconfig_tests:
-  if: $MODEL_NAME != "common"
-    variables:
-      TEST_VERSIONS: $MODEL_NAME
   trigger:
     project: hpc/sim/blueconfigs
     branch: $BLUECONFIGS_BRANCH
