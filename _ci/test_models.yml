@@ -18,8 +18,10 @@ stages:
 
 variables:
   MOD_DIR: mod
+  BLUECONFIGS_BRANCH:
+    value: $BLUECONFIGS_BRANCH
+    description: 'Name of the blueconfigs branch to test against'
   GIT_SUBMODULE_STRATEGY: recursive
-  BLUECONFIGS_BRANCH: main
 
 
 .test_defaults:
@@ -36,7 +38,6 @@ variables:
     bb5_build_dir: "pipeline"  # Notice: this keeps build dir among jobs! no artifacts needed
     bb5_partition: prod_small
     RUN_PY_TESTS: "yes"
-    SPACK_BRANCH: "ci/change_gitlab"
 
 
 # Basic tests
@@ -83,6 +84,15 @@ build_neurodamus:
     - fi
     - x86_64/special -c 'print "Looking good!"'
 
+set_alt_branches:
+  script:
+    - echo "$CI_COMMIT_MESSAGE" | grep '^[[:alnum:]_]*_BRANCH=' > branch_variables.env || touch branch_variables.env
+    - . branch_variables.env
+    - echo "BLUECONFIGS_PIPELINE_BRANCH=$BLUECONFIGS_BRANCH" >> branch_variables.env
+    - cat branch_variables.env
+  artifacts:
+    reports:
+      dotenv: branch_variables.env
 
 # BlueConfigs tests
 # ~~~~~~~~~~~~~~~~~
@@ -93,8 +103,10 @@ build_neurodamus:
 blueconfig_tests:
   trigger:
     project: hpc/sim/blueconfigs
-    branch: $BLUECONFIGS_BRANCH
+    branch: $BLUECONFIGS_PIPELINE_BRANCH
     strategy: depend
+  needs:
+    - set_alt_branches
   rules:
     - if: $MODEL_NAME != "common"  # If we're updating "common" test all the neurodamus models
       variables:
