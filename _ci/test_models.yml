@@ -111,6 +111,9 @@ blueconfig_tests:
     - if: $MODEL_NAME != "common"  # If we're updating "common" test all the neurodamus models
       variables:
         TEST_VERSIONS: $MODEL_NAME
+    - if: $SPACK_BRANCH != ""  # If SPACK_BRANCH is set pass the variable to blueconfigs
+      variables:
+        SPACK_BRANCH: $SPACK_BRANCH
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - when: manual
       allow_failure: true
