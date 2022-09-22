@@ -16,12 +16,14 @@ variables:
   bb5_partition: prod_small
   bb5_cpus_per_task: 2
 
+
 .test:
   stage: test
   tags:
     - bb5_map
   before_script:
     - export TMPDIR="$TMPDIR/$CI_PIPELINE_ID"
+
 
 build_neurodamus:
   extends: .test
@@ -58,7 +60,7 @@ build_neurodamus:
 bump_model_branch:
   # Expect caller pipeline to define MODEL_NAME and BUMP_MODEL_BRANCH
   stage: deploy
-  image: bbpgitlab.epfl.ch:5050/hpc/spatialindex/ubuntu_20.04_devel
+  image: bbpgitlab.epfl.ch:5050/hpc/spatial-index/ubuntu_20.04_devel
   script:
     - echo Setting ${MODEL_NAME^^}_BRANCH=$BUMP_MODEL_BRANCH
     - export ${MODEL_NAME^^}_BRANCH=$BUMP_MODEL_BRANCH
@@ -66,6 +68,9 @@ bump_model_branch:
     - git config user.name "GitLab Automation + $GITLAB_USER_LOGIN"
     - git config user.email "$GITLAB_USER_EMAIL"
     - bash update_models.sh
-    - git push -f https://root:$CI_WRITE_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git HEAD --set-upstream --push-option merge_request.create --push-option merge_request.title="Auto bumping $MODEL_NAME (branch $BUMP_MODEL_BRANCH)"
+    - git push -f https://root:$CI_WRITE_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git HEAD
+       --set-upstream
+       --push-option merge_request.create
+       --push-option merge_request.title="Auto bumping $MODEL_NAME (branch $BUMP_MODEL_BRANCH)"
   rules:
     - if: '$CI_PIPELINE_SOURCE == "pipeline"'

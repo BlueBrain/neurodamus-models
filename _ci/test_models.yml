@@ -48,7 +48,7 @@ variables:
 #
 bare_build:
   extends: .test_defaults
-  image: bbpgitlab.epfl.ch:5050/hpc/spatialindex/ubuntu_20.04_devel
+  image: bbpgitlab.epfl.ch:5050/hpc/spatial-index/ubuntu_20.04_devel
   before_script:
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@bbpgitlab.epfl.ch/".insteadOf 'git@bbpgitlab.epfl.ch:'
     - 'apt-get update -y'
