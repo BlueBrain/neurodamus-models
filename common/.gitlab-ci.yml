@@ -4,5 +4,5 @@ variables:
 
 include:
   - project: hpc/sim/neurodamus-models
-    ref: $ND_MODELS_BRANCH
+    ref: $ND_MODELS_BRANCH  # defaults to main (set in 'models' group)
     file: _ci/test_models.yml
