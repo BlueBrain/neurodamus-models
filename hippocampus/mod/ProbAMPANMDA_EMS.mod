@@ -417,6 +417,26 @@ ENDVERBATIM
 }
 
 
+PROCEDURE clearRNG() {
+VERBATIM
+    #ifndef CORENEURON_BUILD
+    if (usingR123) {
+        nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
+        if (*pv) {
+            nrnran123_deletestream(*pv);
+            *pv = (nrnran123_State*)0;
+        }
+    } else {
+        void** pv = (void**)(&_p_rng);
+        if (*pv) {
+            *pv = (void*)0;
+        }
+    }
+    #endif
+ENDVERBATIM
+}
+
+
 FUNCTION urand() {
 VERBATIM
     double value = 0.0;
