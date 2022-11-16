@@ -87,8 +87,21 @@ build_neurodamus:
 set_alt_branches:
   script:
     - echo "$CI_COMMIT_MESSAGE" | grep '^[[:alnum:]_]*_BRANCH=' > branch_variables.env || touch branch_variables.env
-    - . branch_variables.env
     - echo "BLUECONFIGS_PIPELINE_BRANCH=$BLUECONFIGS_BRANCH" >> branch_variables.env
+    - export
+    - if [[ "$MODEL_NAME" == "hippocampus" ]]; then
+    -   echo "NEURODAMUS_HIPPOCAMPUS_BRANCH=$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" >> branch_variables.env
+    - fi
+    - if [[ "$MODEL_NAME" == "neocortex" ]]; then
+    -   echo "NEURODAMUS_NEOCORTEX_BRANCH=$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" >> branch_variables.env
+    - fi
+    - if [[ "$MODEL_NAME" == "thalamus" ]]; then
+    -   echo "NEURODAMUS_THALAMUS_BRANCH=$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" >> branch_variables.env
+    - fi
+    - if [[ "$MODEL_NAME" == "mousify" ]]; then
+    -   echo "NEURODAMUS_MOUSIFY_BRANCH=$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" >> branch_variables.env
+    - fi
+    - . branch_variables.env
     - cat branch_variables.env
   artifacts:
     reports:
@@ -105,15 +118,18 @@ blueconfig_tests:
     project: hpc/sim/blueconfigs
     branch: $BLUECONFIGS_PIPELINE_BRANCH
     strategy: depend
+  variables:
+    PARENT_COMMIT_MESSAGE: $CI_COMMIT_MESSAGE
+    NEURODAMUS_HIPPOCAMPUS_BRANCH: $NEURODAMUS_HIPPOCAMPUS_BRANCH
+    NEURODAMUS_NEOCORTEX_BRANCH: $NEURODAMUS_NEOCORTEX_BRANCH
+    NEURODAMUS_THALAMUS_BRANCH: $NEURODAMUS_THALAMUS_BRANCH
+    NEURODAMUS_MOUSIFY_BRANCH: $NEURODAMUS_MOUSIFY_BRANCH
   needs:
     - set_alt_branches
   rules:
     - if: $MODEL_NAME != "common"  # If we're updating "common" test all the neurodamus models
       variables:
         TEST_VERSIONS: $MODEL_NAME
-    - if: $SPACK_BRANCH != ""  # If SPACK_BRANCH is set pass the variable to blueconfigs
-      variables:
-        SPACK_BRANCH: $SPACK_BRANCH
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - when: manual
       allow_failure: true
