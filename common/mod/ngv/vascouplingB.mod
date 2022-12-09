@@ -5,7 +5,7 @@ TITLE Adding vascular coupling to endfoot of astrocyte + SMC model, enhanced mod
 NEURON {
 
     SUFFIX vascouplingB
-    RANGE  eete, j_KIR, kp, vKIR, gKIR, Vi, Cam, Frm, M, ICam, jCam, pCam, iCam, th, Rad,I_BK ,phi_n,n,neq, kp,v3,j_BK ,gKIR ,Vi,I_KIR,vKIR
+    RANGE  eete, j_KIR, kp, vKIR, gKIR, Vi, Cam, Frm, M, ICam, jCam, pCam, iCam, th, Rad, R0pas, I_BK ,phi_n,n,neq, kp,v3,j_BK ,gKIR ,Vi,I_KIR,vKIR
     USEION ca READ  cao,cai
 }
 
