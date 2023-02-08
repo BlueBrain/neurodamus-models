@@ -172,7 +172,6 @@ PROCEDURE setRNGs() {
 VERBATIM
 {
 #ifndef CORENEURON_BUILD
-    usingR123 = 0;
     if( ifarg(1) && hoc_is_double_arg(1) ) {
         nrnran123_State** pv = (nrnran123_State**)(&_p_exp_rng);
 
@@ -196,6 +195,7 @@ VERBATIM
 
         pv = (void**)(&_p_uniform_rng);
         *pv = nrn_random_arg(2);
+        usingR123 = 0;
     } else {
         if( usingR123 ) {
             nrnran123_State** pv = (nrnran123_State**)(&_p_exp_rng);
