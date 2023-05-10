@@ -259,9 +259,12 @@ PROCEDURE trates(v (mV)) {
 FUNCTION strap(x) {
     if (x < 0) {
         strap = 0
-VERBATIM
-        fprintf (stderr,"skv.mod:strap: negative state");
-ENDVERBATIM
+: This function gets executed in the DERIVATIVE and BREAKPOINT blocks
+: which should get vectorized and fprintf doesn't allow this
+: Also Intel classic compilers generate invalid code when #pragma omp simd is used
+:VERBATIM
+:        fprintf (stderr,"skv.mod:strap: negative state");
+:ENDVERBATIM
     } else {
         strap = x
     }
