@@ -87,6 +87,7 @@ build_neurodamus:
 set_alt_branches:
   script:
     - echo "$CI_COMMIT_MESSAGE" | grep '^[[:alnum:]_]*_BRANCH=' > branch_variables.env || touch branch_variables.env
+    - if grep -q "BLUECONFIGS_BRANCH" branch_variables.env; then export $(cat branch_variables.env | grep '^BLUECONFIGS_BRANCH=[[:alnum:]_]*'); fi
     - echo "BLUECONFIGS_PIPELINE_BRANCH=$BLUECONFIGS_BRANCH" >> branch_variables.env
     - export
     - if [[ "$MODEL_NAME" == "hippocampus" ]]; then
