@@ -91,8 +91,8 @@ PARAMETER {
     Fac = 10            (ms)  : relaxation time constant from facilitation
     e   = 0             (mV)  : AMPA and NMDA reversal potential
     mg  = 1             (mM)  : initial concentration of mg2+
-    slope_mg = 0.062    (/mV) : default variables from Jahr & Stevens 1990
-    scale_mg = 3.57     (mM)
+    slope_mg = 0.07207477 (/mV)  : Chindemi et al., Nature. Comms. (2022)
+    scale_mg = 2.5522415  (mM)   : Chindemi et al., Nature. Comms. (2022)
     gmax = .001         (uS)  : weight conversion factor (from nS to uS)
     u0   = 0                  : initial value of u, which is the running value of release probability
     Nrrp = 1            (1)   : Number of total release sites for given contact
