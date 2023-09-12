@@ -1,0 +1,48 @@
+{
+    "ALL": {
+        "common": {
+            "mods": ["common/mod/*.mod"],
+            "hocs": ["common/hoc/*.hoc"]
+        },
+        "neocortex": {
+            "prefix": "NCX",
+            "mods": [
+                "neocortex/mod/v6/*.mod",
+                ["neocortex/mod/v5/DetGABAAB.mod", "my_fancy_renamed_mod"]
+            ],
+            "hocs": [
+                "neocortex/hoc/AMPANMDAHelper.hoc",
+                "neocortex/hoc/GABAABHelper.hoc",
+                "neocortex/hoc/GluSynapseHelper.hoc"
+            ]
+        },
+        "hippocampus": {
+            "prefix": "HIP",
+            "mods": ["hippocampus/mod/*.mod"],
+            "hocs": [
+                "hippocampus/hoc/AMPANMDAHelper.hoc",
+                "hippocampus/hoc/GABAABHelper.hoc",
+                "hippocampus/hoc/GluSynapseHelper.hoc"
+            ]
+        },
+        "thalamus": {
+            "prefix": "THA",
+            "mods": ["thalamus/mod/*.mod"],
+            "hocs": [
+                "thalamus/hoc/AMPANMDAHelper.hoc",
+                "thalamus/hoc/GABAABHelper.hoc",
+                "thalamus/hoc/GluSynapseHelper.hoc"
+            ]
+        }
+    },
+    "plasticity": {
+        "neocortex": {
+            "mods": [
+                "neocortex/mod/v5/*.mod",
+                "neocortex/mod/v6/*.mod",
+                "neocortex/mod/plasticity/*.mod"
+            ],
+            "hocs": ["neocortex/hoc/*.hoc"]
+        }
+    }
+}
