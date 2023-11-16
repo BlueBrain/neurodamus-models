@@ -323,7 +323,6 @@ VERBATIM
 #endif
     } else {
         // see BBPBGLIB-972
-        hoc_warning("[StochKv]","WARNING: no random generator has been set up. urand() returns 0.0");
         value = 0.0;
     }
     _lurand = value;
