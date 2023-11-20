@@ -128,9 +128,12 @@ blueconfig_tests:
   needs:
     - set_alt_branches
   rules:
-    - if: $MODEL_NAME != "common"  # If we're updating "common" test all the neurodamus models
+    - if: $MODEL_NAME != "common" && $MODEL_NAME != "neocortex"  # If we're updating "common" test all the neurodamus models
       variables:
         TEST_VERSIONS: $MODEL_NAME
+    - if: $MODEL_NAME == "neocortex"
+      variables:
+        TEST_VERSIONS: "neocortex ncx_ngv"
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - when: manual
       allow_failure: true
