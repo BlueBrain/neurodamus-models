@@ -11,6 +11,7 @@ stages:
   - deploy
 
 variables:
+  GIT_SUBMODULE_DEPTH: 1
   bb5_build_dir: "pipeline"  # Notice: this keeps build dir among jobs! no artifacts needed
   bb5_account: proj12
   bb5_partition: prod_small
@@ -25,15 +26,19 @@ variables:
     - export TMPDIR="$TMPDIR/$CI_PIPELINE_ID"
 
 
-build_neurodamus:
+test_combined_model:
   extends: .test
   variables:
-    bb5_cpus_per_task: 16  # for parallel make
+    GIT_SUBMODULE_STRATEGY: normal
+    bb5_cpus_per_task: 2  # for parallel make
     bb5_constraint: cpu
   script:
     - mkdir -p $HOME
     - ln -s ~bbpcihpcproj12/.ssh $HOME/
-    - echo "Well... We still have to develop the spack package et all..."
+    - module load unstable python neuron
+    - ./model_manager.py model_config.json
+    - nrnivmodl build/ALL/mod
+    - ./x86_64/special -c 'print "Hello world!"'
   rules:
     - if: '$CI_PIPELINE_SOURCE != "pipeline"'
 

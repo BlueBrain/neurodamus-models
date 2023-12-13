@@ -7,8 +7,11 @@
         "neocortex": {
             "prefix": "NCX",
             "mods": [
-                "neocortex/mod/v6/*.mod",
-                ["neocortex/mod/v5/DetGABAAB.mod", "my_fancy_renamed_mod"]
+                "neocortex/mod/v6/*.mod"
+            ],
+            "exclude_mods": [
+                "neocortex/mod/v6/netstim_inhpoisson.mod",
+                "neocortex/mod/v6/VecStim.mod"
             ],
             "hocs": [
                 "neocortex/hoc/AMPANMDAHelper.hoc",
@@ -19,6 +22,10 @@
         "hippocampus": {
             "prefix": "HIP",
             "mods": ["hippocampus/mod/*.mod"],
+            "exclude_mods": [
+                "hippocampus/mod/netstim_inhpoisson.mod",
+                "hippocampus/mod/VecStim.mod"
+            ],
             "hocs": [
                 "hippocampus/hoc/AMPANMDAHelper.hoc",
                 "hippocampus/hoc/GABAABHelper.hoc",
@@ -28,6 +35,10 @@
         "thalamus": {
             "prefix": "THA",
             "mods": ["thalamus/mod/*.mod"],
+            "exclude_mods": [
+                "thalamus/mod/netstim_inhpoisson.mod",
+                "thalamus/mod/VecStim.mod"
+            ],
             "hocs": [
                 "thalamus/hoc/AMPANMDAHelper.hoc",
                 "thalamus/hoc/GABAABHelper.hoc",
