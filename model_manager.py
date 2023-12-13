@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from glob import glob
 
 
-MOD_PATCH_EXPRS = ("SUFFIX ", "POINT_PROCESS ")  # keep spaces
+MOD_PATCH_EXPRS = ("SUFFIX ", "POINT_PROCESS ", "ARTIFICIAL_CELL ")  # keep spaces
 HOC_NAMES_PREFIX = (
     "ProbAMPANMDA_EMS",
     "ProbGABAAB_EMS",
@@ -33,6 +33,7 @@ ONLY_SYNAPSES_PATCH_MOD_FILES = {
 class ModelComponent:
     mods: list
     hocs: list
+    exclude_mods: tuple = ()
     prefix: str = None
 
 
@@ -46,7 +47,7 @@ def merge_model(build_name: str, components: "dict[str, ModelComponent]", only_s
         logging.info(" - Processing %s", name)
         if component.prefix is None:
             for mod_path in component.mods:
-                copy_all(mod_path, out_mod)
+                copy_all(mod_path, out_mod, exclude=component.exclude_mods)
             for hoc_path in component.hocs:
                 copy_all(hoc_path, out_hoc)
         else:
@@ -56,7 +57,7 @@ def merge_model(build_name: str, components: "dict[str, ModelComponent]", only_s
                 suffix=f"{prefix}_",
                 file_prefix=prefix,
                 n_times=1,
-                subset=ONLY_SYNAPSES_PATCH_MOD_FILES if only_synapses else None
+                subset=ONLY_SYNAPSES_PATCH_MOD_FILES if only_synapses else None,
             )
             for mod_path in component.mods:
                 logging.info("   > Path %s", mod_path)
@@ -73,10 +74,11 @@ def merge_model(build_name: str, components: "dict[str, ModelComponent]", only_s
                 copy_all(hoc_path, out_hoc, hoc_copy_f)
 
 
-def copy_all(src, dst, copyfunc=shutil.copy):
+def copy_all(src, dst, copyfunc=shutil.copy, exclude=()):
     """Copy/process all files in a src dir into a destination dir."""
     for src_pth in glob(src):
-        copyfunc(src_pth, dst)
+        if not exclude or src_pth not in exclude:
+            copyfunc(src_pth, dst)
 
 
 def copy_patch(find_expr, prefix="", suffix="", file_prefix=None, n_times=-1, subset=None):
@@ -133,15 +135,15 @@ def copy_patch_hoc(prefix):
     basename = os.path.basename
     name_re = re.compile(r"(begin|end)template *(.*)")
     name_options = "|".join(HOC_NAMES_PREFIX)
-    pp_call_re = re.compile(fr"new *({name_options}) ?\(")
+    pp_call_re = re.compile(rf"new *({name_options}) ?\(")
 
     def copy_f(hoc_f, dst_dir):
         """Rename and adapt the hoc file for the new mods"""
         with open(hoc_f) as src:
             full_str = src.read()
 
-        full_str = name_re.sub(fr"\1template {prefix}_\2", full_str)
-        full_str = pp_call_re.sub(fr"{prefix}_\1(", full_str)
+        full_str = name_re.sub(rf"\1template {prefix}_\2", full_str)
+        full_str = pp_call_re.sub(rf"{prefix}_\1(", full_str)
 
         dst_f = os.path.join(dst_dir, prefix + "_" + basename(hoc_f))
         with open(dst_f, "w") as dst:
@@ -151,7 +153,6 @@ def copy_patch_hoc(prefix):
 
 
 if __name__ == "__main__":
-
     if len(sys.argv) == 1 or sys.argv[1] in ("-h", "--help"):
         print(f"Usage: {sys.argv[0]} <config_file> [--only-synapses]")
         exit(-1)
@@ -166,7 +167,8 @@ if __name__ == "__main__":
         logging.error("Invalid config file path")
         exit(-1)
 
-    builds = json.load(open(filename))
+    with open(filename) as f:
+        builds = json.load(f)
 
     for build_name, components in builds.items():
         logging.info("Checking '%s'", build_name)
