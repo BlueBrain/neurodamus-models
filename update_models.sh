@@ -34,9 +34,10 @@ for d in */; do
         exit 1
     }
     if [ $(git rev-list HEAD..FETCH_HEAD --count) -gt 0 ]; then
-        commit_info="$model_name: $(git log -1 FETCH_HEAD --oneline --no-decorate)"
+        commit_info="**$model_name**:
+$(git log HEAD..FETCH_HEAD --oneline --no-decorate --ancestry-path | sed 's/^/  - /')"
         updated_modules="$updated_modules $model_name"
-        update_details="$update_details $nl - $commit_info"
+        update_details="$update_details$nl$commit_info$nl"
         git reset --hard FETCH_HEAD
     else
         echo " [ok] Already up to date."
@@ -53,7 +54,7 @@ if [ "$updated_modules" ]; then
     outp=$(git diff --cached --name-only)
     if [ "$outp" ]; then
         echo " -> New commits found. Creating new bump commit"
-        git commit -m "Bumping models: $updated_modules $nl $update_details"
+        git commit -m "Bumping models: $updated_modules$nl$update_details"
         echo " -> Modules were updated. Commit created! Done."
     else
         echo " -> Already up to date. Done"
