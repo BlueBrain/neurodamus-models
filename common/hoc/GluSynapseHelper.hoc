@@ -83,6 +83,9 @@ proc init() { local tgid, x, synapseID, baseSeed, res, spopid, tpopid  localobj 
         synapse.gmax0_AMPA = synapse.gmax_d_AMPA
     }
 
+    // Scale gmax according to the conductance ratio
+    synapse.gmax_NMDA = synapse.gmax0_AMPA * synParams.conductance_ratio
+
     // Release parameters
     synapse.tau_d_AMPA = synParams.DTC
     if (synapse.rho0_GB > rho_star_GB_GluSynapse) {

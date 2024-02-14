@@ -79,6 +79,8 @@ ASSIGNED {
 
     rng
     usingR123
+    gk0 (S/cm2)
+    ik_stoch_0 (mA/cm2)
 }
 
 
@@ -155,6 +157,9 @@ INITIAL {
     n0l1_n0l0 = 0
     n1l1_n0l1 = 0
     n1l1_n1l0 = 0
+   
+    gk0 = (strap(N1L1) * scale_dens) * (0.0001)
+    ik_stoch_0 = gk0* (v-ek)
 }
 
 : ----------------------------------------------------------------
@@ -164,7 +169,7 @@ BREAKPOINT {
 
   gk = (strap(N1L1) * scale_dens) * (0.0001)
 
-  ik = gk * (v - ek)
+  ik = gk * (v - ek) - ik_stoch_0
 }
 
 
@@ -259,9 +264,9 @@ PROCEDURE trates(v (mV)) {
 FUNCTION strap(x) {
     if (x < 0) {
         strap = 0
-VERBATIM
-        fprintf (stderr,"skv.mod:strap: negative state");
-ENDVERBATIM
+:VERBATIM
+:        fprintf (stderr,"skv.mod:strap: negative state");
+:ENDVERBATIM
     } else {
         strap = x
     }
@@ -272,9 +277,9 @@ ENDVERBATIM
 PROCEDURE ChkProb(p) {
 
   if (p < 0.0 || p > 1.0) {
-    VERBATIM
-    fprintf(stderr, "StochKv2.mod:ChkProb: argument not a probability.\n");
-    ENDVERBATIM
+ :   VERBATIM
+ :   fprintf(stderr, "StochKv2.mod:ChkProb: argument not a probability.\n");
+ :   ENDVERBATIM
   }
 
 }
@@ -500,11 +505,11 @@ VERBATIM
         //  provided that it is the version that supports multivalue writing
         /* first arg is direction (-1 get info, 0 save, 1 restore), second is value*/
         double *xdir, *xval;
-        #ifndef NRN_VERSION_GTEQ_8_2_0
-        double *hoc_pgetarg();
+		#ifndef NRN_VERSION_GTEQ_8_2_0
+		double *hoc_pgetarg();
         long nrn_get_random_sequence(void* r);
         void nrn_set_random_sequence(void* r, int val);
-        #endif
+		#endif
         xdir = hoc_pgetarg(1);
         xval = hoc_pgetarg(2);
         if (_p_rng) {

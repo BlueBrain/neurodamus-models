@@ -22,18 +22,14 @@ ENDCOMMENT
 NEURON {
     THREADSAFE
 
-    POINT_PROCESS DetGABAAB
+    POINT_PROCESS DetGABAAB_ionic
     RANGE tau_r_GABAA, tau_d_GABAA, tau_r_GABAB, tau_d_GABAB
     RANGE Use, u, Dep, Fac, u0, GABAB_ratio
     RANGE i, i_GABAA, i_GABAB, g_GABAA, g_GABAB, g, e_GABAA, e_GABAB
-    NONSPECIFIC_CURRENT i
+    RANGE icl, ik
+    USEION cl WRITE icl VALENCE -1
+    USEION k WRITE ik
     RANGE synapseID, verboseLevel
-    RANGE conductance
-    RANGE next_delay
-    BBCOREPOINTER delay_times, delay_weights
-    GLOBAL nc_type_param
-    : For debugging
-    :RANGE sgid, tgid
 }
 
 
@@ -52,23 +48,7 @@ PARAMETER {
     synapseID    = 0
     verboseLevel = 0
     GABAB_ratio  = 0     (1)  : The ratio of GABAB to GABAA
-    conductance  = 0.0
-    nc_type_param = 7
 }
-
-
-VERBATIM
-
-#ifndef CORENEURON_BUILD
-extern int ifarg(int iarg);
-#ifndef NRN_VERSION_GTEQ_8_2_0
-extern void* vector_arg(int iarg);
-extern double* vector_vec(void* vv);
-extern int vector_capacity(void* vv);
-#endif
-#endif
-
-ENDVERBATIM
 
 
 ASSIGNED {
@@ -81,30 +61,9 @@ ASSIGNED {
     g (uS)
     factor_GABAA
     factor_GABAB
-
-    : stuff for delayed connections
-    delay_times
-    delay_weights
-    next_delay (ms)
+  icl     (nA)
+  ik      (nA)
 }
-
-PROCEDURE setup_delay_vecs() {
-VERBATIM
-#ifndef CORENEURON_BUILD
-    void** vv_delay_times = (void**)(&_p_delay_times);
-    void** vv_delay_weights = (void**)(&_p_delay_weights);
-    *vv_delay_times = (void*)NULL;
-    *vv_delay_weights = (void*)NULL;
-    if (ifarg(1)) {
-        *vv_delay_times = vector_arg(1);
-    }
-    if (ifarg(2)) {
-        *vv_delay_weights = vector_arg(2);
-    }
-#endif
-ENDVERBATIM
-}
-
 
 STATE {
     A_GABAA       : GABAA state variable to construct the dual-exponential profile - decays with conductance tau_r_GABAA
@@ -131,9 +90,6 @@ INITIAL{
 
     factor_GABAB = -exp(-tp_GABAB/tau_r_GABAB)+exp(-tp_GABAB/tau_d_GABAB) :GABAB Normalization factor - so that when t = tp_GABAB, gsyn = gpeak
     factor_GABAB = 1/factor_GABAB
-
-    next_delay = -1
-
 }
 
 
@@ -144,6 +100,8 @@ BREAKPOINT {
     g = g_GABAA + g_GABAB
     i_GABAA = g_GABAA*(v-e_GABAA) :compute the GABAA driving force based on the time varying conductance, membrane potential, and GABAA reversal
     i_GABAB = g_GABAB*(v-e_GABAB) :compute the GABAB driving force based on the time varying conductance, membrane potential, and GABAB reversal
+    icl = i_GABAA
+    ik = i_GABAB
     i = i_GABAA + i_GABAB
 }
 
@@ -156,39 +114,15 @@ DERIVATIVE state{
 }
 
 
-NET_RECEIVE (weight, weight_GABAA, weight_GABAB, R, Pr, u, tsyn (ms), nc_type){
+NET_RECEIVE (weight,weight_GABAA, weight_GABAB, R, Pr, u, tsyn (ms)){
     LOCAL result
     weight_GABAA = weight
     weight_GABAB = weight * GABAB_ratio
 
     INITIAL{
-        R=1
-        u=u0
-        tsyn=t
-
-        if (nc_type == 0) {
-            : nc_type {
-            :   0 = presynaptic netcon
-            :   1 = spontmini netcon
-            :   2 = replay netcon
-            : }
-    VERBATIM
-            // setup self events for delayed connections to change weights
-            IvocVect *vv_delay_times = *((IvocVect**)(&_p_delay_times));
-            IvocVect *vv_delay_weights = *((IvocVect**)(&_p_delay_weights));
-            if (vv_delay_times && vector_capacity(vv_delay_times)>=1) {
-              double* deltm_el = vector_vec(vv_delay_times);
-              int delay_times_idx;
-              next_delay = 0;
-              for(delay_times_idx = 0; delay_times_idx < vector_capacity(vv_delay_times); ++delay_times_idx) {
-                double next_delay_t = deltm_el[delay_times_idx];
-    ENDVERBATIM
-                net_send(next_delay_t, 1)
-    VERBATIM
-              }
-            }
-    ENDVERBATIM
-        }
+            R=1
+            u=u0
+            tsyn=t
     }
 
     : Disable in case of t < 0 (in case of ForwardSkip) which causes numerical
@@ -198,24 +132,6 @@ NET_RECEIVE (weight, weight_GABAA, weight_GABAB, R, Pr, u, tsyn (ms), nc_type){
         return;
     ENDVERBATIM
     }
-
-    if (flag == 1) {
-        : self event to set next weight at delay
-    VERBATIM
-        // setup self events for delayed connections to change weights
-        IvocVect *vv_delay_weights = *((IvocVect**)(&_p_delay_weights));
-        if (vv_delay_weights && vector_capacity(vv_delay_weights)>=next_delay) {
-          double* weights_v = vector_vec(vv_delay_weights);
-          double next_delay_weight = weights_v[(int)next_delay];
-    ENDVERBATIM
-          weight = conductance*next_delay_weight
-          next_delay = next_delay + 1
-    VERBATIM
-        }
-        return;
-    ENDVERBATIM
-    }
-    : flag == 0, i.e. a spike has arrived
 
     : calc u at event-
     if (Fac > 0) {
@@ -252,76 +168,3 @@ NET_RECEIVE (weight, weight_GABAA, weight_GABAB, R, Pr, u, tsyn (ms), nc_type){
 FUNCTION toggleVerbose() {
     verboseLevel = 1-verboseLevel
 }
-
-
-VERBATIM
-static void bbcore_write(double* x, int* d, int* x_offset, int* d_offset, _threadargsproto_) {
-
-  IvocVect *vv_delay_times = *((IvocVect**)(&_p_delay_times));
-  IvocVect *vv_delay_weights = *((IvocVect**)(&_p_delay_weights));
-
-  // serialize connection delay vectors
-  if (vv_delay_times && vv_delay_weights &&
-     (vector_capacity(vv_delay_times) >= 1) && (vector_capacity(vv_delay_weights) >= 1)) {
-    if (d && x) {
-      int* d_i = d + *d_offset;
-      // store vector sizes for deserialization
-      d_i[0] = vector_capacity(vv_delay_times);
-      d_i[1] = vector_capacity(vv_delay_weights);
-
-      double* delay_times_el = vector_vec(vv_delay_times);
-      double* delay_weights_el = vector_vec(vv_delay_weights);
-      double* x_i = x + *x_offset;
-      int delay_vecs_idx;
-      int x_idx = 0;
-      for(delay_vecs_idx = 0; delay_vecs_idx < vector_capacity(vv_delay_times); ++delay_vecs_idx) {
-         x_i[x_idx++] = delay_times_el[delay_vecs_idx];
-         x_i[x_idx++] = delay_weights_el[delay_vecs_idx];
-      }
-    }
-  } else {
-    if (d) {
-      int* d_i = d + *d_offset;
-      d_i[0] = 0;
-      d_i[1] = 0;
-    }
-  }
-  // reserve space for delay connection vector sizes on serialization buffer
-  *d_offset += 2;
-
-  // reserve space for connection delay data on serialization buffer
-  if (vv_delay_times && vv_delay_weights) {
-    *x_offset += vector_capacity(vv_delay_times) + vector_capacity(vv_delay_weights);
-  }
-}
-
-static void bbcore_read(double* x, int* d, int* x_offset, int* d_offset, _threadargsproto_) {
-  assert(!_p_delay_times && !_p_delay_weights);
-
-  // first get delay vector sizes
-  int* d_i = d + *d_offset;
-  int delay_times_sz = d_i[0];
-  int delay_weights_sz = d_i[1];
-  *d_offset += 2;
-
-  if ((delay_times_sz > 0) && (delay_weights_sz > 0)) {
-    double* x_i = x + *x_offset;
-
-    // allocate vectors
-    _p_delay_times = (double*)vector_new1(delay_times_sz);
-    _p_delay_weights = (double*)vector_new1(delay_weights_sz);
-
-    double* delay_times_el = vector_vec((IvocVect*)_p_delay_times);
-    double* delay_weights_el = vector_vec((IvocVect*)_p_delay_weights);
-
-    // copy data
-    int x_idx;
-    int vec_idx = 0;
-    for(x_idx = 0; x_idx < delay_times_sz + delay_weights_sz; x_idx += 2) {
-      delay_times_el[vec_idx] = x_i[x_idx];
-      delay_weights_el[vec_idx++] = x_i[x_idx+1];
-    }
-    *x_offset += delay_times_sz + delay_weights_sz;
-  }
-}
-ENDVERBATIM
