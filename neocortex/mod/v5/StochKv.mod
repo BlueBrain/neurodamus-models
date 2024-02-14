@@ -314,7 +314,7 @@ ENDVERBATIM
 FUNCTION urand() {
 
 VERBATIM
-    double value;
+    double value = 0.0;
     if( usingR123 ) {
         value = nrnran123_dblpick((nrnran123_State*)_p_rng);
     } else if (_p_rng) {
@@ -322,7 +322,8 @@ VERBATIM
         value = nrn_random_pick(RANDCAST _p_rng);
 #endif
     } else {
-        value = 0.5;
+        // see BBPBGLIB-972
+        value = 0.0;
     }
     _lurand = value;
 ENDVERBATIM

@@ -322,7 +322,7 @@ ENDVERBATIM
 FUNCTION urand() {
 
 VERBATIM
-    double value;
+    double value = 0.0;
     if( usingR123 ) {
         value = nrnran123_dblpick((nrnran123_State*)_p_rng);
     } else if (_p_rng) {
@@ -330,7 +330,8 @@ VERBATIM
         value = nrn_random_pick(RANDCAST _p_rng);
 #endif
     } else {
-        value = 0.5;
+        // see BBPBGLIB-972
+        value = 0.0;
     }
     _lurand = value;
 ENDVERBATIM
@@ -356,14 +357,15 @@ static void bbcore_write(double* x, int* d, int* xx, int* offset, _threadargspro
     *offset += 5;
 }
 static void bbcore_read(double* x, int* d, int* xx, int* offset, _threadargsproto_) {
+    assert(!_p_rng);
     uint32_t* di = ((uint32_t*)d) + *offset;
         if (di[0] != 0 || di[1] != 0|| di[2] != 0)
         {
       nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
 #if !NRNBBCORE
-      if(*pv) {
-          nrnran123_deletestream(*pv);
-      }
+    if(*pv) {
+        nrnran123_deletestream(*pv);
+    }
 #endif
       *pv = nrnran123_newstream3(di[0], di[1], di[2]);
       nrnran123_setseq(*pv, di[3], (char)di[4]);
@@ -505,11 +507,11 @@ VERBATIM
         //  provided that it is the version that supports multivalue writing
         /* first arg is direction (-1 get info, 0 save, 1 restore), second is value*/
         double *xdir, *xval;
-		#ifndef NRN_VERSION_GTEQ_8_2_0
-		double *hoc_pgetarg();
+        #ifndef NRN_VERSION_GTEQ_8_2_0
+        double *hoc_pgetarg();
         long nrn_get_random_sequence(void* r);
         void nrn_set_random_sequence(void* r, int val);
-		#endif
+        #endif
         xdir = hoc_pgetarg(1);
         xval = hoc_pgetarg(2);
         if (_p_rng) {
