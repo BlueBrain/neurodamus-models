@@ -1,0 +1,6 @@
+[gerrit]
+host=bbpcode.epfl.ch
+port=22
+project=sim/models/neocortex
+defaultbranch=master
+defaultremote=origin

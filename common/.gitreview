@@ -1,0 +1,6 @@
+[gerrit]
+host=bbpcode.epfl.ch
+port=22
+project=sim/models/common
+defaultbranch=master
+defaultremote=origin
