@@ -72,7 +72,6 @@ proc init() { local tgid, x, synapseID, baseSeed, seed2, spopid, tpopid  localob
         quit()
     }
 
-    if( rngInfo.getRNGMode() == rngInfo.RANDOM123 ) {
     seed2 = spopid*65536 + tpopid + rngInfo.getSynapseSeed() + 300
     synapse.setRNG( tgid+250, synapseID+100, seed2 )
     synapse.synapseID = synapseID
