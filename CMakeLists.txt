@@ -69,7 +69,7 @@ foreach(_input_dir IN LISTS input_mod_directories)
 endforeach()
 
 add_custom_target(build ALL
-  "${nrnivmodl}" ${_corenrn_arg} "${_build_mod_dir}"
+  "${nrnivmodl}" ${_corenrn_arg} -loadflags -Wl,-rpath,"${CMAKE_INSTALL_PREFIX}/lib" "${_build_mod_dir}"
   BYPRODUCTS ${output_binaries} ${output_libraries} ${output_cpp_files}
   DEPENDS ${output_mod_files}
 )
