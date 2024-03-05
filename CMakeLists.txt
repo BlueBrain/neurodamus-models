@@ -74,7 +74,7 @@ add_custom_target(build ALL
   DEPENDS ${output_mod_files}
 )
 
-INSTALL(FILES ${output_binaries} DESTINATION bin)
+INSTALL(FILES ${output_binaries} DESTINATION bin PERMISSIONS WORLD_EXECUTE)
 INSTALL(FILES ${output_libraries} DESTINATION lib)
 INSTALL(FILES ${output_mod_files} DESTINATION lib/mod)
 INSTALL(FILES ${output_cpp_files} DESTINATION share/modcpp)
