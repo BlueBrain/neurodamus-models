@@ -14,6 +14,11 @@ option(ND_NCX_V5 OFF)
 
 find_program(nrnivmodl nrnivmodl REQUIRED)
 
+file(GLOB _input_core_hoc_files "${ND_CORE_DIR}/hoc/*.hoc")
+file(GLOB _input_model_hoc_files "${CMAKE_CURRENT_LIST_DIR}/${ND_MECHANISMS}/hoc/*.hoc")
+set(input_hoc_files ${_input_core_hoc_files})
+list(APPEND input_hoc_files ${_input_model_hoc_files})
+
 set(input_mod_directories "${ND_CORE_DIR}/mod")
 
 if("${ND_MECHANISMS}" STREQUAL "neocortex")
@@ -94,9 +99,9 @@ add_custom_target(build ALL
 
 INSTALL(PROGRAMS ${output_binaries} DESTINATION bin)
 INSTALL(FILES ${output_libraries} DESTINATION lib)
+INSTALL(FILES ${input_hoc_files} DESTINATION lib/hoc)
 INSTALL(FILES ${output_mod_files} DESTINATION lib/mod)
 INSTALL(FILES ${output_cpp_files} DESTINATION share/modcpp)
-INSTALL(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/${ND_MECHANISMS}/hoc DESTINATION lib)
 
 if(ND_ENABLE_CORENEURON)
   INSTALL(FILES ${output_cpp_core_files} DESTINATION share/modcpp_core)
