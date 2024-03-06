@@ -69,11 +69,13 @@ foreach(_input_dir IN LISTS input_mod_directories)
   endforeach()
 endforeach()
 
+# At some point in the 1.14 series, HDF5 decided that the HDF5_*LIBRARIES variables should
+# contain _targets_, not library names/paths.
 set(HDF5_NO_FIND_PACKAGE_CONFIG_FILE ON)
 find_package(HDF5 REQUIRED)
 find_package(sonata REQUIRED)
 
-set(nrn_incflags "${sonatareport_INCLUDE_DIR}")
+set(nrn_incflags "-isystem ${sonatareport_INCLUDE_DIR}")
 set(nrn_loadflags "-Wl,-rpath,'${CMAKE_INSTALL_PREFIX}/lib' ${sonatareport_LIBRARY}")
 foreach(dir IN LISTS HDF5_INCLUDE_DIRS)
   set(nrn_incflags "${nrn_incflags} -isystem '${dir}'")
