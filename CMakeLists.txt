@@ -14,10 +14,15 @@ option(ND_NCX_V5 OFF)
 
 find_program(nrnivmodl nrnivmodl REQUIRED)
 
+# input_hoc_files will be installed via CMake's install(), which will basically just copy
+# symbolic links. Make sure that we resolve any links ourselves!
+set(input_hoc_files)
 file(GLOB _input_core_hoc_files "${ND_CORE_DIR}/hoc/*.hoc")
 file(GLOB _input_model_hoc_files "${CMAKE_CURRENT_LIST_DIR}/${ND_MECHANISMS}/hoc/*.hoc")
-set(input_hoc_files ${_input_core_hoc_files})
-list(APPEND input_hoc_files ${_input_model_hoc_files})
+foreach(_input_hoc_file IN LISTS _input_core_hoc_files _input_model_hoc_files)
+  get_filename_component(_realpath "${_input_hoc_file}" REALPATH)
+  list(APPEND input_hoc_files "${_realpath}")
+endforeach()
 
 set(input_mod_directories "${ND_CORE_DIR}/mod")
 
