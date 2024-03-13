@@ -11,9 +11,11 @@
 : initialize to steady state pump with nai, ki, atp clamped.
 
 :Modified by Michiel Camps to integrate in BBP cell types
+:Modified by Sofia Farina added global variable do_clamp: default unclamp 0 to clamp set to 1
 
 NEURON {
 	SUFFIX nakpump
+	GLOBAL do_clamp
 	USEION na READ nai, nao WRITE ina
 	USEION k READ ki, ko WRITE ik
 	USEION atp READ atpi WRITE atpi VALENCE -3
@@ -23,8 +25,8 @@ NEURON {
 	RANGE atpact
 	RANGE atpi, adpi, pi
 	RANGE ina, ik, totalpump
-        RANGE srcrate
-        RANGE atpi_clamp, adpi_clamp,pi_clamp :Can be set experimentally, assigned the initial concentrations else
+	RANGE srcrate
+	RANGE atpi_clamp, adpi_clamp,pi_clamp :Can be set experimentally, assigned the initial concentrations else
 }
 
 UNITS {
@@ -57,6 +59,7 @@ PARAMETER {
 	b5 = 30 (/s)
 	f6 = 1.15e4 (/s)
 	b6 = 6e8 (l2/mol2-s)
+	do_clamp = 0
 }
 
 ASSIGNED {
@@ -77,9 +80,9 @@ ASSIGNED {
 	:compensation currents
 	ik_init (mA/cm2)
 	ina_init (mA/cm2)
-        adpi_clamp (mM)
-        atpi_clamp (mM)
-        pi_clamp (mM)
+	adpi_clamp (mM)
+	atpi_clamp (mM)
+	pi_clamp (mM)
 }
 
 STATE {
@@ -111,7 +114,7 @@ INITIAL {
 	}
 
 	: set to 0 to unclamp atp, adp, p
-	srcrate = 0
+	srcrate = clamp_unclamp(do_clamp)
 
 	SOLVE scheme METHOD sparse
 	ina_init = 3*atpact*(1e-3)
@@ -167,3 +170,12 @@ FUNCTION out_rect(x) {
         out_rect = x
     }
 }
+FUNCTION clamp_unclamp(x) {
+    if ( x == 1 ) {
+        clamp_unclamp = 10e15
+    }   
+    else {
+        clamp_unclamp = 0
+    }
+}
+
