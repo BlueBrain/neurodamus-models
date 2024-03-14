@@ -120,11 +120,9 @@ foreach(lib IN LISTS HDF5_C_LIBRARIES)
   set(nrn_loadflags "${nrn_loadflags} ${lib}")
 endforeach()
 
-set(ENV{VERBOSE} "1")
-
 add_custom_target(
   build ALL
-  "${nrnivmodl}"
+  env VERBOSE=1 "${nrnivmodl}"
   ${_corenrn_arg}
   -incflags
   "${nrn_incflags}"
