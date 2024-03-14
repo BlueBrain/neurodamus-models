@@ -88,3 +88,11 @@ hoc mod
 Notice an optional `--only-synapses` argument. It is intended to apply renaming rules only to synapse files, currently `ProbAMPANMDA_EMS.mod`, `ProbGABAAB_EMS.mod` and `GluSynapse.mod`.
 
 This may be useful in case you are working with existing circuits where you do not want to rename machanisms yet, but still you want to rename and bundle the several synapse types together.
+
+## Acknowledgements
+
+The development of this software was supported by funding to the Blue Brain Project, a
+research center of the École polytechnique fédérale de Lausanne (EPFL), from the Swiss
+government’s ETH Board of the Swiss Federal Institutes of Technology.
+
+Copyright (c) 2009-2024 Blue Brain Project/EPFL
