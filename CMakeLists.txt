@@ -61,7 +61,7 @@ endif()
 set(_input_mod_filestubs)
 
 set(_archdir x86_64)
-set(_build_mod_dir mods)
+set(_build_mod_dir mod)
 
 set(output_binaries ${CMAKE_CURRENT_BINARY_DIR}/${_archdir}/special)
 set(output_libraries ${CMAKE_CURRENT_BINARY_DIR}/${_archdir}/libnrnmech.so)
