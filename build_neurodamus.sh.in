@@ -38,7 +38,7 @@ NRNIVMODL_EXTRA_INCLUDE_FLAGS="$1"
 NRNIVMODL_EXTRA_LOAD_FLAGS="$2"
 
 core_arg=""
-if [ "x$COMPILE_ONLY_NEURON" == "x1" ]; then
+if [ "x$COMPILE_ONLY_NEURON" != "x1" ]; then
     if [ -n "@_corenrn_arg@" ]; then
         echo "CoreNEURON not enabled for this installation."
         exit 1
