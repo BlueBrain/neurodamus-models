@@ -19,7 +19,13 @@ option(ND_NCX_NGV OFF)
 option(ND_NCX_PLASTICITY OFF)
 option(ND_NCX_V5 OFF)
 
+# NEURON does not install any CMake glue, we have to manually find nrnivmodl
 find_program(nrnivmodl nrnivmodl REQUIRED)
+
+# Extract the nrnivmodl output directory
+file(STRINGS "${nrnivmodl}" _modsubdir REGEX "MODSUBDIR=.*")
+string(REPLACE "MODSUBDIR=" "" _archdir "${_modsubdir}")
+message(STATUS "nrnivmodl output directory determined to be \"${_archdir}\"")
 
 # input_hoc_files will be installed via CMake's install(), which will basically
 # just copy symbolic links. Make sure that we resolve any links ourselves!
@@ -32,8 +38,9 @@ foreach(_input_hoc_file IN LISTS _input_core_hoc_files _input_model_hoc_files)
   list(APPEND input_hoc_files "${_realpath}")
 endforeach()
 
+# Mod directories in order of importance, files in later mod directories ignored if the
+# same basename is present in an earlier directory
 set(input_mod_directories "${ND_CORE_DIR}/mod")
-
 if("${ND_MECHANISMS}" STREQUAL "neocortex")
   if(ND_NCX_METABOLISM)
     list(APPEND input_mod_directories
@@ -59,8 +66,6 @@ else()
 endif()
 
 set(_input_mod_filestubs)
-
-set(_archdir x86_64)
 set(_build_mod_dir mod)
 
 set(output_binaries ${CMAKE_CURRENT_BINARY_DIR}/${_archdir}/special)
