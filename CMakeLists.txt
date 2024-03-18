@@ -122,7 +122,7 @@ endforeach()
 
 add_custom_target(
   build ALL
-  env VERBOSE=1 "${nrnivmodl}"
+  "${nrnivmodl}"
   ${_corenrn_arg}
   -incflags
   "${nrn_incflags}"
