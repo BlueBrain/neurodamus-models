@@ -116,14 +116,17 @@ find_package(HDF5 REQUIRED)
 find_package(sonata REQUIRED)
 
 set(nrn_incflags "-isystem ${sonatareport_INCLUDE_DIR}")
-set(nrn_loadflags
-    "-Wl,-rpath,'${CMAKE_INSTALL_PREFIX}/lib' ${sonatareport_LIBRARY}")
+set(nrn_loadflags "${sonatareport_LIBRARY}")
 foreach(dir IN LISTS HDF5_INCLUDE_DIRS)
   set(nrn_incflags "${nrn_incflags} -isystem '${dir}'")
 endforeach()
 foreach(lib IN LISTS HDF5_C_LIBRARIES)
   set(nrn_loadflags "${nrn_loadflags} ${lib}")
 endforeach()
+
+configure_file(build_neurodamus.sh.in build_neurodamus.sh @ONLY)
+
+set(nrn_loadflags "'-Wl,-rpath,'${CMAKE_INSTALL_PREFIX}/lib' ${nrn_loadflags}")
 
 add_custom_target(
   build ALL
@@ -136,8 +139,6 @@ add_custom_target(
   "${_build_mod_dir}"
   BYPRODUCTS ${output_binaries} ${output_libraries} ${output_cpp_files}
   DEPENDS ${output_mod_files})
-
-configure_file(build_neurodamus.sh.in build_neurodamus.sh @ONLY)
 
 install(PROGRAMS ${output_binaries} ${CMAKE_CURRENT_BINARY_DIR}/build_neurodamus.sh DESTINATION bin)
 install(FILES ${output_libraries} DESTINATION lib)
