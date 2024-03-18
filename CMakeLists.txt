@@ -137,7 +137,9 @@ add_custom_target(
   BYPRODUCTS ${output_binaries} ${output_libraries} ${output_cpp_files}
   DEPENDS ${output_mod_files})
 
-install(PROGRAMS ${output_binaries} DESTINATION bin)
+configure_file(build_neurodamus.sh.in build_neurodamus.sh @ONLY)
+
+install(PROGRAMS ${output_binaries} ${CMAKE_CURRENT_BINARY_DIR}/build_neurodamus.sh DESTINATION bin)
 install(FILES ${output_libraries} DESTINATION lib)
 install(FILES ${input_hoc_files} DESTINATION lib/hoc)
 install(FILES ${output_mod_files} DESTINATION lib/mod)
