@@ -126,6 +126,7 @@ endforeach()
 
 configure_file(build_neurodamus.sh.in build_neurodamus.sh @ONLY)
 
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 set(nrn_loadflags "-Wl,-rpath,'${CMAKE_INSTALL_PREFIX}/lib' ${nrn_loadflags}")
 
 add_custom_target(
