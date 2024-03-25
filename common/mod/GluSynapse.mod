@@ -644,14 +644,15 @@ static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset
 }
 
 static void bbcore_read(double* dArray, int* iArray, int* doffset, int* ioffset, _threadargsproto_) {
-    // make sure it's not previously set
-    assert(!_p_rng);
-    assert(!_p_delay_times && !_p_delay_weights);
-
     uint32_t* ia = ((uint32_t*)iArray) + *ioffset;
     // make sure non-zero identifier seeds
     if (ia[0] != 0 || ia[1] != 0 || ia[2] != 0) {
         nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
+#if !NRNBBCORE
+        if(*pv) {
+            nrnran123_deletestream(*pv);
+        }
+#endif
         // get new stream
         *pv = nrnran123_newstream3(ia[0], ia[1], ia[2]);
         // restore sequence
@@ -668,8 +669,14 @@ static void bbcore_read(double* dArray, int* iArray, int* doffset, int* ioffset,
         double* x_i = dArray + *doffset;
 
         // allocate vectors
-        _p_delay_times = (double*)vector_new1(delay_times_sz);
-        _p_delay_weights = (double*)vector_new1(delay_weights_sz);
+        if (!_p_delay_times) {
+            _p_delay_times = (double*)vector_new1(delay_times_sz);
+        }
+        assert(delay_times_sz == vector_capacity((IvocVect*)_p_delay_times));
+        if (!_p_delay_weights) {
+            _p_delay_weights = (double*)vector_new1(delay_weights_sz);
+        }
+        assert(delay_weights_sz == vector_capacity((IvocVect*)_p_delay_weights));
 
         double* delay_times_el = vector_vec((IvocVect*)_p_delay_times);
         double* delay_weights_el = vector_vec((IvocVect*)_p_delay_weights);
