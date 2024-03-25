@@ -1,1 +1,1 @@
-../deps/neocortex/mod/v6/CaDynamics_DC0.mod
+../../neocortex/mod/v6/CaDynamics_DC0.mod

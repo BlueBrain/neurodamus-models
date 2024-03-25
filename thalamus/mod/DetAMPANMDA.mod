@@ -1,1 +1,1 @@
-../common/mod/DetAMPANMDA.mod
+../../common/mod/DetAMPANMDA.mod

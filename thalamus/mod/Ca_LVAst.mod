@@ -1,1 +1,1 @@
-../deps/neocortex/mod/v6/Ca_LVAst.mod
+../../neocortex/mod/common/Ca_LVAst.mod

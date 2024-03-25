@@ -1,1 +1,1 @@
-../deps/neocortex/mod/v6/K_Tst.mod
+../../neocortex/mod/common/K_Tst.mod

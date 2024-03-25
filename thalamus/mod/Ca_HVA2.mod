@@ -1,1 +1,1 @@
-../deps/neocortex/mod/v6/Ca_HVA2.mod
+../../neocortex/mod/v6/Ca_HVA2.mod

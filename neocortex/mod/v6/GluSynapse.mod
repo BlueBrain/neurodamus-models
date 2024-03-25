@@ -1,1 +1,1 @@
-../../common/mod/GluSynapse.mod
+../../../common/mod/GluSynapse.mod
