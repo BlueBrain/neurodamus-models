@@ -2,22 +2,22 @@ cmake_minimum_required(VERSION 3.15)
 
 project(neurodamus)
 
-set(ND_CORE_DIR
+set(NEURODAMUS_CORE_DIR
     ""
-    CACHE STRING "Additional Neurodamus mechanisms")
-set(ND_ENABLE_CORENEURON
+    CACHE STRING "Base mechanisms needed for Neurodamus execution")
+set(NEURODAMUS_ENABLE_CORENEURON
     ON
     CACHE BOOL "Enable CoreNEURON")
-set(ND_MECHANISMS
+set(NEURODAMUS_MECHANISMS
     ""
-    CACHE STRING "Which mechanisms to use")
-set_property(CACHE ND_MECHANISMS PROPERTY STRINGS hippocampus neocortex
-                                          thalamus)
+    CACHE STRING "Which model's mechanisms to use")
+set_property(CACHE NEURODAMUS_MECHANISMS PROPERTY STRINGS hippocampus neocortex
+                                                  thalamus)
 
-option(ND_NCX_METABOLISM OFF)
-option(ND_NCX_NGV OFF)
-option(ND_NCX_PLASTICITY OFF)
-option(ND_NCX_V5 OFF)
+option(NEURODAMUS_NCX_METABOLISM OFF)
+option(NEURODAMUS_NCX_NGV OFF)
+option(NEURODAMUS_NCX_PLASTICITY OFF)
+option(NEURODAMUS_NCX_V5 OFF)
 
 # NEURON does not install any CMake glue, we have to manually find nrnivmodl
 find_program(nrnivmodl nrnivmodl REQUIRED)
@@ -30,56 +30,61 @@ message(STATUS "nrnivmodl output directory determined to be \"${_archdir}\"")
 # input_hoc_files will be installed via CMake's install(), which will basically
 # just copy symbolic links. Make sure that we resolve any links ourselves!
 set(input_hoc_files)
-file(GLOB _input_core_hoc_files "${ND_CORE_DIR}/hoc/*.hoc")
+file(GLOB _input_core_hoc_files "${NEURODAMUS_CORE_DIR}/hoc/*.hoc")
 file(GLOB _input_model_hoc_files
-     "${CMAKE_CURRENT_LIST_DIR}/${ND_MECHANISMS}/hoc/*.hoc")
+     "${CMAKE_CURRENT_LIST_DIR}/${NEURODAMUS_MECHANISMS}/hoc/*.hoc")
 foreach(_input_hoc_file IN LISTS _input_core_hoc_files _input_model_hoc_files)
   get_filename_component(_realpath "${_input_hoc_file}" REALPATH)
   list(APPEND input_hoc_files "${_realpath}")
 endforeach()
 
-# Mod directories in order of importance, files in later mod directories ignored if the
-# same basename is present in an earlier directory
-set(input_mod_directories "${ND_CORE_DIR}/mod")
-if("${ND_MECHANISMS}" STREQUAL "neocortex")
-  if(ND_NCX_METABOLISM)
+# Mod directories in order of importance, files in later mod directories ignored
+# if the same basename is present in an earlier directory
+set(input_mod_directories "${NEURODAMUS_CORE_DIR}/mod")
+if("${NEURODAMUS_MECHANISMS}" STREQUAL "neocortex")
+  if(NEURODAMUS_NCX_METABOLISM)
     list(APPEND input_mod_directories
-         "${CMAKE_CURRENT_LIST_DIR}/${ND_MECHANISMS}/mod/metabolism")
+         "${CMAKE_CURRENT_LIST_DIR}/${NEURODAMUS_MECHANISMS}/mod/metabolism")
   endif()
-  if(ND_NCX_NGV)
+  if(NEURODAMUS_NCX_NGV)
     list(APPEND input_mod_directories
          "${CMAKE_CURRENT_LIST_DIR}/common/mod/ngv")
   endif()
-  if(ND_NCX_PLASTICITY)
+  if(NEURODAMUS_NCX_PLASTICITY)
     list(APPEND input_mod_directories
-         "${CMAKE_CURRENT_LIST_DIR}/${ND_MECHANISMS}/mod/v6/optimized")
+         "${CMAKE_CURRENT_LIST_DIR}/${NEURODAMUS_MECHANISMS}/mod/v6/optimized")
   endif()
   list(APPEND input_mod_directories
-       "${CMAKE_CURRENT_LIST_DIR}/${ND_MECHANISMS}/mod/v6")
-  if(ND_NCX_V5)
+       "${CMAKE_CURRENT_LIST_DIR}/${NEURODAMUS_MECHANISMS}/mod/v6")
+  if(NEURODAMUS_NCX_V5)
     list(APPEND input_mod_directories
-         "${CMAKE_CURRENT_LIST_DIR}/${ND_MECHANISMS}/mod/v5")
+         "${CMAKE_CURRENT_LIST_DIR}/${NEURODAMUS_MECHANISMS}/mod/v5")
   endif()
 else()
   list(APPEND input_mod_directories
-       "${CMAKE_CURRENT_LIST_DIR}/${ND_MECHANISMS}/mod")
+       "${CMAKE_CURRENT_LIST_DIR}/${NEURODAMUS_MECHANISMS}/mod")
 endif()
 
 set(_input_mod_filestubs)
 set(_build_mod_dir mod)
 
 set(output_binaries ${CMAKE_CURRENT_BINARY_DIR}/${_archdir}/special)
-set(output_libraries ${CMAKE_CURRENT_BINARY_DIR}/${_archdir}/libnrnmech.so)
+set(output_libraries
+    ${CMAKE_CURRENT_BINARY_DIR}/${_archdir}/libnrnmech${CMAKE_SHARED_LIBRARY_SUFFIX}
+)
 set(output_cpp_files)
 set(output_cpp_core_files)
 set(output_mod_files)
 
-if(ND_ENABLE_CORENEURON)
+if(NEURODAMUS_ENABLE_CORENEURON)
   set(_corenrn_arg "-coreneuron")
   list(APPEND output_binaries
        ${CMAKE_CURRENT_BINARY_DIR}/${_archdir}/special-core)
-  list(APPEND output_libraries
-       ${CMAKE_CURRENT_BINARY_DIR}/${_archdir}/libcorenrnmech.so)
+  list(
+    APPEND
+    output_libraries
+    ${CMAKE_CURRENT_BINARY_DIR}/${_archdir}/libcorenrnmech${CMAKE_SHARED_LIBRARY_SUFFIX}
+  )
 endif()
 
 foreach(_input_dir IN LISTS input_mod_directories)
@@ -87,8 +92,9 @@ foreach(_input_dir IN LISTS input_mod_directories)
   foreach(_input_file IN LISTS _input_files)
     get_filename_component(_input_stub "${_input_file}" NAME_WLE)
     if("${_input_stub}" IN_LIST _input_mod_filestubs)
-
+      message(INFO " skipping ${_input_file}")
     else()
+      message(INFO " building ${_input_file}")
       set(_build_mod_file
           "${CMAKE_CURRENT_BINARY_DIR}/${_build_mod_dir}/${_input_stub}.mod")
 
@@ -143,12 +149,18 @@ add_custom_target(
   BYPRODUCTS ${output_binaries} ${output_libraries} ${output_cpp_files}
   DEPENDS ${output_mod_files})
 
-install(PROGRAMS ${output_binaries} ${CMAKE_CURRENT_BINARY_DIR}/build_neurodamus.sh DESTINATION bin)
+install(PROGRAMS ${output_binaries}
+                 ${CMAKE_CURRENT_BINARY_DIR}/build_neurodamus.sh
+        DESTINATION bin)
 install(FILES ${output_libraries} DESTINATION lib)
-install(FILES ${input_hoc_files} DESTINATION lib/hoc)
-install(FILES ${output_mod_files} DESTINATION lib/mod)
-install(FILES ${output_cpp_files} DESTINATION share/modcpp)
+install(FILES ${input_hoc_files}
+        DESTINATION share/neurodamus_${NEURODAMUS_MECHANISMS}/hoc)
+install(FILES ${output_mod_files}
+        DESTINATION share/neurodamus_${NEURODAMUS_MECHANISMS}/mod)
+install(FILES ${output_cpp_files}
+        DESTINATION share/neurodamus_${NEURODAMUS_MECHANISMS}/cpp)
 
-if(ND_ENABLE_CORENEURON)
-  install(FILES ${output_cpp_core_files} DESTINATION share/modcpp_core)
+if(NEURODAMUS_ENABLE_CORENEURON)
+  install(FILES ${output_cpp_core_files}
+          DESTINATION share/neurodamus_${NEURODAMUS_MECHANISMS}/cpp_core)
 endif()
