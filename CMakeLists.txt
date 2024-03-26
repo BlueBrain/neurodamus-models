@@ -92,9 +92,9 @@ foreach(_input_dir IN LISTS input_mod_directories)
   foreach(_input_file IN LISTS _input_files)
     get_filename_component(_input_stub "${_input_file}" NAME_WLE)
     if("${_input_stub}" IN_LIST _input_mod_filestubs)
-      message(INFO " skipping ${_input_file}")
+      message(STATUS "skipping ${_input_file}")
     else()
-      message(INFO " building ${_input_file}")
+      message(STATUS "building ${_input_file}")
       set(_build_mod_file
           "${CMAKE_CURRENT_BINARY_DIR}/${_build_mod_dir}/${_input_stub}.mod")
 
