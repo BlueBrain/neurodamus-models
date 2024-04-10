@@ -1,4 +1,4 @@
-TITLE conductanceSource.mod
+TITLE ConductanceSource.mod
 COMMENT
 Single electrode Voltage clamp with three levels.
 Clamp is on at time 0, and off at time
@@ -25,7 +25,7 @@ INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}
 DEFINE NSTEP 3
 
 NEURON {
-	POINT_PROCESS conductanceSource
+	POINT_PROCESS ConductanceSource
 	NONSPECIFIC_CURRENT i
 	RANGE dur1, amp1, dur2, amp2, dur3, amp3, rs, vc, i
 }
