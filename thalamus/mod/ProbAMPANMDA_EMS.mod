@@ -1,1 +1,1 @@
-../common/mod/ProbAMPANMDA_EMS.mod
+../../common/mod/ProbAMPANMDA_EMS.mod

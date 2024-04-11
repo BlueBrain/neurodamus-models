@@ -1,1 +1,1 @@
-../common/mod/ProbGABAAB_EMS.mod
+../../common/mod/ProbGABAAB_EMS.mod

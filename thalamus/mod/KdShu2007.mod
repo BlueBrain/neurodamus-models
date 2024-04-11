@@ -1,1 +1,1 @@
-../deps/neocortex/mod/v6/KdShu2007.mod
+../../neocortex/mod/common/KdShu2007.mod

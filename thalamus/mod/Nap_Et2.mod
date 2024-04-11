@@ -1,1 +1,1 @@
-../deps/neocortex/mod/v6/Nap_Et2.mod
+../../neocortex/mod/common/Nap_Et2.mod

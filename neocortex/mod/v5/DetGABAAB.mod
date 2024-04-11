@@ -1,1 +1,1 @@
-../../common/mod/DetGABAAB.mod
+../../../common/mod/DetGABAAB.mod
