@@ -1,1 +1,1 @@
-common/mod/MembraneCurrentSource.mod
+../../common/mod/MembraneCurrentSource.mod
