@@ -1,0 +1,51 @@
+#!/bin/sh
+set -e
+if [ "$#" -eq 0 ]; then
+    cat <<EOF
+******* Neurodamus builder *******
+Syntax:
+$(basename $0) <mods_dir> [add_include_flags] [add_link_flags]
+
+NOTE: mods_dir is literally passed to nrnivmodl.
+
+If you only have the mechanism mods and wish to build neurodamus you need to
+include the neurodamus-specific mods. Under \$NEURODAMUS_ROOT/share you'll find
+the whole set of original mod files, as well as the neurodamus-specific mods
+alone. You may copy/link them into your directory.
+EOF
+    exit 1
+fi
+
+# run with nrnivmodl in path
+set -xe
+
+MODDIR=$1
+shift
+
+if [ ! -d "$MODDIR" ]; then
+    echo "Please provide a valid directory with mod files"
+    exit -1
+fi
+
+COMPILE_ONLY_NEURON=0
+if [[ "$1" == "--only-neuron" ]]; then
+    echo "Compiling mechanisms only for NEURON"
+    COMPILE_ONLY_NEURON=1
+    shift
+fi
+NRNIVMODL_EXTRA_INCLUDE_FLAGS="$1"
+NRNIVMODL_EXTRA_LOAD_FLAGS="$2"
+
+core_arg=""
+if [ "x$COMPILE_ONLY_NEURON" != "x1" ]; then
+    if [ -z "@_corenrn_arg@" ]; then
+        echo "CoreNEURON not enabled for this installation."
+        exit 1
+    fi
+    core_arg="-coreneuron"
+fi
+
+@nrnivmodl@ $core_arg \
+    -incflags '@nrn_incflags@'"$NRNIVMODL_EXTRA_INCLUDE_FLAGS" \
+    -loadflags '@nrn_loadflags@'"$NRNIVMODL_EXTRA_LOAD_FLAGS" \
+    "$MODDIR"
