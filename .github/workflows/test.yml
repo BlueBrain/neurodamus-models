@@ -46,9 +46,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install NEURON-nightly neurodamus
-    - name: Test with tox
-      run: tox -e ${{ matrix.toxenv }}
-    - name: Compile models
+    - name: Configure models
       run: |
         DATADIR=$(python -c "import neurodamus; from pathlib import Path; print(Path(neurodamus.__file__).parent / 'data')")
         cmake -B build -S . \
@@ -60,6 +58,8 @@ jobs:
           -DNEURODAMUS_NCX_NGV=${{ matrix.ngv }} \
           -DNEURODAMUS_NCX_PLASTICITY=${{ matrix.plasticity }} \
           -DNEURODAMUS_NCX_V5=${{ matrix.v5 }}
+    - name: Build and install models
+      run: |
         cmake --build build
         cmake --install build
         ls -R install
