@@ -63,7 +63,7 @@ jobs:
         path: ~/reports
         key: build-reports-${{ env.SONATA_REPORT_VERSION}}
 
-    - name: Install dependencies
+    - name: Install SONATA™ reporting library
       if: steps.cache-libsonatareport.outputs.cache-hit != 'true'
       run: |
         gh repo clone BlueBrain/libsonatareport $HOME/reports/src -- --recursive --shallow-submodules --branch ${{ env.SONATA_REPORT_VERSION }}
