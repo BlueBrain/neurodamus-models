@@ -56,7 +56,7 @@ jobs:
           -S ../reports/src \
           -DCMAKE_INSTALL_PREFIX=../reports/install \
           -DSONATA_REPORT_ENABLE_SUBMODULES=ON \
-          -DSONATA_REPORT_ENABLE_TESTS=OFF
+          -DSONATA_REPORT_ENABLE_TEST=OFF
         cmake --build ../reports/build
         cmake --install ../reports/build
       env:
