@@ -44,6 +44,8 @@ jobs:
         python-version: '3.12'
     - name: Install dependencies
       run: |
+        sudo apt-get update -y
+        sudo apt-get install libopenmpi-dev libhdf5-dev
         python -m pip install --upgrade pip
         python -m pip install NEURON-nightly neurodamus
     - name: Configure models
