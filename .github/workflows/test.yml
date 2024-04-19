@@ -48,11 +48,18 @@ jobs:
         sudo apt-get install libopenmpi-dev libhdf5-dev
         python -m pip install --upgrade pip
         python -m pip install NEURON-nightly neurodamus
+    - name: Install dependencies
+      run: |
+        gh repo clone BlueBrain/libsonatareport ../reports/src
+        cmake -B ../reports/build -S ../reports/src -DCMAKE_INSTALL_PREFIX=../reports/install
+        cmake --build ../reports/build
+        cmake --install ../reports/build
     - name: Configure models
       run: |
         DATADIR=$(python -c "import neurodamus; from pathlib import Path; print(Path(neurodamus.__file__).parent / 'data')")
         cmake -B build -S . \
           -DCMAKE_INSTALL_PREFIX=$PWD/install \
+          -DCMAKE_PREFIX_PATH=$PWD/../reports/install \
           -DNEURODAMUS_CORE_DIR=${DATADIR} \
           -DNEURODAMUS_ENABLE_CORENEURON=${{ matrix.coreneuron }} \
           -DNEURODAMUS_MECHANISMS=${{ matrix.model }} \
