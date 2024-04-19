@@ -1,0 +1,65 @@
+name: Test model compilation
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        model: ['hippocampus', 'neocortex', 'thalamus']
+        coreneuron: ['ON']
+        metabolism: ['OFF']
+        ngv: ['OFF']
+        plasticity: ['OFF']
+        v5: ['OFF']
+        include:
+          - model: 'neocortex'
+            coreneuron: 'OFF'
+            metabolism: 'ON'
+            ngv: 'ON'
+            plasticity: 'OFF'
+            v5: 'OFF'
+          - model: 'neocortex'
+            coreneuron: 'ON'
+            metabolism: 'OFF'
+            ngv: 'OFF'
+            plasticity: 'ON'
+            v5: 'OFF'
+          - model: 'neocortex'
+            coreneuron: 'ON'
+            metabolism: 'OFF'
+            ngv: 'OFF'
+            plasticity: 'OFF'
+            v5: 'ON'
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install NEURON-nightly neurodamus
+    - name: Test with tox
+      run: tox -e ${{ matrix.toxenv }}
+    - name: Compile models
+      run: |
+        DATADIR=$(python -c "import neurodamus; from pathlib import Path; print(Path(neurodamus.__file__).parent / 'data')")
+        cmake -B build -S . \
+          -DCMAKE_INSTALL_PREFIX=$PWD/install \
+          -DNEURODAMUS_CORE_DIR=${DATADIR} \
+          -DNEURODAMUS_ENABLE_CORENEURON=${{ matrix.coreneuron }} \
+          -DNEURODAMUS_MECHANISMS=${{ matrix.model }} \
+          -DNEURODAMUS_NCX_METABOLISM=${{ matrix.metabolism }} \
+          -DNEURODAMUS_NCX_NGV=${{ matrix.ngv }} \
+          -DNEURODAMUS_NCX_PLASTICITY=${{ matrix.plasticity }} \
+          -DNEURODAMUS_NCX_V5=${{ matrix.v5 }}
+        cmake --build build
+        cmake --install build
+        ls -R install
