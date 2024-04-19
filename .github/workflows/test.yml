@@ -62,21 +62,21 @@ jobs:
       env:
         cache-name: cache-libsonatareport
       with:
-        path: ../reports
+        path: ~/reports
         key: build-reports-${{ env.SONATA_REPORT_VERSION}}
 
     - name: Install dependencies
       if: steps.cache-libsonatareport.outputs.cache-hit != 'true'
       run: |
-        gh repo clone BlueBrain/libsonatareport ../reports/src -- --recursive --shallow-submodules --branch ${{ env.SONATA_REPORT_VERSION }}
+        gh repo clone BlueBrain/libsonatareport $HOME/reports/src -- --recursive --shallow-submodules --branch ${{ env.SONATA_REPORT_VERSION }}
         cmake \
-          -B ../reports/build \
-          -S ../reports/src \
-          -DCMAKE_INSTALL_PREFIX=../reports/install \
+          -B $HOME/reports/build \
+          -S $HOME/reports/src \
+          -DCMAKE_INSTALL_PREFIX=$HOME/reports/install \
           -DSONATA_REPORT_ENABLE_SUBMODULES=ON \
           -DSONATA_REPORT_ENABLE_TEST=OFF
-        cmake --build ../reports/build
-        cmake --install ../reports/build
+        cmake --build $HOME/reports/build
+        cmake --install $HOME/reports/build
       env:
         GH_TOKEN: ${{ github.token }}
 
@@ -87,7 +87,7 @@ jobs:
         DATADIR=$(python -c "import neurodamus; from pathlib import Path; print(Path(neurodamus.__file__).parent / 'data')")
         cmake -B build -S . \
           -DCMAKE_INSTALL_PREFIX=$PWD/install \
-          -DCMAKE_PREFIX_PATH=$PWD/../reports/install \
+          -DCMAKE_PREFIX_PATH=$HOME/reports/install \
           -DNEURODAMUS_CORE_DIR=${DATADIR} \
           -DNEURODAMUS_ENABLE_CORENEURON=OFF \
           -DNEURODAMUS_MECHANISMS=${{ matrix.model }} \
