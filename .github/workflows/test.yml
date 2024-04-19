@@ -54,6 +54,8 @@ jobs:
         cmake -B ../reports/build -S ../reports/src -DCMAKE_INSTALL_PREFIX=../reports/install
         cmake --build ../reports/build
         cmake --install ../reports/build
+      env:
+        GH_TOKEN: ${{ github.token }}
     - name: Configure models
       run: |
         DATADIR=$(python -c "import neurodamus; from pathlib import Path; print(Path(neurodamus.__file__).parent / 'data')")
