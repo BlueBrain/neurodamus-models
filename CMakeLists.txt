@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.15)
 
 project(neurodamus)
 
-set(NEURODAMUS_CORE_DIR "" CACHE STRING "Base mechanisms needed for Neurodamus execution")
+set(NEURODAMUS_CORE_DIR
+    ""
+    CACHE STRING "Base mechanisms needed for Neurodamus execution")
 set(NEURODAMUS_ENABLE_CORENEURON
     ON
     CACHE BOOL "Enable CoreNEURON")
@@ -23,6 +25,18 @@ find_program(nrnivmodl nrnivmodl REQUIRED)
 # Extract the nrnivmodl output directory
 file(STRINGS "${nrnivmodl}" _modsubdir REGEX "MODSUBDIR=.*")
 string(REPLACE "MODSUBDIR=" "" _archdir "${_modsubdir}")
+if(NOT _archdir)
+  message(WARNING "could not determine output directory from nrnivmodl - attempting Python approach")
+  find_package(Python REQUIRED COMPONENTS Interpreter)
+  execute_process(COMMAND ${Python_EXECUTABLE} -c "from pathlib import Path; import sys; import neuron; sys.stdout.write(str(Path(neuron.__file__).parent / '.data' / 'bin' / 'nrnivmodl'))"
+    OUTPUT_VARIABLE _nrnivmodl_location
+    RESULT_VARIABLE _find_nrnivmodl)
+  if(_find_nrnivmodl)
+    message(FATAL_ERROR "failed to find a proper nrnivmodl")
+  endif()
+  file(STRINGS "${_nrnivmodl_location}" _modsubdir REGEX "MODSUBDIR=.*")
+  string(REPLACE "MODSUBDIR=" "" _archdir "${_modsubdir}")
+endif()
 message(STATUS "nrnivmodl output directory determined to be \"${_archdir}\"")
 
 # input_hoc_files will be installed via CMake's install(), which will basically
