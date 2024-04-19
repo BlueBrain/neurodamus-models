@@ -14,8 +14,6 @@ jobs:
     strategy:
       matrix:
         model: ['hippocampus', 'neocortex', 'thalamus']
-        # FIXME The coreneuron parameter is ignored for now;  PyPI builds of NEURON do not
-        # include CoreNEURON.
         coreneuron: ['ON']
         metabolism: ['OFF']
         ngv: ['OFF']
@@ -89,7 +87,7 @@ jobs:
           -DCMAKE_INSTALL_PREFIX=$PWD/install \
           -DCMAKE_PREFIX_PATH=$HOME/reports/install \
           -DNEURODAMUS_CORE_DIR=${DATADIR} \
-          -DNEURODAMUS_ENABLE_CORENEURON=OFF \
+          -DNEURODAMUS_ENABLE_CORENEURON=${{ matrix.coreneuron }} \
           -DNEURODAMUS_MECHANISMS=${{ matrix.model }} \
           -DNEURODAMUS_NCX_METABOLISM=${{ matrix.metabolism }} \
           -DNEURODAMUS_NCX_NGV=${{ matrix.ngv }} \
