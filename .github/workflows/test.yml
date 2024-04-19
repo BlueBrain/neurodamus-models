@@ -83,6 +83,8 @@ jobs:
           -DNEURODAMUS_NCX_V5=${{ matrix.v5 }}
     - name: Build and install models
       run: |
+        export CC=$(which mpicc)
+        export CXX=$(which mpicxx)
         cmake --build build
         cmake --install build
         ls -R install

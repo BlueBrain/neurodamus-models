@@ -2,9 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 
 project(neurodamus)
 
-set(NEURODAMUS_CORE_DIR
-    ""
-    CACHE STRING "Base mechanisms needed for Neurodamus execution")
+set(NEURODAMUS_CORE_DIR "" CACHE STRING "Base mechanisms needed for Neurodamus execution")
 set(NEURODAMUS_ENABLE_CORENEURON
     ON
     CACHE BOOL "Enable CoreNEURON")
