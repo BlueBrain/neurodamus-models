@@ -106,5 +106,6 @@ jobs:
       run: |
         export HOC_LIBRARY_PATH=$PWD/install/share/neurodamus_${{ matrix.model }}/hoc
         export LD_LIBRARY_PATH=$PWD/install/lib:$LD_LIBRARY_PATH
+        ldd ./install/bin/special
         ./install/bin/special -python -c "from neuron import h"
         ./install/bin/special -python -c "from neuron import h; from neurodamus import Neurodamus; h.quit()"
