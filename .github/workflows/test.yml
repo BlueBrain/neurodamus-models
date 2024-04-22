@@ -104,5 +104,5 @@ jobs:
 
     - name: Quick test to load models
       run: |
-        export HOC_LIBRARY=$PWD/install/share/neurodamus_${{ matrix.model }}/hoc
+        export HOC_LIBRARY_PATH=$PWD/install/share/neurodamus_${{ matrix.model }}/hoc
         ./install/bin/special -python -c "from neuron import h; from neurodamus import Neurodamus; h.quit()"
