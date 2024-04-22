@@ -101,3 +101,7 @@ jobs:
         cmake --build build
         cmake --install build
         ls -R install
+
+    - name: Quick test to load models
+      run: |
+        ./install/x86_64/special -python -c "from neuron import h; from neurodamus import Neurodamus; h.quit()"
