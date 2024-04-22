@@ -85,6 +85,7 @@ jobs:
         DATADIR=$(python -c "import neurodamus; from pathlib import Path; print(Path(neurodamus.__file__).parent / 'data')")
         cmake -B build -S . \
           -DCMAKE_INSTALL_PREFIX=$PWD/install \
+          -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
           -DCMAKE_PREFIX_PATH=$HOME/reports/install \
           -DNEURODAMUS_CORE_DIR=${DATADIR} \
           -DNEURODAMUS_ENABLE_CORENEURON=${{ matrix.coreneuron }} \
@@ -104,8 +105,4 @@ jobs:
 
     - name: Quick test to load models
       run: |
-        export HOC_LIBRARY_PATH=$PWD/install/share/neurodamus_${{ matrix.model }}/hoc
-        export LD_LIBRARY_PATH=$PWD/install/lib:$LD_LIBRARY_PATH
-        ldd ./install/bin/special
-        ./install/bin/special -python -c "from neuron import h"
         ./install/bin/special -python -c "from neuron import h; from neurodamus import Neurodamus; h.quit()"
