@@ -8,8 +8,6 @@
 
 // Global that is shared/accessible from GluSynapseHelper objects
 // Note that a name should be chosen that should not be used for any other global. Otherwise may cause strange behavior
-objref synapseReaderGluSynapseHelper
-
 strdef GluSynapseHelper_NeededAttributes
 GluSynapseHelper_NeededAttributes = "volume_CR;rho0_GB;Use_d_TM;Use_p_TM;gmax_d_AMPA;gmax_p_AMPA;theta_d;theta_p"
 
@@ -24,8 +22,6 @@ begintemplate GluSynapseHelper
 
 objref synapse
 public synapse
-
-external synapseReaderGluSynapseHelper
 
 /**
  * @param tgid gid of Postsynaptic cell
