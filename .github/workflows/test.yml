@@ -104,4 +104,4 @@ jobs:
 
     - name: Quick test to load models
       run: |
-        ./install/x86_64/special -python -c "from neuron import h; from neurodamus import Neurodamus; h.quit()"
+        ./install/bin/special -python -c "from neuron import h; from neurodamus import Neurodamus; h.quit()"
