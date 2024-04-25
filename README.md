@@ -1,25 +1,67 @@
 # neurodamus-models
 
-This repo is the aggregate Neurodamus repo featuring all simulation models to be built
-to run in the BBP supercomputer.
+This repo is the aggregate repository featuring all simulation models used within the Blue
+Brain Project to run in-silico simulations of mouse brains using the NEURON simulator.
 
-If you are responsible for deployment you will likely deal with this repo directly
-to ensure models being built are up to date, namely the shared "common".
-Notice that, while neurodamus depends on technical mod files, these have
-to be compiled in, together with the models mods, to create a solid "special" Neuron
-executable.
+## Installation
 
-Model developers can either use this new structure or the individual model repos.
+### Prerequisites
 
+The models contained here require a compiler, CMake, MPI, and HDF5 to be installed.  On a
+Ubuntu system,
+```console
+sudo apt-get install libopenmpi-dev libhdf5-dev
+```
+will install the necessary dependencies.  The [NEURON
+simulator](https://github.com/neuronsimulator/nrn) and
+[Neurodamus](https://github.com/BlueBrain/neurodamus) simulation framework can be
+installed via pip:
+```console
+python -m pip install NEURON-nightly neurodamus
+````
 
-## Bring models up to date
+Further, an installation of
+[libsonatareport](https://github.com/BlueBrain/libsonatareport) is required.  This can be
+built with:
+```console
+git clone https://github.com/BlueBrain/libsonatareport reports/src --recursive --shallow-submodules
+cmake \
+  -B reports/build \
+  -S reports/src \
+  -DCMAKE_INSTALL_PREFIX=reports/install \
+  -DSONATA_REPORT_ENABLE_SUBMODULES=ON \
+  -DSONATA_REPORT_ENABLE_TEST=OFF
+cmake --build reports/build
+cmake --install reports/build
+```
 
-Models in this aggregate repo are to be stable as a group, and therefore each model
-common should be replaced with the local common.
+### Compiling the models
 
-To avoid doing repetitive work, a script was prepared: update_models.sh
-The script takes care of updating submodules and replace common.
+The mechanisms for a model can be built as follows, using the `neocortex` model as an
+example:
+```console
+git clone https://github.com/BlueBrain/neurodamus-models.git neurodamus-models/src
+export CC=$(which mpicc)
+export CXX=$(which mpicxx)
+# This can be set directly if the installation location of neurodamus is known
+DATADIR=$(python -c "import neurodamus; from pathlib import Path; print(Path(neurodamus.__file__).parent / 'data')")
+cmake -B neurodamus-models/build -S neurodamus-models/src \
+  -DCMAKE_INSTALL_PREFIX=$PWD/neurodamus-models/install \
+  -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
+  -DCMAKE_PREFIX_PATH=$PWD/reports/install \
+  -DNEURODAMUS_CORE_DIR=${DATADIR} \
+  -DNEURODAMUS_MECHANISMS=neocortex
+cmake --build neurodamus-models/build
+cmake --install neurodamus-models/build
+```
 
+### Testing the models
+
+Following the above step, the compiled mechanisms can be accessed from within NEURON,
+e.g., with:
+```console
+./neurodamus-models/install/bin/special -python -c "from neuron import h; from neurodamus import Neurodamus; h.quit()"
+```
 
 ## Multi-model builds (MMB project)
 
