@@ -54,6 +54,8 @@ cmake -B neurodamus-models/build -S neurodamus-models/src \
 cmake --build neurodamus-models/build
 cmake --install neurodamus-models/build
 ```
+This will also produce a `build_neurodamus.sh` script that can be used to compile future
+iterations of the MOD files.
 
 ### Testing the models
 
@@ -62,6 +64,10 @@ e.g., with:
 ```console
 ./neurodamus-models/install/bin/special -python -c "from neuron import h; from neurodamus import Neurodamus; h.quit()"
 ```
+
+For an example on how to run a model with compiled mechanisms on a circuit, see the
+[integration test of
+Neurodamus](https://github.com/BlueBrain/neurodamus/blob/main/.github/workflows/simulation_test.yml).
 
 ## Multi-model builds (MMB project)
 
