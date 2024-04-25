@@ -22,9 +22,30 @@ option(NEURODAMUS_NCX_V5 OFF)
 # NEURON does not install any CMake glue, we have to manually find nrnivmodl
 find_program(nrnivmodl nrnivmodl REQUIRED)
 
+# May need a wrapped special appended if Python wheels are used.
+set(output_binaries "")
+
 # Extract the nrnivmodl output directory
 file(STRINGS "${nrnivmodl}" _modsubdir REGEX "MODSUBDIR=.*")
 string(REPLACE "MODSUBDIR=" "" _archdir "${_modsubdir}")
+if(NOT _archdir)
+  # Python wheels have wrappers for all executables, thus we need to find the real
+  # nrnivmodl script. The wrapper of nrnivmodl will install the regular special as
+  # special.nrn and replace the regular special with a wrapper itself.
+  message(WARNING "could not determine output directory from nrnivmodl - attempting Python approach")
+  find_package(Python REQUIRED COMPONENTS Interpreter)
+  execute_process(COMMAND ${Python_EXECUTABLE} -c "from pathlib import Path; import sys; import neuron; sys.stdout.write(str(Path(neuron.__file__).parent / '.data' / 'bin' / 'nrnivmodl'))"
+    OUTPUT_VARIABLE _nrnivmodl_location
+    RESULT_VARIABLE _find_nrnivmodl)
+  if(_find_nrnivmodl)
+    message(FATAL_ERROR "failed to find a proper nrnivmodl")
+  endif()
+  file(STRINGS "${_nrnivmodl_location}" _modsubdir REGEX "MODSUBDIR=.*")
+  string(REPLACE "MODSUBDIR=" "" _archdir "${_modsubdir}")
+
+  # This is the "true" special when using wheels, regular special is a wrapper
+  list(APPEND output_binaries ${CMAKE_CURRENT_BINARY_DIR}/${_archdir}/special.nrn)
+endif()
 message(STATUS "nrnivmodl output directory determined to be \"${_archdir}\"")
 
 # input_hoc_files will be installed via CMake's install(), which will basically
@@ -68,7 +89,7 @@ endif()
 set(_input_mod_filestubs)
 set(_build_mod_dir mod)
 
-set(output_binaries ${CMAKE_CURRENT_BINARY_DIR}/${_archdir}/special)
+list(APPEND output_binaries ${CMAKE_CURRENT_BINARY_DIR}/${_archdir}/special)
 set(output_libraries
     ${CMAKE_CURRENT_BINARY_DIR}/${_archdir}/libnrnmech${CMAKE_SHARED_LIBRARY_SUFFIX}
 )

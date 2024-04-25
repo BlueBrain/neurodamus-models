@@ -1,0 +1,108 @@
+name: Test model compilation
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+
+env:
+  SONATA_REPORT_VERSION: '1.2.3'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        model: ['hippocampus', 'neocortex', 'thalamus']
+        coreneuron: ['ON']
+        metabolism: ['OFF']
+        ngv: ['OFF']
+        plasticity: ['OFF']
+        v5: ['OFF']
+        include:
+          - model: 'neocortex'
+            coreneuron: 'OFF'
+            metabolism: 'ON'
+            ngv: 'ON'
+            plasticity: 'OFF'
+            v5: 'OFF'
+          - model: 'neocortex'
+            coreneuron: 'ON'
+            metabolism: 'OFF'
+            ngv: 'OFF'
+            plasticity: 'ON'
+            v5: 'OFF'
+          - model: 'neocortex'
+            coreneuron: 'ON'
+            metabolism: 'OFF'
+            ngv: 'OFF'
+            plasticity: 'OFF'
+            v5: 'ON'
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install libopenmpi-dev libhdf5-dev
+        python -m pip install --upgrade pip
+        python -m pip install NEURON-nightly neurodamus
+
+    - name: Cache SONATA™ reporting library build
+      id: cache-libsonatareport
+      uses: actions/cache@v3
+      env:
+        cache-name: cache-libsonatareport
+      with:
+        path: ~/reports
+        key: build-reports-${{ env.SONATA_REPORT_VERSION}}
+
+    - name: Install SONATA™ reporting library
+      if: steps.cache-libsonatareport.outputs.cache-hit != 'true'
+      run: |
+        gh repo clone BlueBrain/libsonatareport $HOME/reports/src -- --recursive --shallow-submodules --branch ${{ env.SONATA_REPORT_VERSION }}
+        cmake \
+          -B $HOME/reports/build \
+          -S $HOME/reports/src \
+          -DCMAKE_INSTALL_PREFIX=$HOME/reports/install \
+          -DSONATA_REPORT_ENABLE_SUBMODULES=ON \
+          -DSONATA_REPORT_ENABLE_TEST=OFF
+        cmake --build $HOME/reports/build
+        cmake --install $HOME/reports/build
+      env:
+        GH_TOKEN: ${{ github.token }}
+
+    - name: Configure models
+      run: |
+        export CC=$(which mpicc)
+        export CXX=$(which mpicxx)
+        DATADIR=$(python -c "import neurodamus; from pathlib import Path; print(Path(neurodamus.__file__).parent / 'data')")
+        cmake -B build -S . \
+          -DCMAKE_INSTALL_PREFIX=$PWD/install \
+          -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
+          -DCMAKE_PREFIX_PATH=$HOME/reports/install \
+          -DNEURODAMUS_CORE_DIR=${DATADIR} \
+          -DNEURODAMUS_ENABLE_CORENEURON=${{ matrix.coreneuron }} \
+          -DNEURODAMUS_MECHANISMS=${{ matrix.model }} \
+          -DNEURODAMUS_NCX_METABOLISM=${{ matrix.metabolism }} \
+          -DNEURODAMUS_NCX_NGV=${{ matrix.ngv }} \
+          -DNEURODAMUS_NCX_PLASTICITY=${{ matrix.plasticity }} \
+          -DNEURODAMUS_NCX_V5=${{ matrix.v5 }}
+
+    - name: Build and install models
+      run: |
+        export CC=$(which mpicc)
+        export CXX=$(which mpicxx)
+        cmake --build build
+        cmake --install build
+        ls -R install
+
+    - name: Quick test to load models
+      run: |
+        ./install/bin/special -python -c "from neuron import h; from neurodamus import Neurodamus; h.quit()"
