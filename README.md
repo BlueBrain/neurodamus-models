@@ -10,7 +10,7 @@ Brain Project to run in-silico simulations of mouse brains using the NEURON simu
 The models contained here require a compiler, CMake, MPI, and HDF5 to be installed.  On a
 Ubuntu system,
 ```console
-sudo apt-get install libopenmpi-dev libhdf5-dev
+sudo apt-get install cmake libopenmpi-dev libhdf5-dev
 ```
 will install the necessary dependencies.  The [NEURON
 simulator](https://github.com/neuronsimulator/nrn) and
