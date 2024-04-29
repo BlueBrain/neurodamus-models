@@ -1,1 +1,1 @@
-common/mod/ConductanceSource.mod
+../../../common/mod/ConductanceSource.mod
