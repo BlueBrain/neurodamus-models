@@ -1,1 +1,1 @@
-../common/mod/VecStim.mod
+../../common/mod/VecStim.mod

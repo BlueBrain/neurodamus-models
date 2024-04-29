@@ -1,1 +1,1 @@
-../deps/neocortex/mod/v6/SKv3_1.mod
+../../neocortex/mod/common/SKv3_1.mod

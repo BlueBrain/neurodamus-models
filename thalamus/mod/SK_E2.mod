@@ -1,1 +1,1 @@
-../deps/neocortex/mod/v6/SK_E2.mod
+../../neocortex/mod/common/SK_E2.mod

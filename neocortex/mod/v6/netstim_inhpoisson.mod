@@ -1,1 +1,1 @@
-../../common/mod/netstim_inhpoisson.mod
+../../../common/mod/netstim_inhpoisson.mod

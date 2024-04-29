@@ -1,1 +1,1 @@
-../common/mod/TTXDynamicsSwitch.mod
+../../common/mod/TTXDynamicsSwitch.mod

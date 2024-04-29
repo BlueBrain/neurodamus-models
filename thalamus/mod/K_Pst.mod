@@ -1,1 +1,1 @@
-../deps/neocortex/mod/v6/K_Pst.mod
+../../neocortex/mod/common/K_Pst.mod

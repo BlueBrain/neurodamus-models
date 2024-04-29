@@ -135,7 +135,7 @@ def copy_patch_hoc(prefix):
     basename = os.path.basename
     name_re = re.compile(r"(begin|end)template *(.*)")
     name_options = "|".join(HOC_NAMES_PREFIX)
-    pp_call_re = re.compile(rf"new *({name_options}) ?\(")
+    pp_call_re = re.compile(rf"({name_options}) ?\(")
 
     def copy_f(hoc_f, dst_dir):
         """Rename and adapt the hoc file for the new mods"""

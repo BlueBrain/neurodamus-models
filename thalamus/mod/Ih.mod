@@ -1,1 +1,1 @@
-../deps/neocortex/mod/v6/Ih.mod
+../../neocortex/mod/common/Ih.mod
