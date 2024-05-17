@@ -1,6 +1,8 @@
 :  Vector stream of events
 
 COMMENT
+Copy of nrn/vecevent.mod
+
 A VecStim is an artificial spiking cell that generates
 events at times that are specified in a Vector.
 
