@@ -28,7 +28,7 @@ if [ ! -d "$MODDIR" ]; then
 fi
 
 COMPILE_ONLY_NEURON=0
-if [[ "$1" == "--only-neuron" ]]; then
+if [[ "$1" == "--only-neuron" || -z "@_corenrn_arg@" ]]; then
     echo "Compiling mechanisms only for NEURON"
     COMPILE_ONLY_NEURON=1
     shift
@@ -37,11 +37,7 @@ NRNIVMODL_EXTRA_INCLUDE_FLAGS="$1"
 NRNIVMODL_EXTRA_LOAD_FLAGS="$2"
 
 core_arg=""
-if [ "x$COMPILE_ONLY_NEURON" != "x1" ]; then
-    if [ -z "@_corenrn_arg@" ]; then
-        echo "CoreNEURON not enabled for this installation."
-        exit 1
-    fi
+if [ "x$COMPILE_ONLY_NEURON" == "x0" ]; then
     core_arg="-coreneuron"
 fi
 
