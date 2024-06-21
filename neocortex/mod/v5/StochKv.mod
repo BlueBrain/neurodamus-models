@@ -349,11 +349,15 @@ static void bbcore_write(double* x, int* d, int* xx, int* offset, _threadargspro
     *offset += 5;
 }
 static void bbcore_read(double* x, int* d, int* xx, int* offset, _threadargsproto_) {
-    assert(!_p_rng);
     uint32_t* di = ((uint32_t*)d) + *offset;
         if (di[0] != 0 || di[1] != 0|| di[2] != 0)
         {
       nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
+#if !NRNBBCORE
+      if(*pv) {
+          nrnran123_deletestream(*pv);
+      }
+#endif
       *pv = nrnran123_newstream3(di[0], di[1], di[2]);
       // restore stream sequence
       nrnran123_setseq(*pv, di[3], (char)di[4]);
