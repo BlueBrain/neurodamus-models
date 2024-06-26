@@ -11,7 +11,7 @@
 : initialize to steady state pump with nai, ki, atp clamped.
 
 :Modified by Michiel Camps to integrate in BBP cell types
-:Modified by Sofia Farina added global variable do_clamp: default unclamp 0 to clamp set to 1
+:Modified by Sofia Farina added global variable do_clamp: default unclamp 0 to clamp set to 1, added back the voltage dependency on reaction 5
 
 NEURON {
 	SUFFIX nakpump
@@ -24,9 +24,9 @@ NEURON {
 	RANGE inapump, ikpump
 	RANGE atpact
 	RANGE atpi, adpi, pi
-	RANGE ina, ik, totalpump
-	RANGE srcrate
-	RANGE atpi_clamp, adpi_clamp,pi_clamp :Can be set experimentally, assigned the initial concentrations else
+	RANGE ina, ik
+        RANGE srcrate
+        RANGE atpi_clamp, adpi_clamp,pi_clamp :Can be set experimentally, assigned the initial concentrations else
 }
 
 UNITS {
@@ -45,7 +45,7 @@ UNITS {
 
 PARAMETER {
 
-	totalpump = 4e-13 (mol/cm2) :1.25e-13 (mol/cm2)
+	totalpump = 1.25e-13 (mol/cm2)
 
 	f1 = 2.5e11 (l3/mol3-s)
 	b1 = 1e5 (/s)
@@ -60,6 +60,11 @@ PARAMETER {
 	f6 = 1.15e4 (/s)
 	b6 = 6e8 (l2/mol2-s)
 	do_clamp = 0
+	T = 310 (K)
+    
+  
+	beta = .5
+	a5 = 1 (1)
 }
 
 ASSIGNED {
@@ -76,13 +81,13 @@ ASSIGNED {
 	atpact (uA/cm2)
 
 	srcrate (/s)
-
+    
 	:compensation currents
 	ik_init (mA/cm2)
 	ina_init (mA/cm2)
-	adpi_clamp (mM)
-	atpi_clamp (mM)
-	pi_clamp (mM)
+        adpi_clamp (mM)
+        atpi_clamp (mM)
+        pi_clamp (mM)
 }
 
 STATE {
@@ -132,8 +137,10 @@ BREAKPOINT {
 }
 
 KINETIC scheme {
-	LOCAL x
+	LOCAL x, a5i, a5o
 	x = F/surf*(1e9)
+	a5i = exp(a5*(1 - beta)*F*v/R/T)
+	a5o = exp(-a5*beta*F*v/R/T)
 
 	COMPARTMENT volin { nai ki atpi adpi pi }
 	COMPARTMENT volout { nao ko }
@@ -142,7 +149,7 @@ KINETIC scheme {
 	~ na3eatp <-> na3ep + adpi	(f2*surf*(1e0), b2*surf*(1e-3))
 	~ na3ep <-> ep + 3 nao	(f3*surf*(1e0), b3*surf*(1e-9))
 	~ ep + 2 ko <-> k2e + pi	(f4*surf*(1e-6), b4*surf*(1e-3))
-	~ k2e + atpi <-> k2eatp		(f5*surf*(1e-3), b5*surf*(1e0))
+	~ k2e + atpi <-> k2eatp		(a5i*f5*surf*(1e-3), a5o*b5*surf*(1e0))
 	~ k2eatp <-> eatp + 2 ki	(f6*surf*(1e0), b6*surf*(1e-6))
 	atpact = (f_flux - b_flux)*x
 	CONSERVE eatp+na3eatp+na3ep+ep+k2e+k2eatp = totalpump*surf*(1e3)
@@ -178,4 +185,3 @@ FUNCTION clamp_unclamp(x) {
         clamp_unclamp = 0
     }
 }
-
