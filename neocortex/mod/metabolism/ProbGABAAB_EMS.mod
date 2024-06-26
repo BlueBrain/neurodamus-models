@@ -5,6 +5,7 @@ COMMENT
  * @author king, muller
  * @date 2011-08-17
  * @remark Copyright © BBP/EPFL 2005-2011; All rights reserved. Do not distribute without further notice.
+ * Modified June 2024: reversal potential dependent on Potassium and chloride for metabolism
  */
 ENDCOMMENT
 
@@ -39,7 +40,6 @@ a Poisson process with rate 1/Dep.
 
 This model satisys all of (1)-(4).
 
-
 ENDCOMMENT
 
 
@@ -55,8 +55,8 @@ NEURON {
     RANGE i, i_GABAA, i_GABAB, g_GABAA, g_GABAB, g, e_GABAA, e_GABAB, GABAB_ratio
     RANGE A_GABAA_step, B_GABAA_step, A_GABAB_step, B_GABAB_step
     RANGE icl, ik
-    USEION cl WRITE icl VALENCE -1
-    USEION k WRITE ik    
+    USEION cl READ ecl WRITE icl VALENCE -1
+    USEION k READ ek WRITE ik
     BBCOREPOINTER rng
     RANGE synapseID, selected_for_report, verboseLevel, conductance
     RANGE next_delay
@@ -140,6 +140,8 @@ ASSIGNED {
         B_GABAB_step
         icl     (nA)
         ik      (nA)
+        ecl (mV)
+        ek (mV)
 
 	g (uS)
 	factor_GABAA
@@ -241,8 +243,8 @@ BREAKPOINT {
         g_GABAA = gmax*(B_GABAA-A_GABAA) :compute time varying conductance as the difference of state variables B_GABAA and A_GABAA
         g_GABAB = gmax*(B_GABAB-A_GABAB) :compute time varying conductance as the difference of state variables B_GABAB and A_GABAB
         g = g_GABAA + g_GABAB
-        i_GABAA = g_GABAA*(v-e_GABAA) :compute the GABAA driving force based on the time varying conductance, membrane potential, and GABAA reversal
-        i_GABAB = g_GABAB*(v-e_GABAB) :compute the GABAB driving force based on the time varying conductance, membrane potential, and GABAB reversal
+        i_GABAA = g_GABAA*(v-ecl) :compute the GABAA driving force based on the time varying conductance, membrane potential, and GABAA reversal
+        i_GABAB = g_GABAB*(v-ek) :compute the GABAB driving force based on the time varying conductance, membrane potential, and GABAB reversal
         icl = i_GABAA
         ik = i_GABAB
         i = i_GABAA + i_GABAB
