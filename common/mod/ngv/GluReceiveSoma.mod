@@ -59,5 +59,9 @@ NET_RECEIVE (weight){
     }
     glut=glut+1
     stimtime=t
+:VERBATIM
+:        printf("SOMA RECEIVE\n");
+:ENDVERBATIM
+
 }
 
