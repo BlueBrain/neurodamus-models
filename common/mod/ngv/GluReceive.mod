@@ -54,5 +54,9 @@ NET_RECEIVE (weight){
     INITIAL{
     }
     glut=glut+1
+:VERBATIM
+:        printf("RECEIVE\n");
+:ENDVERBATIM
+
 }
 

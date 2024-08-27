@@ -94,7 +94,7 @@ PARAMETER {
 }
 
 ASSIGNED {
-
+    v (mV)
     : Geometry
     Vcyt
 
@@ -140,6 +140,7 @@ ASSIGNED {
 
     cai       :(mM)
     cao       :(mM)
+init0
 }
 
 STATE {
@@ -180,6 +181,8 @@ BREAKPOINT{
     : PERIVASCULAR SPACE
     :kp = kp + dt*((1/VRpa)*j_BK+(1/VRps)*(j_KIR)-Rdecay*(kp-kpmin)) :Perivascular K+
     :kp = kp + dt*((1/VRpa)*j_BK+(1/VRps)*(j_KIR)-Rdecay*1000*(kp-kpmin))
+
+:RESTORE NEXT
     kp = kp + dt*((1/VRpa)*j_BK*0.0001+(1/VRps)*(j_KIR)-Rdecay*1000*(kp-kpmin))
     :kp = kp + dt*((1/VRpa)*j_BK*0.0001-Rdecay*1000*(kp-kpmin))
 
@@ -187,7 +190,7 @@ BREAKPOINT{
     : Via activation of KIR channel
     :Vi = Vi + dt*(1/Cmu)*(I_KIR)*pow(10,7) - dt*keet*5*pow(10,-2)*(Vi+30): with inactivation
     :Vi = Vi + dt*(1/Cmu)*(I_KIR)*pow(10,7)  - dt*keet*5*pow(10,-2)*(Vi+30): with inactivation
-    Vi = Vi + dt*(1/Cmu)*(I_KIR)*pow(10,7)  - dt*eete*1.2-0.001*(Vi+30)
+    Vi = Vi + dt*(1/Cmu)*(I_KIR)*pow(10,7)  - 0*dt*eete*1.2-0.001*(Vi+30)
 
     :no eet depedendence
     :Vi = Vi + dt*(1/Cmu)*(I_KIR)*pow(10,7)-0.0001*(Vi+40)
@@ -199,9 +202,15 @@ BREAKPOINT{
     AM = AM + dt*(K5*AMp -(K7+K6)*AM)
 
     : MECHANICAL MODEL
-    Rad = Rad + dt*(R0pas/visc)*(((Rad*Pt)/th) - EFrm*((Rad-R0Frm)/(R0Frm)))
+    Rad = Rad + dt* (R0pas/visc)* ( (Rad*Pt)/th - EFrm*(Rad-R0Frm)/(R0Frm) -init0)
 
     n=n+dt*(20000*phi_n*(neq-n))
+
+:VERBATIM
+:printf("WWW v: %g kp: %g Vi: %g ICam: %g Cam: %g Frm: %g R0Frm: %g K1:%g M: %g Mp: %g AMp: %g AM: %g %g %g %g %g %g Rad: %g\n",v,kp,Vi,ICam,Cam,Frm,R0Frm,K1,M,Mp,AMp,AM,EFrm,Pt,R0pas,th,R0Frm,Rad);
+:ENDVERBATIM
+
+
 }
 
 
@@ -209,14 +218,20 @@ INITIAL {
     :: SMOOTH MUSCLE AND ENDOTHELIAL CELL ::
 
     : PERIVASCULAR SPACE
-    kp = 7
+    kp = kpmin:7
     Vi = -30.0
 
     : CONTRACTION MODEL
-    M = 0.25
-    Mp = 0.25
-    AMp = 0.25
-    AM = 0.25
+
+M= 0.434884 
+Mp= 0.0679663 
+AMp= 0.138629 
+AM= 0.358521
+
+  :  M = 0.25
+  :  Mp = 0.25
+  :  AMp = 0.25
+  :  AM = 0.25
 
     : MECHANICAL MODEL
     :Rad = 20
@@ -225,6 +240,8 @@ INITIAL {
     : BK subsystem :
     n = 0.0
 
+    rates(kp,Vi,AM,Mp,AMp,Rad)
+init0=(Rad*Pt)/th - EFrm*(Rad-R0Frm)/(R0Frm)
 }
 
 UNITSOFF
@@ -241,7 +258,7 @@ PROCEDURE rates(kp,Vi,AM,Mp,AMp,Rad) {
     vKIR = 4.5*pow(10,3)*kp*pow(10,-3) - 112  : result in mV, used
     :gKIR = pow(e,(((-7.4*pow(10,-2))*Vi)+(4.2*pow(10,2)*kp*pow(10,3))-12.6)) :most logic, result in uM/s.mV
     gKIR = pow(e,(((-7.4*pow(10,-2))*Vi)+(4.2*pow(10,-1)*kp)-12.6)) :mostly used
-    j_KIR = -((gKIR*750)/1970)*(Vi - vKIR)*pow(10,-6) :initially given in uM/s, we convert to mM/ms
+    j_KIR = -666*((gKIR*750)/1970)*(Vi - vKIR)*pow(10,-6) :initially given in uM/s, we convert to mM/ms
     I_KIR = j_KIR*pow(10,3)*f*Vcyt*pow(10,-18)*pow(10,3) :in mA, careful using Vcyt is not necessarily accurate
 
     : CONTRACTION MODEL
@@ -274,7 +291,8 @@ PROCEDURE rates(kp,Vi,AM,Mp,AMp,Rad) {
     neq = 0.5*(1+tanh((e+(eet_shift*eet)-v3)/v4))
     :neq=   ((e+(eet_shift*eet)-v3)/v4)
     phi_n = gamma_n*cosh((e-v3)/(2*v4))
-    I_BK    = gBK*n*(e-Ebk)*pow(10,-6) : result in mA (ionic current)
+:    I_BK    = gBK*n*(e-Ebk)*pow(10,-6) : result in mA (ionic current)
+    I_BK    = gBK*n*(v-Ebk)*pow(10,-6) : result in mA (ionic current)
 
     j_BK = I_BK*pow(10,-3)*(1/f)*(1/(11*pow(10,-18)))*pow(10,-3) : result in mM/ms (flux of ion through channel)
 
