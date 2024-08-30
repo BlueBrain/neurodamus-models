@@ -21,7 +21,7 @@ NEURON {
 	USEION atp READ atpi WRITE atpi VALENCE -3
 	USEION adp READ adpi WRITE adpi VALENCE -2
 	USEION p READ pi WRITE pi VALENCE -3
-	RANGE inapump, ikpump
+	RANGE inapump, ikpump, totalpump
 	RANGE atpact
 	RANGE atpi, adpi, pi
 	RANGE ina, ik
@@ -61,8 +61,8 @@ PARAMETER {
 	b6 = 6e8 (l2/mol2-s)
 	do_clamp = 0
 	T = 310 (K)
-    
-  
+
+
 	beta = .5
 	a5 = 1 (1)
 }
@@ -81,7 +81,7 @@ ASSIGNED {
 	atpact (uA/cm2)
 
 	srcrate (/s)
-    
+
 	:compensation currents
 	ik_init (mA/cm2)
 	ina_init (mA/cm2)
@@ -164,7 +164,7 @@ KINETIC scheme {
 FUNCTION in_rect(x) {
     if ( x > 0 ) {
         in_rect = 0
-    }   
+    }
     else {
         in_rect = x
     }
@@ -172,7 +172,7 @@ FUNCTION in_rect(x) {
 FUNCTION out_rect(x) {
     if ( x < 0 ) {
         out_rect = 0
-    }   
+    }
     else {
         out_rect = x
     }
@@ -180,7 +180,7 @@ FUNCTION out_rect(x) {
 FUNCTION clamp_unclamp(x) {
     if ( x == 1 ) {
         clamp_unclamp = 10e15
-    }   
+    }
     else {
         clamp_unclamp = 0
     }
