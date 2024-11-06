@@ -19,35 +19,6 @@ option(NEURODAMUS_NCX_NGV OFF)
 option(NEURODAMUS_NCX_PLASTICITY OFF)
 option(NEURODAMUS_NCX_V5 OFF)
 
-# NEURON does not install any CMake glue, we have to manually find nrnivmodl
-find_program(nrnivmodl nrnivmodl REQUIRED)
-
-# May need a wrapped special appended if Python wheels are used.
-set(output_binaries "")
-
-# Extract the nrnivmodl output directory
-file(STRINGS "${nrnivmodl}" _modsubdir REGEX "MODSUBDIR=.*")
-string(REPLACE "MODSUBDIR=" "" _archdir "${_modsubdir}")
-if(NOT _archdir)
-  # Python wheels have wrappers for all executables, thus we need to find the real
-  # nrnivmodl script. The wrapper of nrnivmodl will install the regular special as
-  # special.nrn and replace the regular special with a wrapper itself.
-  message(WARNING "could not determine output directory from nrnivmodl - attempting Python approach")
-  find_package(Python REQUIRED COMPONENTS Interpreter)
-  execute_process(COMMAND ${Python_EXECUTABLE} -c "from pathlib import Path; import sys; import neuron; sys.stdout.write(str(Path(neuron.__file__).parent / '.data' / 'bin' / 'nrnivmodl'))"
-    OUTPUT_VARIABLE _nrnivmodl_location
-    RESULT_VARIABLE _find_nrnivmodl)
-  if(_find_nrnivmodl)
-    message(FATAL_ERROR "failed to find a proper nrnivmodl")
-  endif()
-  file(STRINGS "${_nrnivmodl_location}" _modsubdir REGEX "MODSUBDIR=.*")
-  string(REPLACE "MODSUBDIR=" "" _archdir "${_modsubdir}")
-
-  # This is the "true" special when using wheels, regular special is a wrapper
-  list(APPEND output_binaries ${CMAKE_CURRENT_BINARY_DIR}/${_archdir}/special.nrn)
-endif()
-message(STATUS "nrnivmodl output directory determined to be \"${_archdir}\"")
-
 # input_hoc_files will be installed via CMake's install(), which will basically
 # just copy symbolic links. Make sure that we resolve any links ourselves!
 set(input_hoc_files)
@@ -73,7 +44,7 @@ if("${NEURODAMUS_MECHANISMS}" STREQUAL "neocortex")
   endif()
   if(NEURODAMUS_NCX_PLASTICITY)
     list(APPEND input_mod_directories
-         "${CMAKE_CURRENT_LIST_DIR}/${NEURODAMUS_MECHANISMS}/mod/v6/optimized")
+         "${CMAKE_CURRENT_LIST_DIR}/${NEURODAMUS_MECHANISMS}/mod/plasticity")
   endif()
   list(APPEND input_mod_directories
        "${CMAKE_CURRENT_LIST_DIR}/${NEURODAMUS_MECHANISMS}/mod/v6")
@@ -89,26 +60,8 @@ endif()
 set(_input_mod_filestubs)
 set(_build_mod_dir mod)
 
-list(APPEND output_binaries ${CMAKE_CURRENT_BINARY_DIR}/${_archdir}/special)
-set(output_libraries
-    ${CMAKE_CURRENT_BINARY_DIR}/${_archdir}/libnrnmech${CMAKE_SHARED_LIBRARY_SUFFIX}
-)
-set(output_cpp_files)
-set(output_cpp_core_files)
-set(output_mod_files)
-
-if(NEURODAMUS_ENABLE_CORENEURON)
-  set(_corenrn_arg "-coreneuron")
-  list(APPEND output_binaries
-       ${CMAKE_CURRENT_BINARY_DIR}/${_archdir}/special-core)
-  list(
-    APPEND
-    output_libraries
-    ${CMAKE_CURRENT_BINARY_DIR}/${_archdir}/libcorenrnmech${CMAKE_SHARED_LIBRARY_SUFFIX}
-  )
-endif()
-
 foreach(_input_dir IN LISTS input_mod_directories)
+  message(STATUS "processing directory ${_input_dir}")
   file(GLOB _input_files "${_input_dir}/*.mod")
   foreach(_input_file IN LISTS _input_files)
     get_filename_component(_input_stub "${_input_file}" NAME_WLE)
@@ -116,25 +69,15 @@ foreach(_input_dir IN LISTS input_mod_directories)
       message(STATUS "skipping ${_input_file}")
     else()
       message(STATUS "building ${_input_file}")
-      set(_build_mod_file
-          "${CMAKE_CURRENT_BINARY_DIR}/${_build_mod_dir}/${_input_stub}.mod")
-
-      add_custom_command(
-        COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${_input_file}"
-                "${_build_mod_file}" OUTPUT "${_build_mod_file}")
-
+      list(APPEND mod_files ${_input_file})
       list(APPEND _input_mod_filestubs "${_input_stub}")
-      list(APPEND output_cpp_files
-           "${CMAKE_CURRENT_BINARY_DIR}/${_archdir}/${_input_stub}.cpp")
-      list(
-        APPEND
-        output_cpp_core_files
-        "${CMAKE_CURRENT_BINARY_DIR}/${_archdir}/corenrn/mod2c/${_input_stub}.cpp"
-      )
-      list(APPEND output_mod_files "${_build_mod_file}")
     endif()
   endforeach()
 endforeach()
+
+# NEURON does not install any CMake glue, we have to manually find nrnivmodl
+# find_program(nrnivmodl nrnivmodl REQUIRED)
+find_package(neuron REQUIRED)
 
 # At some point in the 1.14 series, HDF5 decided that the HDF5_*LIBRARIES
 # variables should contain _targets_, not library names/paths.
@@ -142,46 +85,16 @@ set(HDF5_NO_FIND_PACKAGE_CONFIG_FILE ON)
 find_package(HDF5 REQUIRED)
 find_package(sonata REQUIRED)
 
-set(nrn_incflags "-isystem ${sonatareport_INCLUDE_DIR}")
-get_filename_component(_report_dir "${sonatareport_LIBRARY}" DIRECTORY)
-set(nrn_loadflags "-Wl,-rpath,'${_report_dir}' '${sonatareport_LIBRARY}'")
-foreach(dir IN LISTS HDF5_INCLUDE_DIRS)
-  set(nrn_incflags "${nrn_incflags} -isystem '${dir}'")
-endforeach()
-foreach(lib IN LISTS HDF5_C_LIBRARIES)
-  get_filename_component(_lib_dir "${lib}" DIRECTORY)
-  set(nrn_loadflags "${nrn_loadflags} -Wl,-rpath,'${_lib_dir}' '${lib}'")
-endforeach()
+if(NEURODAMUS_ENABLE_CORENEURON)
+  create_nrnmech(CORENEURON SPECIAL INSTALL_MOD INSTALL_CPP MECHANISM_NAME neurodamus_${NEURODAMUS_MECHANISMS} MOD_FILES
+                 ${mod_files})
+  target_link_libraries(corenrnmech PRIVATE HDF5::HDF5 sonata::sonata_report)
+  target_link_libraries(nrnmech PRIVATE HDF5::HDF5 sonata::sonata_report)
+else()
+  create_nrnmech(SPECIAL INSTALL_MOD INSTALL_CPP neurodamus_${NEURODAMUS_MECHANISMS} MOD_FILESMOD_FILES ${mod_files})
+  target_link_libraries(nrnmech PRIVATE HDF5::HDF5 sonata::sonata_report)
+endif()
 
-configure_file(build_neurodamus.sh.in build_neurodamus.sh @ONLY)
-
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-set(nrn_loadflags "-Wl,-rpath,'${CMAKE_INSTALL_PREFIX}/lib' ${nrn_loadflags}")
-
-add_custom_target(
-  build ALL
-  "${nrnivmodl}"
-  ${_corenrn_arg}
-  -incflags
-  "${nrn_incflags}"
-  -loadflags
-  "${nrn_loadflags}"
-  "${_build_mod_dir}"
-  BYPRODUCTS ${output_binaries} ${output_libraries} ${output_cpp_files}
-  DEPENDS ${output_mod_files})
-
-install(PROGRAMS ${output_binaries}
-                 ${CMAKE_CURRENT_BINARY_DIR}/build_neurodamus.sh
-        DESTINATION bin)
-install(FILES ${output_libraries} DESTINATION lib)
 install(FILES ${input_hoc_files}
         DESTINATION share/neurodamus_${NEURODAMUS_MECHANISMS}/hoc)
-install(FILES ${output_mod_files}
-        DESTINATION share/neurodamus_${NEURODAMUS_MECHANISMS}/mod)
-install(FILES ${output_cpp_files}
-        DESTINATION share/neurodamus_${NEURODAMUS_MECHANISMS}/cpp)
 
-if(NEURODAMUS_ENABLE_CORENEURON)
-  install(FILES ${output_cpp_core_files}
-          DESTINATION share/neurodamus_${NEURODAMUS_MECHANISMS}/cpp_core)
-endif()
