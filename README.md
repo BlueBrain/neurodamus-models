@@ -1,3 +1,7 @@
+> [!WARNING]
+> The Blue Brain Project concluded in December 2024, so development has ceased under the BlueBrain GitHub organization.
+> Future development will take place at: https://github.com/openbraininstitute/neurodamus-models
+
 # neurodamus-models
 
 This repo is the aggregate repository featuring all simulation models used within the Blue
